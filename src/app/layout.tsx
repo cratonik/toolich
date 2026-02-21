@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Sora } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import { SearchProvider } from "@/components/SpotlightSearch";
+import { TabProvider } from "@/lib/tab-context";
+import { ShortcutHelp } from "@/components/ShortcutHelp";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +23,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Coming Soon | Toolich",
+  title: "Toolich — Developer Tools",
   description:
     "A platform to help you with development and day-to-day corporate work.",
 };
@@ -34,9 +37,15 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} antialiased`}
+        suppressHydrationWarning
       >
-        <Header />
-        {children}
+        <TabProvider>
+          <SearchProvider>
+            <Header />
+            {children}
+            <ShortcutHelp />
+          </SearchProvider>
+        </TabProvider>
       </body>
     </html>
   );
