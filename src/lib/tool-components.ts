@@ -1,23 +1,18 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
+import Base64Encoder from "@/tools/developers/base64-encode/Base64Encoder";
+import Base64Decoder from "@/tools/developers/base64-decode/Base64Decoder";
 
 /**
- * Registry of lazily-loaded tool components.
+ * Registry of tool components.
  * Key: `<category>/<slug>` (e.g. "developers/base64-encode")
  *
  * When adding a new tool, add an entry here alongside the tool-registry metadata.
  */
 const TOOL_COMPONENTS: Record<string, ComponentType> = {
-    "developers/base64-encode": dynamic(
-        () => import("@/tools/developers/base64-encode/Base64Encoder"),
-        { ssr: false },
-    ),
-    "developers/base64-decode": dynamic(
-        () => import("@/tools/developers/base64-decode/Base64Decoder"),
-        { ssr: false },
-    ),
+    "developers/base64-encode": Base64Encoder,
+    "developers/base64-decode": Base64Decoder,
 };
 
 /**
