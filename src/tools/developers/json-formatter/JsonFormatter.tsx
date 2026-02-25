@@ -1,20 +1,136 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { Copy, Check, Trash2, Upload, WrapText, Minimize2 } from "lucide-react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy } from "lucide-react";
+import { useSessionState } from "@/lib/use-session-state";
 
 type IndentSize = 2 | 4;
 
+// ── Syntax highlighting ─────────────────────────────────────────────────────
+type TokenType = "key" | "string" | "number" | "boolean" | "null" | "brace" | "plain";
+
+function tokenize(json: string): { text: string; type: TokenType }[] {
+    const tokens: { text: string; type: TokenType }[] = [];
+    // Match JSON tokens with a regex
+    const regex = /("(?:[^"\\]|\\.)*")\s*:/g;
+    let lastIndex = 0;
+
+    // We'll do a simpler char-by-char colorization on the string
+    // Split by lines, then colorize each segment
+    return colorizeJson(json);
+}
+
+function colorizeJson(text: string): { text: string; type: TokenType }[] {
+    const tokens: { text: string; type: TokenType }[] = [];
+    const regex = /(\"(?:[^\"\\]|\\.)*\")\s*(:)|\"(?:[^\"\\]|\\.)*\"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:\s]+/g;
+    let match;
+    let lastIndex = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+        // Add any skipped text
+        if (match.index > lastIndex) {
+            tokens.push({ text: text.slice(lastIndex, match.index), type: "plain" });
+        }
+
+        const full = match[0];
+
+        if (match[1] && match[2]) {
+            // Key: "key":
+            tokens.push({ text: match[1], type: "key" });
+            tokens.push({ text: match[2], type: "plain" });
+        } else if (full.startsWith('"')) {
+            tokens.push({ text: full, type: "string" });
+        } else if (/^-?\d/.test(full)) {
+            tokens.push({ text: full, type: "number" });
+        } else if (full === "true" || full === "false") {
+            tokens.push({ text: full, type: "boolean" });
+        } else if (full === "null") {
+            tokens.push({ text: full, type: "null" });
+        } else if (/^[{}\[\]]$/.test(full.trim())) {
+            tokens.push({ text: full, type: "brace" });
+        } else {
+            tokens.push({ text: full, type: "plain" });
+        }
+
+        lastIndex = match.index + full.length;
+    }
+
+    if (lastIndex < text.length) {
+        tokens.push({ text: text.slice(lastIndex), type: "plain" });
+    }
+
+    return tokens;
+}
+
+const TOKEN_COLORS: Record<TokenType, string> = {
+    key: "text-indigo-600 dark:text-indigo-400",
+    string: "text-emerald-600 dark:text-emerald-400",
+    number: "text-amber-600 dark:text-amber-400",
+    boolean: "text-rose-500 dark:text-rose-400",
+    null: "text-zinc-400 dark:text-zinc-500",
+    brace: "text-zinc-500 dark:text-zinc-400",
+    plain: "text-zinc-700 dark:text-zinc-300",
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export default function JsonFormatter() {
-    const [content, setContent] = useState("");
+    const [content, setContent] = useSessionState("json-formatter:content", "");
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
-    const [indent, setIndent] = useState<IndentSize>(2);
+    const [indent, setIndent] = useSessionState<IndentSize>("json-formatter:indent", 2);
+    const [autoCopy, setAutoCopy] = useSessionState("json-formatter:autocopy", false);
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const highlightRef = useRef<HTMLPreElement>(null);
+    const gutterRef = useRef<HTMLDivElement>(null);
     const isPasteRef = useRef(false);
+    const undoContentRef = useRef<string | null>(null);
+
+    // Line count
+    const lineCount = useMemo(() => {
+        if (!content) return 1;
+        return content.split("\n").length;
+    }, [content]);
+
+    // Syntax highlight tokens
+    const highlightedHtml = useMemo(() => {
+        if (!content) return "";
+        try {
+            JSON.parse(content); // only highlight valid JSON
+            const tokens = colorizeJson(content);
+            return tokens
+                .map((t) => {
+                    const escaped = t.text
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
+                })
+                .join("");
+        } catch {
+            // Invalid JSON — no highlighting, just escape text
+            return content
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+    }, [content]);
+
+    // Sync scroll between textarea and highlight overlay
+    const syncScroll = useCallback(() => {
+        if (textareaRef.current) {
+            if (highlightRef.current) {
+                highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+                highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
+            }
+            if (gutterRef.current) {
+                gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+            }
+        }
+    }, []);
 
     const prettify = useCallback(
         (text: string, spaces: IndentSize): string | null => {
@@ -54,7 +170,21 @@ export default function JsonFormatter() {
             }
         } else {
             setContent(newValue);
-            setError(null);
+            // Live validation — show error without prettifying
+            if (!newValue.trim()) {
+                setError(null);
+            } else {
+                try {
+                    JSON.parse(newValue);
+                    setError(null);
+                } catch (e) {
+                    setError(
+                        e instanceof SyntaxError
+                            ? e.message.replace("JSON.parse: ", "")
+                            : "Invalid JSON"
+                    );
+                }
+            }
         }
     };
 
@@ -81,9 +211,9 @@ export default function JsonFormatter() {
         }
     };
 
-    // Auto-copy on every content change (when it's valid JSON)
+    // Auto-copy on every content change (when enabled and valid JSON)
     useEffect(() => {
-        if (!content.trim()) return;
+        if (!autoCopy || !content.trim()) return;
         try {
             JSON.parse(content);
             navigator.clipboard
@@ -96,7 +226,7 @@ export default function JsonFormatter() {
         } catch {
             /* don't auto-copy invalid JSON */
         }
-    }, [content]);
+    }, [content, autoCopy]);
 
     const handleCopy = async () => {
         if (!content) return;
@@ -106,10 +236,31 @@ export default function JsonFormatter() {
     };
 
     const handleClear = () => {
+        undoContentRef.current = content;
         setContent("");
         setError(null);
         setFileName(null);
     };
+
+    const handleUndo = () => {
+        if (undoContentRef.current !== null) {
+            setContent(undoContentRef.current);
+            undoContentRef.current = null;
+        }
+    };
+
+    // Ctrl+Z after clear to undo
+    useEffect(() => {
+        if (undoContentRef.current === null) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "z" && !content) {
+                e.preventDefault();
+                handleUndo();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [content]);
 
     const handleFile = useCallback(
         (file: File) => {
@@ -150,7 +301,14 @@ export default function JsonFormatter() {
                         <button
                             key={size}
                             type="button"
-                            onClick={() => setIndent(size)}
+                            onClick={() => {
+                                setIndent(size);
+                                const result = prettify(content, size);
+                                if (result !== null) {
+                                    setContent(result);
+                                    setError(null);
+                                }
+                            }}
                             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${indent === size
                                 ? "bg-indigo-500 text-white shadow-sm"
                                 : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
@@ -211,26 +369,85 @@ export default function JsonFormatter() {
                     <Trash2 className="h-4 w-4" />
                     Clear
                 </button>
+
+                {/* Undo button (visible right after clear) */}
+                {!content && undoContentRef.current !== null && (
+                    <button
+                        type="button"
+                        onClick={handleUndo}
+                        className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 shadow-sm transition-all hover:border-amber-300 hover:bg-amber-100 active:scale-[0.97] dark:border-amber-600/50 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:border-amber-500 dark:hover:bg-amber-500/20"
+                    >
+                        <Undo2 className="h-4 w-4" />
+                        Undo
+                    </button>
+                )}
+
+                <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+                {/* Auto-copy toggle */}
+                <button
+                    type="button"
+                    onClick={() => setAutoCopy(!autoCopy)}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${autoCopy
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600/50 dark:bg-emerald-500/10 dark:text-emerald-400"
+                        : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                        }`}
+                    title={autoCopy ? "Auto-copy is ON" : "Auto-copy is OFF"}
+                >
+                    <ClipboardCopy className="h-3.5 w-3.5" />
+                    Auto-copy {autoCopy ? "ON" : "OFF"}
+                </button>
             </div>
 
-            {/* Textarea */}
+            {/* Editor with line numbers + syntax highlighting */}
             <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                     JSON
                 </label>
-                <textarea
-                    ref={textareaRef}
-                    value={content}
-                    onChange={handleChange}
-                    onPaste={handlePaste}
-                    placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
-                    rows={24}
-                    spellCheck={false}
-                    className={`w-full rounded-xl border p-4 font-mono text-[13px] leading-relaxed shadow-sm outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${error
-                        ? "border-red-300 bg-red-50/50 text-red-900 focus:border-red-400 focus:ring-2 focus:ring-red-500/20 dark:border-red-500/50 dark:bg-red-500/5 dark:text-red-200"
-                        : "border-zinc-200 bg-white text-zinc-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+                <div
+                    className={`relative overflow-hidden rounded-xl border shadow-sm transition-colors ${error
+                        ? "border-red-300 dark:border-red-500/50"
+                        : "border-zinc-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-700 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
                         }`}
-                />
+                >
+                    <div className="flex max-h-[600px]">
+                        {/* Line numbers gutter */}
+                        <div
+                            ref={gutterRef}
+                            className="shrink-0 select-none overflow-hidden bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:bg-zinc-900/80 dark:text-zinc-600"
+                            aria-hidden="true"
+                        >
+                            {Array.from({ length: lineCount }, (_, i) => (
+                                <div key={i}>{i + 1}</div>
+                            ))}
+                        </div>
+
+                        {/* Editor area (textarea + highlight overlay) */}
+                        <div className={`relative flex-1 overflow-auto ${error ? "bg-red-50/50 dark:bg-red-500/5" : "bg-white dark:bg-zinc-900/60"}`}>
+                            {/* Syntax highlight layer (behind textarea) */}
+                            <pre
+                                ref={highlightRef}
+                                className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words p-4 font-mono text-[13px] leading-relaxed"
+                                aria-hidden="true"
+                                dangerouslySetInnerHTML={{ __html: highlightedHtml || "&nbsp;" }}
+                            />
+
+                            {/* Transparent textarea (on top for editing) */}
+                            <textarea
+                                ref={textareaRef}
+                                value={content}
+                                onChange={handleChange}
+                                onPaste={handlePaste}
+                                onScroll={syncScroll}
+                                placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
+                                rows={24}
+                                spellCheck={false}
+                                className={`relative w-full resize-none bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content ? "text-transparent caret-zinc-800 dark:caret-zinc-200" : "text-zinc-900 dark:text-zinc-100"
+                                    }`}
+                            />
+                        </div>
+                    </div>
+                </div>
                 {/* Error message */}
                 {error && (
                     <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">

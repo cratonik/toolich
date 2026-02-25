@@ -2,10 +2,11 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Copy, Check, Trash2, AlertTriangle, Upload } from "lucide-react";
+import { useSessionState } from "@/lib/use-session-state";
 
 export default function Base64Decoder() {
-    const [input, setInput] = useState("");
-    const [output, setOutput] = useState("");
+    const [input, setInput] = useSessionState("base64-decode:input", "");
+    const [output, setOutput] = useSessionState("base64-decode:output", "");
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [dragActive, setDragActive] = useState(false);
