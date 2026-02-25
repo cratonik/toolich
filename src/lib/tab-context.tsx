@@ -5,9 +5,12 @@ import {
     useContext,
     useState,
     useCallback,
+    useEffect,
     useRef,
     type ReactNode,
 } from "react";
+import { getToolBySlug } from "@/lib/tool-registry";
+import { toolPath, categoryPath } from "@/lib/routes";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,6 +53,29 @@ const HOME_TAB: Tab = {
 };
 
 // ---------------------------------------------------------------------------
+// URL helpers
+// ---------------------------------------------------------------------------
+
+/** Derive the URL path for a tab */
+function tabToPath(tab: Tab): string {
+    if (!tab.toolSlug || !tab.category) return "/";
+    if (tab.toolSlug.startsWith("__category__/")) {
+        return categoryPath(tab.category);
+    }
+    return toolPath(tab.category, tab.toolSlug);
+}
+
+/** Parse the current pathname into { category, slug } or null for home */
+function parsePathname(pathname: string): { category: string; slug: string } | null {
+    // pathname like "/tools/developers/base64-encode"
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length >= 3 && segments[0] === "tools") {
+        return { category: segments[1], slug: segments[2] };
+    }
+    return null;
+}
+
+// ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
 
@@ -70,14 +96,87 @@ let nextTabId = 1;
 export function TabProvider({ children }: { children: ReactNode }) {
     const [tabs, setTabs] = useState<Tab[]>([HOME_TAB]);
     const [activeTabId, setActiveTabId] = useState("home");
-    // Ref mirrors tabs state so callbacks always see latest without stale closures
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
+    const activeTabIdRef = useRef(activeTabId);
+    activeTabIdRef.current = activeTabId;
+    // Prevent pushState during popstate handling
+    const skipPushRef = useRef(false);
 
-    /**
-     * Open a tool in a NEW tab.
-     * If the tool is already open, focuses that tab instead.
-     */
+    // ── Initialise from URL on mount ──
+    useEffect(() => {
+        const parsed = parsePathname(window.location.pathname);
+        if (parsed) {
+            const meta = getToolBySlug(parsed.category, parsed.slug);
+            if (meta) {
+                const id = `tab-${nextTabId++}`;
+                const newTab: Tab = {
+                    id,
+                    title: meta.name,
+                    toolSlug: meta.slug,
+                    category: meta.category,
+                };
+                setTabs([HOME_TAB, newTab]);
+                setActiveTabId(id);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Sync URL when active tab changes ──
+    useEffect(() => {
+        if (skipPushRef.current) {
+            skipPushRef.current = false;
+            return;
+        }
+        const activeTab = tabs.find((t) => t.id === activeTabId);
+        if (!activeTab) return;
+        const targetPath = tabToPath(activeTab);
+        if (window.location.pathname !== targetPath) {
+            window.history.pushState({ tabId: activeTabId }, "", targetPath);
+        }
+    }, [activeTabId, tabs]);
+
+    // ── Handle browser back/forward ──
+    useEffect(() => {
+        const onPopState = () => {
+            const parsed = parsePathname(window.location.pathname);
+            if (!parsed) {
+                // Home
+                skipPushRef.current = true;
+                setActiveTabId("home");
+                return;
+            }
+            // Find if we already have this tab open
+            const existing = tabsRef.current.find(
+                (t) => t.toolSlug === parsed.slug && t.category === parsed.category,
+            );
+            if (existing) {
+                skipPushRef.current = true;
+                setActiveTabId(existing.id);
+            } else {
+                // Open it as a new tab
+                const meta = getToolBySlug(parsed.category, parsed.slug);
+                if (meta) {
+                    const id = `tab-${nextTabId++}`;
+                    const newTab: Tab = {
+                        id,
+                        title: meta.name,
+                        toolSlug: meta.slug,
+                        category: meta.category,
+                    };
+                    skipPushRef.current = true;
+                    setTabs((prev) => [...prev, newTab]);
+                    setActiveTabId(id);
+                }
+            }
+        };
+        window.addEventListener("popstate", onPopState);
+        return () => window.removeEventListener("popstate", onPopState);
+    }, []);
+
+    // ── Tab operations ──
+
     const openTab = useCallback(
         (tool: { name: string; slug: string; category: string }) => {
             const existing = tabsRef.current.find(
@@ -100,10 +199,6 @@ export function TabProvider({ children }: { children: ReactNode }) {
         [],
     );
 
-    /**
-     * Open a tool in the CURRENT (active) tab, replacing its content.
-     * Home tab is never replaced — opens a new tab instead.
-     */
     const openInCurrentTab = useCallback(
         (tool: { name: string; slug: string; category: string }) => {
             const current = tabsRef.current;
@@ -115,8 +210,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            // Don't replace Home tab — open new tab instead
-            if (activeTabId === "home") {
+            if (activeTabIdRef.current === "home") {
                 const id = `tab-${nextTabId++}`;
                 const newTab: Tab = {
                     id,
@@ -129,10 +223,9 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            // Replace current tab content
             setTabs((prev) =>
                 prev.map((t) =>
-                    t.id === activeTabId
+                    t.id === activeTabIdRef.current
                         ? {
                             ...t,
                             title: tool.name,
@@ -143,13 +236,9 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 ),
             );
         },
-        [activeTabId],
+        [],
     );
 
-    /**
-     * Open a category listing in the current tab.
-     * Uses a special slug convention: `__category__/<category>`
-     */
     const openCategoryInCurrentTab = useCallback(
         (category: string, title: string) => {
             const slug = `__category__/${category}`;
@@ -161,7 +250,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 return;
             }
 
-            if (activeTabId === "home") {
+            if (activeTabIdRef.current === "home") {
                 const id = `tab-${nextTabId++}`;
                 setTabs((prev) => [
                     ...prev,
@@ -173,18 +262,15 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
             setTabs((prev) =>
                 prev.map((t) =>
-                    t.id === activeTabId
+                    t.id === activeTabIdRef.current
                         ? { ...t, title, toolSlug: slug, category }
                         : t,
                 ),
             );
         },
-        [activeTabId],
+        [],
     );
 
-    /**
-     * Close a tab. Cannot close Home.
-     */
     const closeTab = useCallback(
         (id: string) => {
             if (id === "home") return;
@@ -194,13 +280,13 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
             setTabs(next);
 
-            if (id === activeTabId) {
+            if (id === activeTabIdRef.current) {
                 const newActive =
                     next[Math.min(idx, next.length - 1)]?.id ?? "home";
                 setActiveTabId(newActive);
             }
         },
-        [activeTabId],
+        [],
     );
 
     const switchTab = useCallback((id: string) => {

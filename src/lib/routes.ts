@@ -16,6 +16,7 @@ export const ROUTES = {
         developers: {
             base64Encode: "/tools/developers/base64-encode",
             base64Decode: "/tools/developers/base64-decode",
+            jsonFormatter: "/tools/developers/json-formatter",
         },
     },
 } as const;
