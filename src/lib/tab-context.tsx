@@ -30,6 +30,9 @@ export type Tab = {
 type TabContextType = {
     tabs: Tab[];
     activeTabId: string;
+    splitTabId: string | null;
+    splitRatio: number;
+    maxTabs: number;
     openTab: (tool: { name: string; slug: string; category: string }) => void;
     openInCurrentTab: (tool: {
         name: string;
@@ -39,6 +42,10 @@ type TabContextType = {
     openCategoryInCurrentTab: (category: string, title: string) => void;
     closeTab: (id: string) => void;
     switchTab: (id: string) => void;
+    splitTab: (id: string) => void;
+    unsplit: () => void;
+    setSplitRatio: (ratio: number) => void;
+    reorderTab: (fromIndex: number, toIndex: number) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -51,6 +58,8 @@ const HOME_TAB: Tab = {
     toolSlug: null,
     category: null,
 };
+
+const MAX_TABS = 10;
 
 // ---------------------------------------------------------------------------
 // URL helpers
@@ -88,6 +97,39 @@ export function useTabContext(): TabContextType {
 }
 
 // ---------------------------------------------------------------------------
+// Session persistence
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEY = "toolich-tabs";
+
+type StoredState = {
+    tabs: Tab[];
+    activeTabId: string;
+    nextId: number;
+    splitTabId?: string | null;
+    splitRatio?: number;
+};
+
+function saveToSession(tabs: Tab[], activeTabId: string, splitTabId: string | null, splitRatio: number) {
+    try {
+        const state: StoredState = { tabs, activeTabId, nextId: nextTabId, splitTabId, splitRatio };
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch { /* quota exceeded — ignore */ }
+}
+
+function loadFromSession(): StoredState | null {
+    try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const state = JSON.parse(raw) as StoredState;
+        if (!Array.isArray(state.tabs) || !state.activeTabId) return null;
+        return state;
+    } catch {
+        return null;
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
@@ -96,15 +138,31 @@ let nextTabId = 1;
 export function TabProvider({ children }: { children: ReactNode }) {
     const [tabs, setTabs] = useState<Tab[]>([HOME_TAB]);
     const [activeTabId, setActiveTabId] = useState("home");
+    const [splitTabId, setSplitTabId] = useState<string | null>(null);
+    const [splitRatio, setSplitRatio] = useState(0.5);
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
     const activeTabIdRef = useRef(activeTabId);
     activeTabIdRef.current = activeTabId;
+    const splitTabIdRef = useRef(splitTabId);
+    splitTabIdRef.current = splitTabId;
     // Prevent pushState during popstate handling
     const skipPushRef = useRef(false);
 
-    // ── Initialise from URL on mount ──
+    // ── Initialise: restore from session (soft reload) or from URL (hard reload / direct link) ──
     useEffect(() => {
+        const saved = loadFromSession();
+        if (saved && saved.tabs.length > 1) {
+            // Soft reload — restore all tabs
+            nextTabId = saved.nextId;
+            setTabs(saved.tabs);
+            setActiveTabId(saved.activeTabId);
+            if (saved.splitTabId) setSplitTabId(saved.splitTabId);
+            if (saved.splitRatio) setSplitRatio(saved.splitRatio);
+            return;
+        }
+
+        // Hard reload or fresh visit — init from URL
         const parsed = parsePathname(window.location.pathname);
         if (parsed) {
             const meta = getToolBySlug(parsed.category, parsed.slug);
@@ -121,6 +179,22 @@ export function TabProvider({ children }: { children: ReactNode }) {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Persist tabs to sessionStorage on every change ──
+    useEffect(() => {
+        saveToSession(tabs, activeTabId, splitTabId, splitRatio);
+    }, [tabs, activeTabId, splitTabId, splitRatio]);
+
+    // ── Clear session on hard reload (Ctrl+Shift+R / Cmd+Shift+R) ──
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key === "r") {
+                sessionStorage.clear();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
     }, []);
 
     // ── Sync URL when active tab changes ──
@@ -193,7 +267,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 toolSlug: tool.slug,
                 category: tool.category,
             };
-            setTabs((prev) => [...prev, newTab]);
+            setTabs((prev) => {
+                if (prev.length >= MAX_TABS) return prev;
+                return [...prev, newTab];
+            });
             setActiveTabId(id);
         },
         [],
@@ -274,6 +351,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const closeTab = useCallback(
         (id: string) => {
             if (id === "home") return;
+            // Auto-unsplit if closing the split tab
+            if (id === splitTabIdRef.current) {
+                setSplitTabId(null);
+            }
             const current = tabsRef.current;
             const idx = current.findIndex((t) => t.id === id);
             const next = current.filter((t) => t.id !== id);
@@ -289,6 +370,27 @@ export function TabProvider({ children }: { children: ReactNode }) {
         [],
     );
 
+    const splitTab = useCallback((id: string) => {
+        if (id === "home") return;
+        setSplitTabId(id);
+    }, []);
+
+    const unsplit = useCallback(() => {
+        setSplitTabId(null);
+        setSplitRatio(0.5);
+    }, []);
+
+    const reorderTab = useCallback((fromIndex: number, toIndex: number) => {
+        // Don't allow moving Home tab or moving to position 0
+        if (fromIndex === 0 || toIndex === 0 || fromIndex === toIndex) return;
+        setTabs((prev) => {
+            const next = [...prev];
+            const [moved] = next.splice(fromIndex, 1);
+            next.splice(toIndex, 0, moved);
+            return next;
+        });
+    }, []);
+
     const switchTab = useCallback((id: string) => {
         setActiveTabId(id);
     }, []);
@@ -298,11 +400,18 @@ export function TabProvider({ children }: { children: ReactNode }) {
             value={{
                 tabs,
                 activeTabId,
+                splitTabId,
+                splitRatio,
+                maxTabs: MAX_TABS,
                 openTab,
                 openInCurrentTab,
                 openCategoryInCurrentTab,
                 closeTab,
                 switchTab,
+                splitTab,
+                unsplit,
+                setSplitRatio,
+                reorderTab,
             }}
         >
             {children}

@@ -5,6 +5,9 @@ import { Keyboard, X } from "lucide-react";
 
 const SHORTCUTS = [
     { keys: ["⌘", "K"], label: "Search tools", winKeys: ["Ctrl", "K"] },
+    { keys: ["⌥", "1-9"], label: "Switch tab", winKeys: ["Alt", "1-9"] },
+    { keys: ["⌥", "1-9", "W"], label: "Close tab", winKeys: ["Alt", "1-9", "W"] },
+    { keys: ["⌥", "P"], label: "Pin / unpin tab", winKeys: ["Alt", "P"] },
     { keys: ["?"], label: "Toggle shortcut help", winKeys: ["?"] },
     { keys: ["↑", "↓"], label: "Navigate search results" },
     { keys: ["↵"], label: "Select search result" },
