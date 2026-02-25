@@ -48,6 +48,13 @@ const TOOLS: ToolMeta[] = [
         category: "developers",
         keywords: ["base64", "decode", "convert", "binary"],
     },
+    {
+        name: "JSON Formatter",
+        slug: "json-formatter",
+        description: "Format, prettify, and minify JSON with validation.",
+        category: "developers",
+        keywords: ["json", "format", "prettify", "minify", "validate", "beautify"],
+    },
 ];
 
 // ---------------------------------------------------------------------------
