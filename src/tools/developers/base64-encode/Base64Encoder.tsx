@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Copy, Check, Trash2, Upload } from "lucide-react";
 
 export default function Base64Encoder() {
@@ -25,6 +25,15 @@ export default function Base64Encoder() {
             setOutput("⚠ Unable to encode input");
         }
     }, []);
+
+    // Auto-copy output to clipboard on every change
+    useEffect(() => {
+        if (!output || output.startsWith("⚠")) return;
+        navigator.clipboard.writeText(output).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        }).catch(() => { });
+    }, [output]);
 
     const handleInputChange = (value: string) => {
         setInput(value);
@@ -143,8 +152,8 @@ export default function Base64Encoder() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 text-sm transition-colors ${dragActive
-                        ? "border-indigo-400 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-500/10"
-                        : "border-zinc-300 bg-zinc-50/50 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/30 dark:hover:border-zinc-600"
+                    ? "border-indigo-400 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-500/10"
+                    : "border-zinc-300 bg-zinc-50/50 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/30 dark:hover:border-zinc-600"
                     }`}
             >
                 <Upload

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Copy, Check, Trash2, AlertTriangle, Upload } from "lucide-react";
 
 export default function Base64Decoder() {
@@ -29,6 +29,15 @@ export default function Base64Decoder() {
             setError("Invalid Base64 string. Please check your input.");
         }
     }, []);
+
+    // Auto-copy output to clipboard on every change
+    useEffect(() => {
+        if (!output) return;
+        navigator.clipboard.writeText(output).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        }).catch(() => { });
+    }, [output]);
 
     const handleInputChange = (value: string) => {
         setInput(value);
@@ -89,8 +98,8 @@ export default function Base64Decoder() {
                         placeholder="Paste your Base64 string here…"
                         rows={12}
                         className={`w-full resize-none rounded-xl border p-4 font-mono text-sm shadow-sm outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${error
-                                ? "border-red-300 bg-red-50/50 text-red-900 focus:border-red-400 focus:ring-2 focus:ring-red-500/20 dark:border-red-500/50 dark:bg-red-500/5 dark:text-red-200"
-                                : "border-zinc-200 bg-white text-zinc-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
+                            ? "border-red-300 bg-red-50/50 text-red-900 focus:border-red-400 focus:ring-2 focus:ring-red-500/20 dark:border-red-500/50 dark:bg-red-500/5 dark:text-red-200"
+                            : "border-zinc-200 bg-white text-zinc-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                             }`}
                     />
                     {/* Error message */}
@@ -159,8 +168,8 @@ export default function Base64Decoder() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed py-8 text-sm transition-colors ${dragActive
-                        ? "border-indigo-400 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-500/10"
-                        : "border-zinc-300 bg-zinc-50/50 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/30 dark:hover:border-zinc-600"
+                    ? "border-indigo-400 bg-indigo-50/50 dark:border-indigo-500 dark:bg-indigo-500/10"
+                    : "border-zinc-300 bg-zinc-50/50 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900/30 dark:hover:border-zinc-600"
                     }`}
             >
                 <Upload
