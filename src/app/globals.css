@@ -29,3 +29,48 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Unified scrollbar styling ── */
+
+/* Modern browsers (Firefox, Chrome 121+) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+:root {
+  --scrollbar-thumb: #c4c4c4;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb-hover: #a0a0a0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scrollbar-thumb: #555;
+    --scrollbar-track: transparent;
+    --scrollbar-thumb-hover: #777;
+  }
+}
+
+/* WebKit browsers (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
