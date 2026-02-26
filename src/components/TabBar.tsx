@@ -3,11 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import { Home, X, Pin } from "lucide-react";
 import { useTabContext } from "@/lib/tab-context";
+import { useToast } from "@/components/Toast";
 
 export function TabBar() {
-    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab } = useTabContext();
+    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs } = useTabContext();
+    const { showToast } = useToast();
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const dragSourceIndex = useRef<number | null>(null);
+    const warnedRef = useRef(false);
+
+    // Toast when nearing max tabs
+    useEffect(() => {
+        if (tabs.length >= 8 && !warnedRef.current) {
+            warnedRef.current = true;
+            showToast(`You have ${tabs.length} tabs open. Maximum is ${maxTabs}.`, "warning");
+        }
+        if (tabs.length < 8) {
+            warnedRef.current = false;
+        }
+    }, [tabs.length, maxTabs, showToast]);
 
     // Alt/Option + 1-9 to switch tabs, Alt + digit then W to close, Alt + P to pin/unpin
     const lastAltDigitRef = useRef<string | null>(null);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Copy, Check, Trash2, AlertTriangle, Upload } from "lucide-react";
+import { Copy, Check, Trash2, AlertTriangle, Upload, Undo2 } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
 export default function Base64Decoder() {
@@ -12,6 +12,7 @@ export default function Base64Decoder() {
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const undoRef = useRef<{ input: string; output: string } | null>(null);
 
     const decode = useCallback((text: string) => {
         if (!text.trim()) {
@@ -78,11 +79,33 @@ export default function Base64Decoder() {
     };
 
     const handleClear = () => {
+        undoRef.current = { input, output };
         setInput("");
         setOutput("");
         setError(null);
         setFileName(null);
     };
+
+    const handleUndo = () => {
+        if (undoRef.current) {
+            setInput(undoRef.current.input);
+            setOutput(undoRef.current.output);
+            undoRef.current = null;
+        }
+    };
+
+    // Ctrl+Z after clear to undo
+    useEffect(() => {
+        if (!undoRef.current) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "z" && !input && !output) {
+                e.preventDefault();
+                handleUndo();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [input, output]);
 
     return (
         <div className="space-y-6">
@@ -157,6 +180,18 @@ export default function Base64Decoder() {
                     <Trash2 className="h-4 w-4" />
                     Clear
                 </button>
+
+                {/* Undo button (visible right after clear) */}
+                {!input && !output && undoRef.current !== null && (
+                    <button
+                        type="button"
+                        onClick={handleUndo}
+                        className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 shadow-sm transition-all hover:border-amber-300 hover:bg-amber-100 active:scale-[0.97] dark:border-amber-600/50 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:border-amber-500 dark:hover:bg-amber-500/20"
+                    >
+                        <Undo2 className="h-4 w-4" />
+                        Undo
+                    </button>
+                )}
             </div>
 
             {/* File drop zone */}

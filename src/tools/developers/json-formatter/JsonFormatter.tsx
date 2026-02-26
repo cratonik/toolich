@@ -9,17 +9,6 @@ type IndentSize = 2 | 4;
 // ── Syntax highlighting ─────────────────────────────────────────────────────
 type TokenType = "key" | "string" | "number" | "boolean" | "null" | "brace" | "plain";
 
-function tokenize(json: string): { text: string; type: TokenType }[] {
-    const tokens: { text: string; type: TokenType }[] = [];
-    // Match JSON tokens with a regex
-    const regex = /("(?:[^"\\]|\\.)*")\s*:/g;
-    let lastIndex = 0;
-
-    // We'll do a simpler char-by-char colorization on the string
-    // Split by lines, then colorize each segment
-    return colorizeJson(json);
-}
-
 function colorizeJson(text: string): { text: string; type: TokenType }[] {
     const tokens: { text: string; type: TokenType }[] = [];
     const regex = /(\"(?:[^\"\\]|\\.)*\")\s*(:)|\"(?:[^\"\\]|\\.)*\"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:\s]+/g;
@@ -439,6 +428,11 @@ export default function JsonFormatter() {
                                 onChange={handleChange}
                                 onPaste={handlePaste}
                                 onScroll={syncScroll}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Escape") {
+                                        e.currentTarget.blur();
+                                    }
+                                }}
                                 placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
                                 rows={24}
                                 spellCheck={false}

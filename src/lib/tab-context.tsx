@@ -9,8 +9,9 @@ import {
     useRef,
     type ReactNode,
 } from "react";
-import { getToolBySlug } from "@/lib/tool-registry";
+import { getToolBySlug, getToolsByCategory } from "@/lib/tool-registry";
 import { toolPath, categoryPath } from "@/lib/routes";
+import { trackToolUsage } from "@/lib/recent-tools";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,13 +40,14 @@ type TabContextType = {
         slug: string;
         category: string;
     }) => void;
-    openCategoryInCurrentTab: (category: string, title: string) => void;
+    openCategoryInCurrentTab: (category: string, title: string) => boolean;
     closeTab: (id: string) => void;
     switchTab: (id: string) => void;
     splitTab: (id: string) => void;
     unsplit: () => void;
     setSplitRatio: (ratio: number) => void;
     reorderTab: (fromIndex: number, toIndex: number) => void;
+    goHome: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -258,8 +260,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
             );
             if (existing) {
                 setActiveTabId(existing.id);
+                trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
                 return;
             }
+            if (tabsRef.current.length >= MAX_TABS) return false;
             const id = `tab-${nextTabId++}`;
             const newTab: Tab = {
                 id,
@@ -272,6 +276,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 return [...prev, newTab];
             });
             setActiveTabId(id);
+            trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
         },
         [],
     );
@@ -284,10 +289,12 @@ export function TabProvider({ children }: { children: ReactNode }) {
             );
             if (existing) {
                 setActiveTabId(existing.id);
+                trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
                 return;
             }
 
             if (activeTabIdRef.current === "home") {
+                if (current.length >= MAX_TABS) return;
                 const id = `tab-${nextTabId++}`;
                 const newTab: Tab = {
                     id,
@@ -297,6 +304,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 };
                 setTabs((prev) => [...prev, newTab]);
                 setActiveTabId(id);
+                trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
                 return;
             }
 
@@ -312,29 +320,38 @@ export function TabProvider({ children }: { children: ReactNode }) {
                         : t,
                 ),
             );
+            trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
         },
         [],
     );
 
     const openCategoryInCurrentTab = useCallback(
-        (category: string, title: string) => {
+        (category: string, title: string): boolean => {
+            // Block empty categories (but always allow __all__)
+            if (category !== "__all__") {
+                const tools = getToolsByCategory(category);
+                if (tools.length === 0) return false;
+            }
+
             const slug = `__category__/${category}`;
             const current = tabsRef.current;
 
             const existing = current.find((t) => t.toolSlug === slug);
             if (existing) {
                 setActiveTabId(existing.id);
-                return;
+                return true;
             }
 
             if (activeTabIdRef.current === "home") {
-                const id = `tab-${nextTabId++}`;
-                setTabs((prev) => [
-                    ...prev,
-                    { id, title, toolSlug: slug, category },
-                ]);
-                setActiveTabId(id);
-                return;
+                // Replace home tab content with the category, keep title as Home
+                setTabs((prev) =>
+                    prev.map((t) =>
+                        t.id === "home"
+                            ? { ...t, toolSlug: slug, category }
+                            : t,
+                    ),
+                );
+                return true;
             }
 
             setTabs((prev) =>
@@ -344,6 +361,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                         : t,
                 ),
             );
+            return true;
         },
         [],
     );
@@ -365,6 +383,17 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 const newActive =
                     next[Math.min(idx, next.length - 1)]?.id ?? "home";
                 setActiveTabId(newActive);
+
+                // If falling back to home from a different tab, reset home to default view
+                if (newActive === "home") {
+                    setTabs((prev) =>
+                        prev.map((t) =>
+                            t.id === "home"
+                                ? { ...t, title: "Home", toolSlug: null, category: null }
+                                : t,
+                        ),
+                    );
+                }
             }
         },
         [],
@@ -393,6 +422,27 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     const switchTab = useCallback((id: string) => {
         setActiveTabId(id);
+        // Reset home tab to default view when switching to it
+        if (id === "home") {
+            setTabs((prev) =>
+                prev.map((t) =>
+                    t.id === "home"
+                        ? { ...t, title: "Home", toolSlug: null, category: null }
+                        : t,
+                ),
+            );
+        }
+    }, []);
+
+    const goHome = useCallback(() => {
+        setTabs((prev) =>
+            prev.map((t) =>
+                t.id === "home"
+                    ? { ...t, title: "Home", toolSlug: null, category: null }
+                    : t,
+            ),
+        );
+        setActiveTabId("home");
     }, []);
 
     return (
@@ -412,6 +462,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 unsplit,
                 setSplitRatio,
                 reorderTab,
+                goHome,
             }}
         >
             {children}

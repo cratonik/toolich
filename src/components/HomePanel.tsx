@@ -1,8 +1,11 @@
 "use client";
 
-import { Code, Server, Shield, Network, BarChart3 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Code, Server, Shield, Network, BarChart3, LayoutGrid } from "lucide-react";
 import { ToolCategoryCard } from "@/components/ToolCategoryCard";
-import { RecentToolPill } from "@/components/RecentToolPill";
+import { getRecentTools } from "@/lib/recent-tools";
+import { allTools } from "@/lib/tool-registry";
+import { useTabContext } from "@/lib/tab-context";
 import type { LucideIcon } from "lucide-react";
 
 type ToolCategory = {
@@ -12,7 +15,7 @@ type ToolCategory = {
     icon: LucideIcon;
     iconClassName: string;
     cardClassName?: string;
-    glowColor?: "indigo" | "emerald" | "rose" | "violet" | "amber" | "zinc";
+    glowColor?: "indigo" | "emerald" | "rose" | "violet" | "amber" | "cyan" | "zinc";
     categorySlug: string;
 };
 
@@ -65,20 +68,34 @@ const TOOL_CATEGORIES: ToolCategory[] = [
         icon: BarChart3,
         iconClassName:
             "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-        cardClassName: "md:col-span-2",
         glowColor: "amber",
         categorySlug: "managers",
     },
+    {
+        title: "All Tools",
+        description: "Browse every tool across all categories in one place.",
+        tags: allTools.map((t) => t.name).slice(0, 4),
+        icon: LayoutGrid,
+        iconClassName:
+            "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+        glowColor: "cyan",
+        categorySlug: "__all__",
+    },
 ];
 
-const RECENT_TOOLS: string[] = [
-    "JSON Formatter",
-    "UUID Generator",
-    "Base64 Encode",
-    "JWT Decoder",
-];
+// New tools (added within last 30 days — update this list as you ship tools)
+const NEW_TOOL_SLUGS = ["json-formatter", "base64-encode", "base64-decode"];
 
 export default function HomePanel() {
+    const [recentTools, setRecentTools] = useState<{ name: string; slug: string; category: string }[]>([]);
+    const { openTab } = useTabContext();
+
+    useEffect(() => {
+        setRecentTools(getRecentTools());
+    }, []);
+
+    const newTools = allTools.filter((t) => NEW_TOOL_SLUGS.includes(t.slug));
+
     return (
         <div className="space-y-10">
             {/* Hero */}
@@ -120,17 +137,48 @@ export default function HomePanel() {
                 )}
             </section>
 
+            {/* New tools */}
+            {newTools.length > 0 && (
+                <section className="space-y-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                        ✨ Recently added
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                        {newTools.map((tool) => (
+                            <button
+                                key={tool.slug}
+                                type="button"
+                                onClick={() => openTab(tool)}
+                                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 shadow-sm transition-colors hover:border-emerald-300 hover:text-emerald-800 dark:border-emerald-600/30 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:border-emerald-500/50 dark:hover:text-emerald-300"
+                            >
+                                <span className="text-[10px]">✦</span>
+                                {tool.name}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {/* Recently used */}
-            <section className="space-y-3">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
-                    Recently used
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                    {RECENT_TOOLS.map((label) => (
-                        <RecentToolPill key={label} label={label} />
-                    ))}
-                </div>
-            </section>
+            {recentTools.length > 0 && (
+                <section className="space-y-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                        Recently used
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                        {recentTools.map((tool) => (
+                            <button
+                                key={tool.slug}
+                                type="button"
+                                onClick={() => openTab(tool)}
+                                className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 shadow-sm transition-colors hover:border-zinc-300 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-200"
+                            >
+                                {tool.name}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Footer */}
             <footer className="flex flex-col items-center justify-between gap-4 border-t border-zinc-200 pt-6 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400 sm:flex-row">

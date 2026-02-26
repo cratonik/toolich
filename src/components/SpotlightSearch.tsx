@@ -230,13 +230,33 @@ function Modal() {
             </div>
           )}
 
-          {/* Empty state */}
+          {/* All tools (empty state) */}
           {!query && (
-            <div className="border-t border-zinc-200/50 px-6 py-8 dark:border-zinc-700/50">
-              <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
-                Start typing to search {allTools.length} tool
-                {allTools.length !== 1 ? "s" : ""}…
-              </p>
+            <div className="border-t border-zinc-200/50 dark:border-zinc-700/50">
+              <div className="px-6 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                All tools
+              </div>
+              <ul className="max-h-64 overflow-y-auto pb-2">
+                {allTools.map((tool, i) => (
+                  <li key={tool.slug}>
+                    <button
+                      type="button"
+                      onClick={() => navigateToTool(tool)}
+                      className="flex w-full items-center justify-between px-6 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    >
+                      <div>
+                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          {tool.name}
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {CATEGORY_LABELS[tool.category] ?? tool.category}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

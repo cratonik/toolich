@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import { SearchProvider } from "@/components/SpotlightSearch";
 import { TabProvider } from "@/lib/tab-context";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
+import { ToastProvider } from "@/components/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,9 +42,11 @@ export default function RootLayout({
       >
         <TabProvider>
           <SearchProvider>
-            <Header />
-            {children}
-            <ShortcutHelp />
+            <ToastProvider>
+              <Header />
+              {children}
+              <ShortcutHelp />
+            </ToastProvider>
           </SearchProvider>
         </TabProvider>
       </body>

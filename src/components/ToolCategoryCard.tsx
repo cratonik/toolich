@@ -3,6 +3,8 @@
 import type { LucideIcon } from "lucide-react";
 import { TagPill } from "./TagPill";
 import { useTabContext } from "@/lib/tab-context";
+import { getToolsByCategory } from "@/lib/tool-registry";
+import { useToast } from "@/components/Toast";
 
 type ToolCategoryCardProps = {
   title: string;
@@ -26,6 +28,10 @@ export function ToolCategoryCard({
   categorySlug,
 }: ToolCategoryCardProps) {
   const { openCategoryInCurrentTab } = useTabContext();
+  const { showToast } = useToast();
+  const isAllTools = categorySlug === "__all__";
+  const tools = isAllTools ? [] : getToolsByCategory(categorySlug);
+  const isEmpty = !isAllTools && tools.length === 0;
 
   const glowClasses = {
     indigo: "hover:shadow-indigo-500/20 hover:ring-1 hover:ring-indigo-500/20",
@@ -35,11 +41,16 @@ export function ToolCategoryCard({
     violet:
       "hover:shadow-violet-500/20 hover:ring-1 hover:ring-violet-500/20",
     amber: "hover:shadow-amber-500/20 hover:ring-1 hover:ring-amber-500/20",
+    cyan: "hover:shadow-cyan-500/20 hover:ring-1 hover:ring-cyan-500/20",
     zinc: "hover:shadow-zinc-500/20 hover:ring-1 hover:ring-zinc-500/20",
   };
 
   const handleClick = () => {
-    openCategoryInCurrentTab(categorySlug, `${title} Tools`);
+    if (isEmpty) {
+      showToast(`No tools available in ${title} yet. Coming soon!`, "warning");
+      return;
+    }
+    openCategoryInCurrentTab(categorySlug, isAllTools ? "All Tools" : `${title} Tools`);
   };
 
   return (
@@ -55,10 +66,17 @@ export function ToolCategoryCard({
         >
           <Icon className="h-5 w-5" />
         </div>
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            {title}
-          </h2>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              {title}
+            </h2>
+            {isEmpty && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium leading-none text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                Coming soon
+              </span>
+            )}
+          </div>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {description}
           </p>
@@ -72,3 +90,4 @@ export function ToolCategoryCard({
     </button>
   );
 }
+
