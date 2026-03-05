@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree } from "lucide-react";
-import { JsonViewer } from "@textea/json-viewer";
 import { useSessionState } from "@/lib/use-session-state";
 
 type IndentSize = 2 | 4;
@@ -62,6 +61,205 @@ const TOKEN_COLORS: Record<TokenType, string> = {
     plain: "text-zinc-700 dark:text-zinc-300",
 };
 
+// ── JSON tree view (stack.hu-style: triangle toggles, indented rows) ─────────
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+function isObject(value: unknown): value is { [key: string]: JsonValue } {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isArray(value: unknown): value is JsonValue[] {
+    return Array.isArray(value);
+}
+
+const TREE_INDENT = 18; // px per depth level
+
+type JsonTreeNodeProps = {
+    name?: string;
+    index?: number;
+    value: JsonValue;
+    depth: number;
+    isLast?: boolean;
+};
+
+function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNodeProps) {
+    const [collapsed, setCollapsed] = useState(depth > 0);
+    const isCollapsible = isObject(value) || isArray(value);
+
+    const toggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isCollapsible) setCollapsed((prev) => !prev);
+    };
+
+    const indentPx = depth * TREE_INDENT;
+    const rowClass =
+        "flex items-center gap-0.5 min-h-[22px] px-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800/80 cursor-default";
+    const comma = isLast ? "" : <span className={TOKEN_COLORS.plain}>,</span>;
+
+    // Triangle toggle (stack.hu style)
+    const Toggle = () =>
+        isCollapsible ? (
+            <button
+                type="button"
+                onClick={toggle}
+                className="shrink-0 w-4 h-4 flex items-center justify-center text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded"
+                aria-label={collapsed ? "Expand" : "Collapse"}
+            >
+                <span className="text-[10px] leading-none">{collapsed ? "\u25B6" : "\u25BC"}</span>
+            </button>
+        ) : (
+            <span className="w-4 shrink-0 inline-block" aria-hidden />
+        );
+
+    if (isObject(value)) {
+        const entries = Object.entries(value);
+        const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Object</span> : null;
+        return (
+            <div className="select-text">
+                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                    <Toggle />
+                    {name != null && (
+                        <>
+                            <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            <span className={TOKEN_COLORS.plain}>: </span>
+                        </>
+                    )}
+                    {depth === 0 && rootLabel}
+                    {depth === 0 && rootLabel && "\u00A0"}
+                    <span className={TOKEN_COLORS.brace}>{"{"}</span>
+                    {collapsed && entries.length > 0 && (
+                        <span className="text-zinc-400 dark:text-zinc-500 text-xs">
+                            {" "}
+                            {entries.length} key{entries.length !== 1 ? "s" : ""}
+                        </span>
+                    )}
+                    {collapsed && comma}
+                </div>
+                {!collapsed && entries.length > 0 && (
+                    <>
+                        {entries.map(([key, child], i) => (
+                            <JsonTreeNode
+                                key={key}
+                                name={key}
+                                value={child}
+                                depth={depth + 1}
+                                isLast={i === entries.length - 1}
+                            />
+                        ))}
+                        <div className={rowClass} style={{ marginLeft: indentPx }}>
+                            <span className="w-4 shrink-0" />
+                            <span className={TOKEN_COLORS.brace}>{"}"}</span>
+                            {!isLast && <span className={TOKEN_COLORS.plain}>,</span>}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+
+    if (isArray(value)) {
+        const len = value.length;
+        const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Array</span> : null;
+        return (
+            <div className="select-text">
+                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                    <Toggle />
+                    {index !== undefined && (
+                        <>
+                            <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                            <span className={TOKEN_COLORS.plain}>: </span>
+                        </>
+                    )}
+                    {name != null && (
+                        <>
+                            <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            <span className={TOKEN_COLORS.plain}>: </span>
+                        </>
+                    )}
+                    {depth === 0 && rootLabel}
+                    {depth === 0 && rootLabel && "\u00A0"}
+                    <span className={TOKEN_COLORS.brace}>{"["}</span>
+                    {collapsed && len > 0 && (
+                        <span className="text-zinc-400 dark:text-zinc-500 text-xs">
+                            {" "}
+                            {len} item{len !== 1 ? "s" : ""}
+                        </span>
+                    )}
+                    {collapsed && comma}
+                </div>
+                {!collapsed && len > 0 && (
+                    <>
+                        {value.map((child, i) => (
+                            <JsonTreeNode
+                                key={i}
+                                index={i}
+                                value={child}
+                                depth={depth + 1}
+                                isLast={i === len - 1}
+                            />
+                        ))}
+                        <div className={rowClass} style={{ marginLeft: indentPx }}>
+                            <span className="w-4 shrink-0" />
+                            <span className={TOKEN_COLORS.brace}>{"]"}</span>
+                            {!isLast && <span className={TOKEN_COLORS.plain}>,</span>}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+
+    let primitiveDisplay: string;
+    let primitiveClass: string;
+    switch (typeof value) {
+        case "string":
+            primitiveDisplay = `"${value}"`;
+            primitiveClass = TOKEN_COLORS.string;
+            break;
+        case "number":
+            primitiveDisplay = String(value);
+            primitiveClass = TOKEN_COLORS.number;
+            break;
+        case "boolean":
+            primitiveDisplay = value ? "true" : "false";
+            primitiveClass = TOKEN_COLORS.boolean;
+            break;
+        default:
+            primitiveDisplay = "null";
+            primitiveClass = TOKEN_COLORS.null;
+    }
+
+    return (
+        <div className={rowClass} style={{ marginLeft: indentPx }}>
+            <Toggle />
+            {index !== undefined && (
+                <>
+                    <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                    <span className={TOKEN_COLORS.plain}>: </span>
+                </>
+            )}
+            {name != null && (
+                <>
+                    <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                    <span className={TOKEN_COLORS.plain}>: </span>
+                </>
+            )}
+            <span className={primitiveClass}>{primitiveDisplay}</span>
+            {comma}
+        </div>
+    );
+}
+
+function JsonTree({ value }: { value: JsonValue }) {
+    return (
+        <div className="font-mono text-[13px] leading-snug text-zinc-800 dark:text-zinc-100 py-1">
+            <JsonTreeNode value={value} depth={0} />
+        </div>
+    );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function JsonFormatter() {
@@ -73,7 +271,6 @@ export default function JsonFormatter() {
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const [showTree, setShowTree] = useState(false);
-    const [isDark, setIsDark] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
@@ -82,7 +279,7 @@ export default function JsonFormatter() {
     const undoContentRef = useRef<string | null>(null);
 
     // Parsed JSON for tree view (only when valid)
-    const parsedJson = useMemo<unknown | null>(() => {
+    const parsedJson = useMemo<JsonValue | null>(() => {
         if (!content.trim()) return null;
         try {
             return JSON.parse(content);
@@ -90,21 +287,6 @@ export default function JsonFormatter() {
             return null;
         }
     }, [content]);
-
-    // Track system dark mode for JsonViewer theming
-    useEffect(() => {
-        if (typeof window === "undefined" || !window.matchMedia) return;
-        const mq = window.matchMedia("(prefers-color-scheme: dark)");
-
-        const update = () => {
-            setIsDark(mq.matches);
-        };
-
-        update();
-
-        mq.addEventListener("change", update);
-        return () => mq.removeEventListener("change", update);
-    }, []);
 
     // Line count
     const lineCount = useMemo(() => {
@@ -431,22 +613,9 @@ export default function JsonFormatter() {
                     {treeMode ? "Tree view" : "JSON"}
                 </label>
 
-                {treeMode ? (
-                    <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/80">
-                        <JsonViewer
-                            value={parsedJson}
-                            rootName={false}
-                            displayDataTypes={false}
-                            defaultInspectDepth={2}
-                            enableClipboard={false}
-                            theme={isDark ? "dark" : "light"}
-                            style={{
-                                backgroundColor: "transparent",
-                                fontSize: 13,
-                                color: isDark ? "#e5e5e5" : "#111827",
-                                lineHeight: 1.6,
-                            }}
-                        />
+                {treeMode && parsedJson ? (
+                    <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90">
+                        <JsonTree value={parsedJson} />
                     </div>
                 ) : (
                     <>
