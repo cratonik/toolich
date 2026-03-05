@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy } from "lucide-react";
+import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
 type IndentSize = 2 | 4;
@@ -61,6 +61,205 @@ const TOKEN_COLORS: Record<TokenType, string> = {
     plain: "text-zinc-700 dark:text-zinc-300",
 };
 
+// ── JSON tree view (stack.hu-style: triangle toggles, indented rows) ─────────
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+function isObject(value: unknown): value is { [key: string]: JsonValue } {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isArray(value: unknown): value is JsonValue[] {
+    return Array.isArray(value);
+}
+
+const TREE_INDENT = 18; // px per depth level
+
+type JsonTreeNodeProps = {
+    name?: string;
+    index?: number;
+    value: JsonValue;
+    depth: number;
+    isLast?: boolean;
+};
+
+function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNodeProps) {
+    const [collapsed, setCollapsed] = useState(depth > 0);
+    const isCollapsible = isObject(value) || isArray(value);
+
+    const toggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isCollapsible) setCollapsed((prev) => !prev);
+    };
+
+    const indentPx = depth * TREE_INDENT;
+    const rowClass =
+        "flex items-center gap-0.5 min-h-[22px] px-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800/80 cursor-default";
+    const comma = isLast ? "" : <span className={TOKEN_COLORS.plain}>,</span>;
+
+    // Triangle toggle (stack.hu style)
+    const Toggle = () =>
+        isCollapsible ? (
+            <button
+                type="button"
+                onClick={toggle}
+                className="shrink-0 w-4 h-4 flex items-center justify-center text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 rounded"
+                aria-label={collapsed ? "Expand" : "Collapse"}
+            >
+                <span className="text-[10px] leading-none">{collapsed ? "\u25B6" : "\u25BC"}</span>
+            </button>
+        ) : (
+            <span className="w-4 shrink-0 inline-block" aria-hidden />
+        );
+
+    if (isObject(value)) {
+        const entries = Object.entries(value);
+        const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Object</span> : null;
+        return (
+            <div className="select-text">
+                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                    <Toggle />
+                    {name != null && (
+                        <>
+                            <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            <span className={TOKEN_COLORS.plain}>: </span>
+                        </>
+                    )}
+                    {depth === 0 && rootLabel}
+                    {depth === 0 && rootLabel && "\u00A0"}
+                    <span className={TOKEN_COLORS.brace}>{"{"}</span>
+                    {collapsed && entries.length > 0 && (
+                        <span className="text-zinc-400 dark:text-zinc-500 text-xs">
+                            {" "}
+                            {entries.length} key{entries.length !== 1 ? "s" : ""}
+                        </span>
+                    )}
+                    {collapsed && comma}
+                </div>
+                {!collapsed && entries.length > 0 && (
+                    <>
+                        {entries.map(([key, child], i) => (
+                            <JsonTreeNode
+                                key={key}
+                                name={key}
+                                value={child}
+                                depth={depth + 1}
+                                isLast={i === entries.length - 1}
+                            />
+                        ))}
+                        <div className={rowClass} style={{ marginLeft: indentPx }}>
+                            <span className="w-4 shrink-0" />
+                            <span className={TOKEN_COLORS.brace}>{"}"}</span>
+                            {!isLast && <span className={TOKEN_COLORS.plain}>,</span>}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+
+    if (isArray(value)) {
+        const len = value.length;
+        const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Array</span> : null;
+        return (
+            <div className="select-text">
+                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                    <Toggle />
+                    {index !== undefined && (
+                        <>
+                            <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                            <span className={TOKEN_COLORS.plain}>: </span>
+                        </>
+                    )}
+                    {name != null && (
+                        <>
+                            <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            <span className={TOKEN_COLORS.plain}>: </span>
+                        </>
+                    )}
+                    {depth === 0 && rootLabel}
+                    {depth === 0 && rootLabel && "\u00A0"}
+                    <span className={TOKEN_COLORS.brace}>{"["}</span>
+                    {collapsed && len > 0 && (
+                        <span className="text-zinc-400 dark:text-zinc-500 text-xs">
+                            {" "}
+                            {len} item{len !== 1 ? "s" : ""}
+                        </span>
+                    )}
+                    {collapsed && comma}
+                </div>
+                {!collapsed && len > 0 && (
+                    <>
+                        {value.map((child, i) => (
+                            <JsonTreeNode
+                                key={i}
+                                index={i}
+                                value={child}
+                                depth={depth + 1}
+                                isLast={i === len - 1}
+                            />
+                        ))}
+                        <div className={rowClass} style={{ marginLeft: indentPx }}>
+                            <span className="w-4 shrink-0" />
+                            <span className={TOKEN_COLORS.brace}>{"]"}</span>
+                            {!isLast && <span className={TOKEN_COLORS.plain}>,</span>}
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+
+    let primitiveDisplay: string;
+    let primitiveClass: string;
+    switch (typeof value) {
+        case "string":
+            primitiveDisplay = `"${value}"`;
+            primitiveClass = TOKEN_COLORS.string;
+            break;
+        case "number":
+            primitiveDisplay = String(value);
+            primitiveClass = TOKEN_COLORS.number;
+            break;
+        case "boolean":
+            primitiveDisplay = value ? "true" : "false";
+            primitiveClass = TOKEN_COLORS.boolean;
+            break;
+        default:
+            primitiveDisplay = "null";
+            primitiveClass = TOKEN_COLORS.null;
+    }
+
+    return (
+        <div className={rowClass} style={{ marginLeft: indentPx }}>
+            <Toggle />
+            {index !== undefined && (
+                <>
+                    <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                    <span className={TOKEN_COLORS.plain}>: </span>
+                </>
+            )}
+            {name != null && (
+                <>
+                    <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                    <span className={TOKEN_COLORS.plain}>: </span>
+                </>
+            )}
+            <span className={primitiveClass}>{primitiveDisplay}</span>
+            {comma}
+        </div>
+    );
+}
+
+function JsonTree({ value }: { value: JsonValue }) {
+    return (
+        <div className="font-mono text-[13px] leading-snug text-zinc-800 dark:text-zinc-100 py-1">
+            <JsonTreeNode value={value} depth={0} />
+        </div>
+    );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function JsonFormatter() {
@@ -71,12 +270,23 @@ export default function JsonFormatter() {
     const [autoCopy, setAutoCopy] = useSessionState("json-formatter:autocopy", false);
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
+    const [showTree, setShowTree] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const isPasteRef = useRef(false);
     const undoContentRef = useRef<string | null>(null);
+
+    // Parsed JSON for tree view (only when valid)
+    const parsedJson = useMemo<JsonValue | null>(() => {
+        if (!content.trim()) return null;
+        try {
+            return JSON.parse(content);
+        } catch {
+            return null;
+        }
+    }, [content]);
 
     // Line count
     const lineCount = useMemo(() => {
@@ -269,6 +479,8 @@ export default function JsonFormatter() {
         [handleFile]
     );
 
+    const treeMode = showTree && !!parsedJson;
+
     return (
         <div className="space-y-5">
             {/* Action buttons */}
@@ -279,6 +491,7 @@ export default function JsonFormatter() {
                         <button
                             key={size}
                             type="button"
+                            disabled={treeMode}
                             onClick={() => {
                                 setIndent(size);
                                 const result = prettify(content, size);
@@ -287,10 +500,11 @@ export default function JsonFormatter() {
                                     setError(null);
                                 }
                             }}
-                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${indent === size
-                                ? "bg-indigo-500 text-white shadow-sm"
-                                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                                }`}
+                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                                indent === size
+                                    ? "bg-indigo-500 text-white shadow-sm"
+                                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                            } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
                         >
                             {size} spaces
                         </button>
@@ -302,7 +516,7 @@ export default function JsonFormatter() {
                 <button
                     type="button"
                     onClick={handlePrettify}
-                    disabled={!content}
+                    disabled={!content || treeMode}
                     className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
                 >
                     <WrapText className="h-4 w-4" />
@@ -312,7 +526,7 @@ export default function JsonFormatter() {
                 <button
                     type="button"
                     onClick={handleMinify}
-                    disabled={!content}
+                    disabled={!content || treeMode}
                     className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition-all hover:border-zinc-300 hover:bg-zinc-50 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
                 >
                     <Minimize2 className="h-4 w-4" />
@@ -366,91 +580,115 @@ export default function JsonFormatter() {
                 <button
                     type="button"
                     onClick={() => setAutoCopy(!autoCopy)}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${autoCopy
+                    disabled={treeMode}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                        autoCopy
                         ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600/50 dark:bg-emerald-500/10 dark:text-emerald-400"
                         : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
-                        }`}
+                    } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
                     title={autoCopy ? "Auto-copy is ON" : "Auto-copy is OFF"}
                 >
                     <ClipboardCopy className="h-3.5 w-3.5" />
                     Auto-copy {autoCopy ? "ON" : "OFF"}
                 </button>
-            </div>
 
-            {/* Editor with line numbers + syntax highlighting */}
-            <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    JSON
-                </label>
-                <div
-                    className={`relative overflow-hidden rounded-xl border shadow-sm transition-colors ${error
-                        ? "border-red-300 dark:border-red-500/50"
-                        : "border-zinc-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-700 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
+                {/* Tree view toggle */}
+                <button
+                    type="button"
+                    onClick={() => setShowTree((prev) => !prev)}
+                    disabled={!parsedJson}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-40 ${showTree
+                        ? "border-indigo-400 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-300"
+                        : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
                         }`}
                 >
-                    {/* Single scroll container for gutter + editor */}
-                    <div
-                        ref={scrollContainerRef}
-                        className="flex min-h-[300px] max-h-[70vh] overflow-auto"
-                    >
-                        {/* Line numbers gutter */}
-                        <div
-                            className="shrink-0 self-start select-none bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:bg-zinc-900/80 dark:text-zinc-600"
-                            aria-hidden="true"
-                        >
-                            {Array.from({ length: lineCount }, (_, i) => (
-                                <div key={i}>{i + 1}</div>
-                            ))}
-                        </div>
+                    <ListTree className="h-3.5 w-3.5" />
+                    {showTree ? "Hide tree view" : "Show tree view"}
+                </button>
+            </div>
 
-                        {/* Editor area (textarea + highlight overlay) */}
+            {/* Editor / tree area (single panel to avoid scrolling) */}
+            <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    {treeMode ? "Tree view" : "JSON"}
+                </label>
+
+                {treeMode && parsedJson ? (
+                    <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90">
+                        <JsonTree value={parsedJson} />
+                    </div>
+                ) : (
+                    <>
                         <div
-                            className={`flex-1 ${error
-                                ? "bg-red-50/50 dark:bg-red-500/5"
-                                : "bg-white dark:bg-zinc-900/60"
+                            className={`relative overflow-hidden rounded-xl border shadow-sm transition-colors ${error
+                                ? "border-red-300 dark:border-red-500/50"
+                                : "border-zinc-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-700 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
                                 }`}
                         >
-                            {/* Grid overlay: pre + textarea share the same cell */}
-                            <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
-                                {/* Syntax highlight layer (behind textarea) */}
-                                <pre
-                                    ref={highlightRef}
-                                    className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
+                            {/* Single scroll container for gutter + editor */}
+                            <div
+                                ref={scrollContainerRef}
+                                className={`flex min-h-[300px] max-h-[70vh] overflow-auto ${error
+                                    ? "bg-red-50/50 dark:bg-red-500/5"
+                                    : "bg-white dark:bg-zinc-900"
+                                    }`}
+                            >
+                                {/* Line numbers gutter */}
+                                <div
+                                    className="shrink-0 self-start select-none border-r border-zinc-100 bg-zinc-100 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
                                     aria-hidden="true"
-                                    dangerouslySetInnerHTML={{
-                                        __html: highlightedHtml || "&nbsp;",
-                                    }}
-                                />
+                                >
+                                    {Array.from({ length: lineCount }, (_, i) => (
+                                        <div key={i}>{i + 1}</div>
+                                    ))}
+                                </div>
 
-                                {/* Transparent textarea (on top for editing) */}
-                                <textarea
-                                    ref={textareaRef}
-                                    value={content}
-                                    onChange={handleChange}
-                                    onPaste={handlePaste}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Escape") {
-                                            e.currentTarget.blur();
-                                        }
-                                    }}
-                                    placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
-                                    wrap="off"
-                                    spellCheck={false}
-                                    className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
-                                        ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
-                                        : "text-zinc-900 dark:text-zinc-100"
-                                        }`}
-                                />
+                                {/* Editor area (textarea + highlight overlay) */}
+                                <div className="flex-1 self-start">
+                                    {/* Grid overlay: pre + textarea share the same cell */}
+                                    <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                                        {/* Syntax highlight layer (behind textarea) */}
+                                        <pre
+                                            ref={highlightRef}
+                                            className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
+                                            aria-hidden="true"
+                                            dangerouslySetInnerHTML={{
+                                                __html: highlightedHtml || "&nbsp;",
+                                            }}
+                                        />
+
+                                        {/* Transparent textarea (on top for editing) */}
+                                        <textarea
+                                            ref={textareaRef}
+                                            value={content}
+                                            onChange={handleChange}
+                                            onPaste={handlePaste}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Escape") {
+                                                    e.currentTarget.blur();
+                                                }
+                                            }}
+                                            placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
+                                            wrap="off"
+                                            spellCheck={false}
+                                            className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
+                                                ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
+                                                : "text-zinc-900 dark:text-zinc-100"
+                                                }`}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                {/* Error message */}
-                {error && (
-                    <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                        <span className="mt-px shrink-0">⚠</span>
-                        {error}
-                    </div>
+
+                        {/* Error message */}
+                        {error && (
+                            <div className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                                <span className="mt-px shrink-0">⚠</span>
+                                {error}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
