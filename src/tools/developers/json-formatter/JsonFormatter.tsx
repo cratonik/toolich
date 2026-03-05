@@ -74,7 +74,7 @@ export default function JsonFormatter() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
-    const gutterRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const isPasteRef = useRef(false);
     const undoContentRef = useRef<string | null>(null);
 
@@ -108,18 +108,7 @@ export default function JsonFormatter() {
         }
     }, [content]);
 
-    // Sync scroll between textarea and highlight overlay
-    const syncScroll = useCallback(() => {
-        if (textareaRef.current) {
-            if (highlightRef.current) {
-                highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-                highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-            }
-            if (gutterRef.current) {
-                gutterRef.current.scrollTop = textareaRef.current.scrollTop;
-            }
-        }
-    }, []);
+
 
     const prettify = useCallback(
         (text: string, spaces: IndentSize): string | null => {
@@ -399,11 +388,14 @@ export default function JsonFormatter() {
                         : "border-zinc-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-700 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
                         }`}
                 >
-                    <div className="flex max-h-[600px]">
+                    {/* Single scroll container for gutter + editor */}
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex min-h-[300px] max-h-[70vh] overflow-auto"
+                    >
                         {/* Line numbers gutter */}
                         <div
-                            ref={gutterRef}
-                            className="shrink-0 select-none overflow-hidden bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:bg-zinc-900/80 dark:text-zinc-600"
+                            className="shrink-0 self-start select-none bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:bg-zinc-900/80 dark:text-zinc-600"
                             aria-hidden="true"
                         >
                             {Array.from({ length: lineCount }, (_, i) => (
@@ -412,33 +404,44 @@ export default function JsonFormatter() {
                         </div>
 
                         {/* Editor area (textarea + highlight overlay) */}
-                        <div className={`relative flex-1 overflow-auto ${error ? "bg-red-50/50 dark:bg-red-500/5" : "bg-white dark:bg-zinc-900/60"}`}>
-                            {/* Syntax highlight layer (behind textarea) */}
-                            <pre
-                                ref={highlightRef}
-                                className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words p-4 font-mono text-[13px] leading-relaxed"
-                                aria-hidden="true"
-                                dangerouslySetInnerHTML={{ __html: highlightedHtml || "&nbsp;" }}
-                            />
+                        <div
+                            className={`flex-1 ${error
+                                ? "bg-red-50/50 dark:bg-red-500/5"
+                                : "bg-white dark:bg-zinc-900/60"
+                                }`}
+                        >
+                            {/* Grid overlay: pre + textarea share the same cell */}
+                            <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                                {/* Syntax highlight layer (behind textarea) */}
+                                <pre
+                                    ref={highlightRef}
+                                    className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
+                                    aria-hidden="true"
+                                    dangerouslySetInnerHTML={{
+                                        __html: highlightedHtml || "&nbsp;",
+                                    }}
+                                />
 
-                            {/* Transparent textarea (on top for editing) */}
-                            <textarea
-                                ref={textareaRef}
-                                value={content}
-                                onChange={handleChange}
-                                onPaste={handlePaste}
-                                onScroll={syncScroll}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Escape") {
-                                        e.currentTarget.blur();
-                                    }
-                                }}
-                                placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
-                                rows={24}
-                                spellCheck={false}
-                                className={`relative w-full resize-none bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content ? "text-transparent caret-zinc-800 dark:caret-zinc-200" : "text-zinc-900 dark:text-zinc-100"
-                                    }`}
-                            />
+                                {/* Transparent textarea (on top for editing) */}
+                                <textarea
+                                    ref={textareaRef}
+                                    value={content}
+                                    onChange={handleChange}
+                                    onPaste={handlePaste}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Escape") {
+                                            e.currentTarget.blur();
+                                        }
+                                    }}
+                                    placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
+                                    wrap="off"
+                                    spellCheck={false}
+                                    className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
+                                        ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
+                                        : "text-zinc-900 dark:text-zinc-100"
+                                        }`}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
