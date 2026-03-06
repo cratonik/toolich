@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SearchTrigger, SearchModal } from "./SpotlightSearch";
+import { ThemeToggle } from "./ThemeToggle";
 
 type HeaderProps = {
   githubUrl?: string;
@@ -38,6 +39,9 @@ export default function Header({
           <div className="flex items-center gap-3">
             {/* Search trigger */}
             <SearchTrigger />
+
+            {/* Theme toggle */}
+            <ThemeToggle />
 
             {/* GitHub link */}
             <a
