@@ -19,6 +19,9 @@ export const ROUTES = {
             jsonFormatter: "/tools/developers/json-formatter",
             uuidGenerator: "/tools/developers/uuid-generator",
         },
+        security: {
+            hashGenerator: "/tools/security/hash-generator",
+        },
     },
 } as const;
 

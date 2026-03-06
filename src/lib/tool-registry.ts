@@ -19,6 +19,8 @@ export type ToolMeta = {
     description: string;
     /** Category slug, e.g. "developers" */
     category: string;
+    /** Additional categories this tool should appear in */
+    additionalCategories?: string[];
     /** Keywords for search */
     keywords: string[];
 };
@@ -62,6 +64,18 @@ const TOOLS: ToolMeta[] = [
         category: "developers",
         keywords: ["uuid", "guid", "unique", "identifier", "generate", "random", "v1", "v4", "v7"],
     },
+    {
+        name: "Hash Generator",
+        slug: "hash-generator",
+        description: "Generate cryptographic and non-cryptographic hashes from text input.",
+        category: "security",
+        additionalCategories: ["developers"],
+        keywords: [
+            "hash", "md5", "sha", "sha256", "sha512", "sha1", "sha3",
+            "ripemd", "crc", "adler", "whirlpool", "ntlm", "checksum",
+            "cryptography", "digest",
+        ],
+    },
 ];
 
 // ---------------------------------------------------------------------------
@@ -74,9 +88,11 @@ export const allTools: ToolMetaWithPath[] = TOOLS.map((t) => ({
     path: toolPath(t.category, t.slug),
 }));
 
-/** Get tools by category */
+/** Get tools by category (also checks additionalCategories) */
 export function getToolsByCategory(category: string): ToolMetaWithPath[] {
-    return allTools.filter((t) => t.category === category);
+    return allTools.filter(
+        (t) => t.category === category || t.additionalCategories?.includes(category),
+    );
 }
 
 /** Get a single tool by category + slug */
