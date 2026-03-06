@@ -36,11 +36,14 @@ function normalizeRelaxedJson(input: string): string {
             return input.slice(start, i);
         }
         if (/[A-Za-z_$%]/.test(input[i])) {
-            // Added '(' and ')' to the loop to capture the whole function call
-            while (i < len && /[A-Za-z0-9_$.%()]/.test(input[i])) {
+            // We added \s (space) and \" (quotes) to the allowed characters
+            // This ensures "action_by or \"system\"" is captured as one block
+            while (i < len && /[A-Za-z0-9_$.%()\s"']/.test(input[i])) {
+                // Optimization: Stop if we hit a comma or closing brace that ISN'T inside parens
+                if (input[i] === ',' || input[i] === '}' || input[i] === ']') break;
                 i++;
             }
-            return input.slice(start, i);
+            return input.slice(start, i).trim(); // trim() removes the trailing space before the comma
         }
         return "";
     }
