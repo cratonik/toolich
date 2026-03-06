@@ -22,6 +22,9 @@ export const ROUTES = {
         security: {
             hashGenerator: "/tools/security/hash-generator",
         },
+        devops: {
+            cronParser: "/tools/devops/cron-parser",
+        },
     },
 } as const;
 

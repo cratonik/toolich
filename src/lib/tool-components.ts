@@ -6,6 +6,7 @@ import Base64Decoder from "@/tools/developers/base64-decode/Base64Decoder";
 import JsonFormatter from "@/tools/developers/json-formatter/JsonFormatter";
 import UuidGenerator from "@/tools/developers/uuid-generator/UuidGenerator";
 import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
+import CronParser from "@/tools/devops/cron-parser/CronParser";
 
 /**
  * Registry of tool components.
@@ -19,6 +20,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/json-formatter": JsonFormatter,
     "developers/uuid-generator": UuidGenerator,
     "security/hash-generator": HashGenerator,
+    "devops/cron-parser": CronParser,
 };
 
 /**
