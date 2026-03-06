@@ -84,7 +84,7 @@ const TOOL_CATEGORIES: ToolCategory[] = [
 ];
 
 // New tools (added within last 30 days — update this list as you ship tools)
-const NEW_TOOL_SLUGS = ["json-formatter", "base64-encode", "base64-decode"];
+const NEW_TOOL_SLUGS = ["uuid-generator", "json-formatter", "base64-encode", "base64-decode"];
 
 export default function HomePanel() {
     const [recentTools, setRecentTools] = useState<{ name: string; slug: string; category: string }[]>([]);
