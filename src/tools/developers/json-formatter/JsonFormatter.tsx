@@ -35,8 +35,11 @@ function normalizeRelaxedJson(input: string): string {
             }
             return input.slice(start, i);
         }
-        if (/[A-Za-z_$]/.test(input[i])) {
-            while (i < len && /[A-Za-z0-9_$]/.test(input[i])) i++;
+        if (/[A-Za-z_$%]/.test(input[i])) {
+            // Added '(' and ')' to the loop to capture the whole function call
+            while (i < len && /[A-Za-z0-9_$.%()]/.test(input[i])) {
+                i++;
+            }
             return input.slice(start, i);
         }
         return "";
