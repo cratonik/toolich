@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Switch Tailwind v4 dark: variant to class-based (instead of prefers-color-scheme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -17,11 +20,10 @@
   font-family: var(--font-brand), var(--font-geist-sans), system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark-mode CSS custom-property overrides (class-based) */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
@@ -44,12 +46,10 @@ body {
   --scrollbar-thumb-hover: #a0a0a0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --scrollbar-thumb: #555;
-    --scrollbar-track: transparent;
-    --scrollbar-thumb-hover: #777;
-  }
+.dark {
+  --scrollbar-thumb: #555;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb-hover: #777;
 }
 
 /* WebKit browsers (Chrome, Edge, Safari) */
