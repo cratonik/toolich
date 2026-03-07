@@ -7,6 +7,7 @@ import JsonFormatter from "@/tools/developers/json-formatter/JsonFormatter";
 import UuidGenerator from "@/tools/developers/uuid-generator/UuidGenerator";
 import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
 import CronParser from "@/tools/devops/cron-parser/CronParser";
+import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
 
 /**
  * Registry of tool components.
@@ -21,6 +22,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/uuid-generator": UuidGenerator,
     "security/hash-generator": HashGenerator,
     "devops/cron-parser": CronParser,
+    "networking/subnet-calculator": SubnetCalculator,
 };
 
 /**
