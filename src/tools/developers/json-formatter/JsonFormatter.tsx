@@ -669,9 +669,16 @@ export default function JsonFormatter() {
         [tryParseJson]
     );
 
-    // Flag paste — let the browser handle it natively so undo works
+    // Flag paste — only auto-prettify when pasting into an empty editor or when
+    // all text is selected (i.e. a full-content paste). Partial in-editor
+    // copy-pastes should behave like normal text insertion.
     const handlePaste = useCallback(() => {
-        isPasteRef.current = true;
+        const ta = textareaRef.current;
+        if (!ta) return;
+        const { selectionStart, selectionEnd, value } = ta;
+        const isEditorEmpty = value.trim() === "";
+        const isAllSelected = selectionStart === 0 && selectionEnd === value.length;
+        isPasteRef.current = isEditorEmpty || isAllSelected;
     }, []);
 
     // On change: if it was a paste, auto-prettify the full content
@@ -819,11 +826,10 @@ export default function JsonFormatter() {
                                     setError(null);
                                 }
                             }}
-                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                                indent === size
-                                    ? "bg-indigo-500 text-white shadow-sm"
-                                    : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                            } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
+                            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${indent === size
+                                ? "bg-indigo-500 text-white shadow-sm"
+                                : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
                         >
                             {size} spaces
                         </button>
@@ -900,11 +906,10 @@ export default function JsonFormatter() {
                     type="button"
                     onClick={() => setAutoCopy(!autoCopy)}
                     disabled={treeMode}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
-                        autoCopy
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${autoCopy
                         ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600/50 dark:bg-emerald-500/10 dark:text-emerald-400"
                         : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
-                    } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
+                        } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
                     title={autoCopy ? "Auto-copy is ON" : "Auto-copy is OFF"}
                 >
                     <ClipboardCopy className="h-3.5 w-3.5" />
@@ -983,7 +988,21 @@ export default function JsonFormatter() {
                                             onChange={handleChange}
                                             onPaste={handlePaste}
                                             onKeyDown={(e) => {
-                                                if (e.key === "Escape") {
+                                                if (e.key === "Tab") {
+                                                    e.preventDefault();
+                                                    const ta = e.currentTarget;
+                                                    const start = ta.selectionStart;
+                                                    const end = ta.selectionEnd;
+                                                    const spaces = " ".repeat(indent);
+                                                    const before = ta.value.slice(0, start);
+                                                    const after = ta.value.slice(end);
+                                                    const newValue = before + spaces + after;
+                                                    setContent(newValue);
+                                                    // Restore cursor position after the inserted spaces
+                                                    requestAnimationFrame(() => {
+                                                        ta.selectionStart = ta.selectionEnd = start + indent;
+                                                    });
+                                                } else if (e.key === "Escape") {
                                                     e.currentTarget.blur();
                                                 }
                                             }}
