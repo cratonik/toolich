@@ -28,6 +28,9 @@ export const ROUTES = {
         networking: {
             subnetCalculator: "/tools/networking/subnet-calculator",
         },
+        managers: {
+            diffChecker: "/tools/managers/diff-checker",
+        },
     },
 } as const;
 

@@ -8,6 +8,7 @@ import UuidGenerator from "@/tools/developers/uuid-generator/UuidGenerator";
 import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
 import CronParser from "@/tools/devops/cron-parser/CronParser";
 import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
+import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
 
 /**
  * Registry of tool components.
@@ -23,6 +24,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "security/hash-generator": HashGenerator,
     "devops/cron-parser": CronParser,
     "networking/subnet-calculator": SubnetCalculator,
+    "managers/diff-checker": DiffChecker,
 };
 
 /**
