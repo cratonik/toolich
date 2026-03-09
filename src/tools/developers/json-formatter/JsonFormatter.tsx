@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
@@ -402,15 +403,133 @@ function isArray(value: unknown): value is JsonValue[] {
 
 const TREE_INDENT = 18; // px per depth level
 
+// ── Portal tooltip for tree nodes (escapes overflow-auto) ───────────────────
+function TreeTooltip({
+    text,
+    triggerRef,
+    copied,
+}: {
+    text: string;
+    triggerRef: React.RefObject<HTMLElement | null>;
+    copied: boolean;
+}) {
+    const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+    const tooltipRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const el = triggerRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        setPos({
+            top: rect.top,
+            left: rect.left + rect.width / 2,
+        });
+    }, [triggerRef]);
+
+    // Adjust horizontal position so tooltip doesn't overflow viewport
+    useEffect(() => {
+        const tip = tooltipRef.current;
+        if (!tip || !pos) return;
+        const tipRect = tip.getBoundingClientRect();
+        const overflow = tipRect.right - window.innerWidth + 8;
+        if (overflow > 0) {
+            setPos((prev) => prev ? { ...prev, left: prev.left - overflow } : prev);
+        }
+        const underflow = tipRect.left;
+        if (underflow < 8) {
+            setPos((prev) => prev ? { ...prev, left: prev.left + (8 - underflow) } : prev);
+        }
+    }, [pos]);
+
+    if (!pos) return null;
+
+    return createPortal(
+        <div
+            ref={tooltipRef}
+            className="fixed z-[9999] pointer-events-none select-none"
+            style={{
+                top: pos.top - 6,
+                left: pos.left,
+                transform: "translate(-50%, -100%)",
+            }}
+        >
+            <div className="rounded-lg border border-zinc-200 bg-white/95 px-2.5 py-1.5 text-xs font-medium text-zinc-700 shadow-lg backdrop-blur-sm dark:border-zinc-600 dark:bg-zinc-800/95 dark:text-zinc-200 max-w-[400px] break-all">
+                {copied ? (
+                    <span className="text-emerald-500 dark:text-emerald-400 flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Copied!
+                    </span>
+                ) : (
+                    <>
+                        <span>{text}</span>
+                        <span className="block text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">click to copy</span>
+                    </>
+                )}
+            </div>
+            {/* Arrow */}
+            <div className="mx-auto h-0 w-0 border-x-[5px] border-t-[5px] border-x-transparent border-t-zinc-200 dark:border-t-zinc-600" style={{ width: 'fit-content', marginLeft: '50%', transform: 'translateX(-50%)' }} />
+        </div>,
+        document.body
+    );
+}
+
+// ── Tooltip trigger wrapper ─────────────────────────────────────────────────
+function TooltipTrigger({
+    tooltipText,
+    children,
+    className,
+}: {
+    tooltipText: string;
+    children: React.ReactNode;
+    className?: string;
+}) {
+    const [show, setShow] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const ref = useRef<HTMLSpanElement>(null);
+
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(tooltipText).then(() => {
+            setCopied(true);
+            setShow(true);
+            setTimeout(() => {
+                setCopied(false);
+                setShow(false);
+            }, 1200);
+        });
+    };
+
+    return (
+        <>
+            <span
+                ref={ref}
+                className={`cursor-pointer ${className ?? ""}`}
+                onMouseEnter={() => setShow(true)}
+                onMouseLeave={() => setShow(false)}
+                onClick={handleClick}
+            >
+                {children}
+            </span>
+            {show && (
+                <TreeTooltip
+                    text={tooltipText}
+                    triggerRef={ref}
+                    copied={copied}
+                />
+            )}
+        </>
+    );
+}
+
 type JsonTreeNodeProps = {
     name?: string;
     index?: number;
     value: JsonValue;
     depth: number;
+    path: string;
     isLast?: boolean;
 };
 
-function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNodeProps) {
+function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTreeNodeProps) {
     const [collapsed, setCollapsed] = useState(depth > 0);
     const isCollapsible = isObject(value) || isArray(value);
 
@@ -448,7 +567,9 @@ function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNode
                     <Toggle />
                     {name != null && (
                         <>
-                            <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            <TooltipTrigger tooltipText={path}>
+                                <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
@@ -471,6 +592,7 @@ function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNode
                                 name={key}
                                 value={child}
                                 depth={depth + 1}
+                                path={path ? `${path}.${key}` : key}
                                 isLast={i === entries.length - 1}
                             />
                         ))}
@@ -494,13 +616,17 @@ function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNode
                     <Toggle />
                     {index !== undefined && (
                         <>
-                            <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                            <TooltipTrigger tooltipText={path}>
+                                <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                            </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
                     {name != null && (
                         <>
-                            <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            <TooltipTrigger tooltipText={path}>
+                                <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                            </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
@@ -523,6 +649,7 @@ function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNode
                                 index={i}
                                 value={child}
                                 depth={depth + 1}
+                                path={`${path}[${i}]`}
                                 isLast={i === len - 1}
                             />
                         ))}
@@ -562,17 +689,23 @@ function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNode
             <Toggle />
             {index !== undefined && (
                 <>
-                    <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                    <TooltipTrigger tooltipText={path}>
+                        <span className="text-zinc-500 dark:text-zinc-400">{index}</span>
+                    </TooltipTrigger>
                     <span className={TOKEN_COLORS.plain}>: </span>
                 </>
             )}
             {name != null && (
                 <>
-                    <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                    <TooltipTrigger tooltipText={path}>
+                        <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                    </TooltipTrigger>
                     <span className={TOKEN_COLORS.plain}>: </span>
                 </>
             )}
-            <span className={primitiveClass}>{primitiveDisplay}</span>
+            <TooltipTrigger tooltipText={typeof value === "string" ? value : String(value)}>
+                <span className={primitiveClass}>{primitiveDisplay}</span>
+            </TooltipTrigger>
             {comma}
         </div>
     );
@@ -581,7 +714,7 @@ function JsonTreeNode({ name, index, value, depth, isLast = true }: JsonTreeNode
 function JsonTree({ value }: { value: JsonValue }) {
     return (
         <div className="font-mono text-[13px] leading-snug text-zinc-800 dark:text-zinc-100 py-1">
-            <JsonTreeNode value={value} depth={0} />
+            <JsonTreeNode value={value} depth={0} path="" />
         </div>
     );
 }
