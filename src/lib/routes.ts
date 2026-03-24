@@ -25,6 +25,7 @@ export const ROUTES = {
         },
         devops: {
             cronParser: "/tools/devops/cron-parser",
+            envEditor: "/tools/devops/env-editor",
         },
         networking: {
             subnetCalculator: "/tools/networking/subnet-calculator",
