@@ -21,6 +21,7 @@ export const ROUTES = {
         },
         security: {
             hashGenerator: "/tools/security/hash-generator",
+            passwordGenerator: "/tools/security/password-generator",
         },
         devops: {
             cronParser: "/tools/devops/cron-parser",
