@@ -98,6 +98,18 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "Environment Variable Editor",
+        slug: "env-editor",
+        description:
+            "Parse, edit, and manage .env files with a structured key-value editor and export to multiple formats.",
+        category: "devops",
+        keywords: [
+            "env", "dotenv", ".env", "environment", "variable",
+            "editor", "key-value", "config", "configuration",
+            "json", "yaml", "export",
+        ],
+    },
+    {
         name: "Subnet Calculator",
         slug: "subnet-calculator",
         description: "Calculate subnet details from an IP address and CIDR prefix or subnet mask.",
