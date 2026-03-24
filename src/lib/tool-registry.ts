@@ -77,6 +77,17 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "Password Generator",
+        slug: "password-generator",
+        description:
+            "Generate strong, random passwords with configurable length, character sets, and strength analysis.",
+        category: "security",
+        keywords: [
+            "password", "generator", "random", "strong", "secure",
+            "entropy", "passphrase", "credential", "security",
+        ],
+    },
+    {
         name: "Cron Parser",
         slug: "cron-parser",
         description: "Parse and describe cron expressions in human-readable language, and build them interactively.",
