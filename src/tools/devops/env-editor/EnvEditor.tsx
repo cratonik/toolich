@@ -27,25 +27,7 @@ import {
 // Sample content
 // ---------------------------------------------------------------------------
 
-const SAMPLE = `# Application settings
-APP_NAME=Toolich
-APP_ENV=development
-APP_PORT=3000
-
-# Database configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=admin
-DB_PASS="s3cur3 p@ss!"
-DB_NAME=toolich_dev
-
-# Feature flags
-ENABLE_CACHE=true
-DEBUG_MODE=false
-
-# Duplicate example (triggers warning)
-APP_PORT=8080
-`;
+const SAMPLE = "";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -106,7 +88,7 @@ function ExportDropdown({
 
 export default function EnvEditor() {
     const [raw, setRaw] = useSessionState("env-editor:raw", SAMPLE);
-    const [view, setView] = useState<ViewMode>("table");
+    const [view, setView] = useState<ViewMode>("raw");
     const [sorted, setSorted] = useState(false);
     const [copied, setCopied] = useState(false);
     const [exportCopied, setExportCopied] = useState<string | null>(null);
@@ -237,11 +219,10 @@ export default function EnvEditor() {
                             key={m}
                             type="button"
                             onClick={() => setView(m)}
-                            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-all first:rounded-l-lg last:rounded-r-lg ${
-                                view === m
+                            className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-all first:rounded-l-lg last:rounded-r-lg ${view === m
                                     ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400"
                                     : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-                            }`}
+                                }`}
                         >
                             {m === "raw" ? (
                                 <FileText className="h-3.5 w-3.5" />
@@ -418,11 +399,10 @@ export default function EnvEditor() {
                 <button
                     type="button"
                     onClick={() => setSorted(!sorted)}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all active:scale-[0.97] ${
-                        sorted
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all active:scale-[0.97] ${sorted
                             ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-600/50 dark:bg-indigo-500/10 dark:text-indigo-400"
                             : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-700"
-                    }`}
+                        }`}
                 >
                     <ArrowUpDown className="h-4 w-4" /> Sort A–Z
                 </button>
