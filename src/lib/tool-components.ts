@@ -5,6 +5,7 @@ import Base64Encoder from "@/tools/developers/base64-encode/Base64Encoder";
 import Base64Decoder from "@/tools/developers/base64-decode/Base64Decoder";
 import JsonFormatter from "@/tools/developers/json-formatter/JsonFormatter";
 import UuidGenerator from "@/tools/developers/uuid-generator/UuidGenerator";
+import JsonToSchema from "@/tools/developers/json-to-schema/JsonToSchema";
 import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
 import PasswordGenerator from "@/tools/security/password-generator/PasswordGenerator";
 import CronParser from "@/tools/devops/cron-parser/CronParser";
@@ -24,6 +25,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/base64-decode": Base64Decoder,
     "developers/json-formatter": JsonFormatter,
     "developers/uuid-generator": UuidGenerator,
+    "developers/json-to-schema": JsonToSchema,
     "security/hash-generator": HashGenerator,
     "security/password-generator": PasswordGenerator,
     "devops/cron-parser": CronParser,

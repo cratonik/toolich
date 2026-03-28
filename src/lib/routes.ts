@@ -18,6 +18,7 @@ export const ROUTES = {
             base64Decode: "/tools/developers/base64-decode",
             jsonFormatter: "/tools/developers/json-formatter",
             uuidGenerator: "/tools/developers/uuid-generator",
+            jsonToSchema: "/tools/developers/json-to-schema",
         },
         security: {
             hashGenerator: "/tools/security/hash-generator",
