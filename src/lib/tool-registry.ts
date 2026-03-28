@@ -110,6 +110,18 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "Regex Tester",
+        slug: "regex-tester",
+        description:
+            "Test regular expressions with real-time match highlighting and generate patterns from natural language.",
+        category: "devops",
+        keywords: [
+            "regex", "regexp", "regular expression", "pattern",
+            "match", "test", "replace", "capture", "group",
+            "generator", "validate",
+        ],
+    },
+    {
         name: "Subnet Calculator",
         slug: "subnet-calculator",
         description: "Calculate subnet details from an IP address and CIDR prefix or subnet mask.",

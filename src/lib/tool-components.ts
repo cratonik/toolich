@@ -9,6 +9,7 @@ import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
 import PasswordGenerator from "@/tools/security/password-generator/PasswordGenerator";
 import CronParser from "@/tools/devops/cron-parser/CronParser";
 import EnvEditor from "@/tools/devops/env-editor/EnvEditor";
+import RegexTester from "@/tools/devops/regex-tester/RegexTester";
 import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
 import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
 
@@ -27,6 +28,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "security/password-generator": PasswordGenerator,
     "devops/cron-parser": CronParser,
     "devops/env-editor": EnvEditor,
+    "devops/regex-tester": RegexTester,
     "networking/subnet-calculator": SubnetCalculator,
     "managers/diff-checker": DiffChecker,
 };
