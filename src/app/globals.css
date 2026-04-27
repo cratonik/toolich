@@ -1,8 +1,5 @@
 @import "tailwindcss";
 
-/* Switch Tailwind v4 dark: variant to class-based (instead of prefers-color-scheme) */
-@custom-variant dark (&:where(.dark, .dark *));
-
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -20,74 +17,15 @@
   font-family: var(--font-brand), var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Dark-mode CSS custom-property overrides (class-based) */
-.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-}
-
-/* ── Unified scrollbar styling ── */
-
-/* Modern browsers (Firefox, Chrome 121+) */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-
-:root {
-  --scrollbar-thumb: #c4c4c4;
-  --scrollbar-track: transparent;
-  --scrollbar-thumb-hover: #a0a0a0;
-}
-
-.dark {
-  --scrollbar-thumb: #555;
-  --scrollbar-track: transparent;
-  --scrollbar-thumb-hover: #777;
-}
-
-/* WebKit browsers (Chrome, Edge, Safari) */
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 9999px;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scrollbar-thumb-hover);
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* ── Toast animation ── */
-@keyframes slide-in-right {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-in-right {
-  animation: slide-in-right 0.25s ease-out;
 }
