@@ -13,6 +13,7 @@ import EnvEditor from "@/tools/devops/env-editor/EnvEditor";
 import RegexTester from "@/tools/devops/regex-tester/RegexTester";
 import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
 import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
+import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 
 /**
  * Registry of tool components.
@@ -32,6 +33,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "devops/env-editor": EnvEditor,
     "devops/regex-tester": RegexTester,
     "networking/subnet-calculator": SubnetCalculator,
+    "networking/dns-lookup": DnsLookup,
     "managers/diff-checker": DiffChecker,
 };
 
