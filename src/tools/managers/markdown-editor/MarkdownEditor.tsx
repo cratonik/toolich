@@ -84,7 +84,7 @@ greet("World");
 \`\`\`
 `;
 
-// Helper to highlight Markdown syntax in the editor
+// Helper to highlight Markdown syntax in the editor without affecting character widths or adding spacing
 function highlightMarkdown(text: string): string {
     // 1. Escape HTML first
     let html = text
@@ -96,36 +96,36 @@ function highlightMarkdown(text: string): string {
     const lines = html.split("\n");
     const highlightedLines = lines.map((line) => {
         // Headings (# Header)
-        if (/^(#{1,6})\s+(.*)$/.test(line)) {
-            return line.replace(/^(#{1,6})\s+(.*)$/, (match, hashes, content) => {
-                return `<span class="text-indigo-600 dark:text-indigo-400 font-bold">${hashes} ${content}</span>`;
+        if (/^(#{1,6})(\s+)(.*)$/.test(line)) {
+            return line.replace(/^(#{1,6})(\s+)(.*)$/, (match, hashes, spaces, content) => {
+                return `<span class="text-indigo-600 dark:text-indigo-400">${hashes}${spaces}${content}</span>`;
             });
         }
         // Blockquotes (> quote)
-        if (/^\s*&gt;\s+(.*)$/.test(line)) {
+        if (/^(\s*&gt;\s+)(.*)$/.test(line)) {
             return line.replace(/^(\s*&gt;\s+)(.*)$/, (match, prefix, content) => {
-                return `<span class="text-emerald-600 dark:text-emerald-500 italic font-medium">${prefix}${content}</span>`;
+                return `<span class="text-emerald-600 dark:text-emerald-500">${prefix}${content}</span>`;
             });
         }
         // Horizontal rule
         if (/^\s*[-*_]{3,}\s*$/.test(line)) {
-            return `<span class="text-zinc-400 dark:text-zinc-600 font-bold">${line}</span>`;
+            return `<span class="text-zinc-400 dark:text-zinc-600">${line}</span>`;
         }
         // Unordered and task list items
-        if (/^\s*([-*+])\s+(.*)$/.test(line)) {
+        if (/^(\s*[-*+]\s+)(.*)$/.test(line)) {
             return line.replace(/^(\s*[-*+]\s+)(.*)$/, (match, prefix, content) => {
                 if (content.startsWith("[ ]") || content.startsWith("[x]") || content.startsWith("[X]")) {
                     const box = content.substring(0, 3);
                     const rest = content.substring(3);
-                    return `<span class="text-amber-600 dark:text-amber-500 font-bold">${prefix}</span> <span class="text-indigo-500 dark:text-indigo-400 font-mono font-bold">${box}</span>${rest}`;
+                    return `<span class="text-amber-600 dark:text-amber-500">${prefix}</span><span class="text-indigo-500 dark:text-indigo-400 font-mono">${box}</span>${rest}`;
                 }
-                return `<span class="text-amber-600 dark:text-amber-500 font-bold">${prefix}</span> ${content}`;
+                return `<span class="text-amber-600 dark:text-amber-500">${prefix}</span>${content}`;
             });
         }
         // Ordered list items
-        if (/^\s*(\d+\.)\s+(.*)$/.test(line)) {
+        if (/^(\s*\d+\.\s+)(.*)$/.test(line)) {
             return line.replace(/^(\s*\d+\.\s+)(.*)$/, (match, prefix, content) => {
-                return `<span class="text-amber-600 dark:text-amber-500 font-bold">${prefix}</span> ${content}`;
+                return `<span class="text-amber-600 dark:text-amber-500">${prefix}</span>${content}`;
             });
         }
         return line;
@@ -140,30 +140,30 @@ function highlightMarkdown(text: string): string {
 
     // 4. Inline code (`code`)
     html = html.replace(/(`[^`\n]+`)/g, (match) => {
-        return `<span class="bg-zinc-100 dark:bg-zinc-800 text-rose-600 dark:text-rose-400 font-mono rounded px-1.5 py-0.5 border border-zinc-200 dark:border-zinc-800 text-[12px]">${match}</span>`;
+        return `<span class="bg-zinc-100 dark:bg-zinc-800/60 text-rose-600 dark:text-rose-400 font-mono rounded">${match}</span>`;
     });
 
     // 5. Images (![alt](url))
     html = html.replace(/(!\[[^\]]*\]\([^\)]*\))/g, (match) => {
-        return `<span class="text-amber-600 dark:text-amber-400 font-medium">${match}</span>`;
+        return `<span class="text-amber-600 dark:text-amber-400">${match}</span>`;
     });
 
     // 6. Links ([text](url))
     html = html.replace(/(\[[^\]]+\]\([^\)]+\))/g, (match) => {
-        return `<span class="text-sky-600 dark:text-sky-400 font-medium">${match}</span>`;
+        return `<span class="text-sky-600 dark:text-sky-400">${match}</span>`;
     });
 
     // 7. Bold (**text**)
     html = html.replace(/(\*\*[^*]+\*\*)/g, (match) => {
-        return `<span class="font-bold text-zinc-950 dark:text-zinc-50">${match}</span>`;
+        return `<span class="text-zinc-950 dark:text-zinc-50">${match}</span>`;
     });
 
     // 8. Italic (*text* or _text_)
     html = html.replace(/(\*[^*]+\*)/g, (match) => {
-        return `<span class="italic text-zinc-800 dark:text-zinc-200">${match}</span>`;
+        return `<span class="text-zinc-850 dark:text-zinc-200">${match}</span>`;
     });
     html = html.replace(/(_[^_]+_)/g, (match) => {
-        return `<span class="italic text-zinc-800 dark:text-zinc-200">${match}</span>`;
+        return `<span class="text-zinc-850 dark:text-zinc-200">${match}</span>`;
     });
 
     // 9. Strikethrough (~~text~~)
@@ -337,6 +337,9 @@ ${PREVIEW_CSS_VARIABLES}
 }
 `;
 
+// Cache to store successfully rendered SVG strings of Mermaid diagrams to prevent flickering/disappearing during editing
+const mermaidCache = new Map<string, string>();
+
 export default function MarkdownEditor() {
     const [content, setContent] = useState(DEFAULT_MARKDOWN);
     const [viewMode, setViewMode] = useState<"split" | "editor" | "preview">("split");
@@ -386,6 +389,9 @@ export default function MarkdownEditor() {
                 suppressErrorAlerts: true,
             } as any);
             
+            // Clear cache on theme change to ensure new SVG styles are generated correctly
+            mermaidCache.clear();
+            
             // Mark all mermaid blocks as unprocessed to trigger re-renders
             const blocks = document.querySelectorAll(".mermaid-block");
             blocks.forEach((block) => block.removeAttribute("data-processed"));
@@ -416,6 +422,10 @@ export default function MarkdownEditor() {
 
                 if (lang === "mermaid") {
                     const encoded = encodeURIComponent(text);
+                    const cachedSvg = mermaidCache.get(encoded);
+                    if (cachedSvg) {
+                        return `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-processed="true">${cachedSvg}</div>`;
+                    }
                     return `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}"></div>`;
                 }
 
@@ -426,7 +436,7 @@ export default function MarkdownEditor() {
                 return `<pre class="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="language-${lang}">${escapedText}</code></pre>`;
             }
         };
-    }, []);
+    }, [themeTick]);
 
     // Apply custom renderer configuration to marked
     useEffect(() => {
@@ -465,7 +475,7 @@ export default function MarkdownEditor() {
             console.error("Marked parse error", err);
             return `<div class="text-red-500 font-semibold p-4">Error parsing markdown content.</div>`;
         }
-    }, [processedContent]);
+    }, [processedContent, customRenderer]);
 
     // Render Mermaid diagrams in HTML preview
     useEffect(() => {
@@ -475,7 +485,9 @@ export default function MarkdownEditor() {
             const blocks = document.querySelectorAll(".mermaid-block");
             for (let i = 0; i < blocks.length; i++) {
                 const block = blocks[i] as HTMLElement;
-                if (block.getAttribute("data-processed") === "true") continue;
+                const isProcessed = block.getAttribute("data-processed") === "true";
+                const hasSvg = block.querySelector("svg") !== null || block.querySelector(".border-red-200") !== null;
+                if (isProcessed && hasSvg) continue;
 
                 const encoded = block.getAttribute("data-mermaid");
                 if (!encoded) continue;
@@ -512,6 +524,7 @@ export default function MarkdownEditor() {
                     const { svg } = await mermaidInstance.render(id, cleanCode);
                     block.innerHTML = svg;
                     block.setAttribute("data-processed", "true");
+                    mermaidCache.set(encoded, svg);
                 } catch (err: any) {
                     console.error("Mermaid error:", err);
                     block.innerHTML = `
@@ -536,13 +549,8 @@ export default function MarkdownEditor() {
         }, 150);
     }, []);
 
-    // Synchronize transparent textarea scroll with syntax highlight pre block, and optionally sync right pane scroll
+    // Synchronize scroll with the preview pane
     const handleEditorScroll = useCallback(() => {
-        if (textareaRef.current && highlightRef.current) {
-            highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-            highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-        }
-
         if (!syncScroll || viewMode !== "split") return;
         if (isScrollingRef.current === "preview") return;
 
@@ -1058,8 +1066,8 @@ export default function MarkdownEditor() {
                         </div>
 
                         {/* Editor overlay container */}
-                        <div className="flex-1 self-start relative">
-                            <div className="grid [&>*]:col-start-1 [&>*]:row-start-1 h-full w-full">
+                        <div className="flex-1 self-start">
+                            <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
                                 {/* Highlight Layer (rendered behind transparent textarea) */}
                                 <pre
                                     ref={highlightRef}
@@ -1078,7 +1086,7 @@ export default function MarkdownEditor() {
                                     placeholder="Start writing markdown, or click a toolbar button to insert templates..."
                                     spellCheck={false}
                                     wrap="off"
-                                    className={`relative z-10 block w-full h-full min-h-[450px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${
+                                    className={`relative z-10 block w-full min-h-[450px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${
                                         content
                                             ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                             : "text-zinc-900 dark:text-zinc-100"
