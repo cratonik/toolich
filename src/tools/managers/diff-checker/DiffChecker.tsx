@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
     Copy,
     Check,
@@ -9,6 +9,8 @@ import {
     AlignLeft,
     CaseSensitive,
     Space,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
@@ -118,6 +120,61 @@ function charDiff(oldStr: string, newStr: string): { oldSpans: CharSpan[]; newSp
 }
 
 /**
+ * Post-processes line diff results to pair up contiguous deletions and additions
+ * into modified lines, enabling character-level sub-highlighting.
+ */
+function pairDiffLines(lines: DiffLine[]): DiffLine[] {
+    const paired: DiffLine[] = [];
+    let i = 0;
+    while (i < lines.length) {
+        if (lines[i].type === "unchanged") {
+            paired.push(lines[i]);
+            i++;
+            continue;
+        }
+
+        // Collect contiguous block of modifications (additions/deletions)
+        const block: DiffLine[] = [];
+        while (i < lines.length && lines[i].type !== "unchanged") {
+            block.push(lines[i]);
+            i++;
+        }
+
+        const removed = block.filter((x) => x.type === "removed");
+        const added = block.filter((x) => x.type === "added");
+        const minLen = Math.min(removed.length, added.length);
+
+        // Pair them up as modified lines
+        for (let k = 0; k < minLen; k++) {
+            const r = removed[k];
+            const a = added[k];
+            const { oldSpans, newSpans } = charDiff(r.oldLine ?? "", a.newLine ?? "");
+            paired.push({
+                type: "modified",
+                oldLine: r.oldLine,
+                oldLineNo: r.oldLineNo,
+                newLine: a.newLine,
+                newLineNo: a.newLineNo,
+                oldSpans,
+                newSpans,
+            });
+        }
+
+        // Append remaining unpaired lines
+        if (removed.length > minLen) {
+            for (let k = minLen; k < removed.length; k++) {
+                paired.push(removed[k]);
+            }
+        } else if (added.length > minLen) {
+            for (let k = minLen; k < added.length; k++) {
+                paired.push(added[k]);
+            }
+        }
+    }
+    return paired;
+}
+
+/**
  * Compute a line-level diff between two texts.
  */
 function computeDiff(original: string, modified: string, opts: DiffOptions): DiffLine[] {
@@ -145,27 +202,6 @@ function computeDiff(original: string, modified: string, opts: DiffOptions): Dif
             });
             i--;
             j--;
-        } else if (
-            i > 0 &&
-            j > 0 &&
-            // Both sides would lose LCS length if skipped independently,
-            // meaning neither line is on the LCS path → treat as modification
-            dp[i - 1][j] < dp[i][j] &&
-            dp[i][j - 1] < dp[i][j]
-        ) {
-            // Modified line — sub-diff at char level
-            const { oldSpans, newSpans } = charDiff(oldLines[i - 1], newLines[j - 1]);
-            result.push({
-                type: "modified",
-                oldLine: oldLines[i - 1],
-                oldLineNo: i,
-                newLine: newLines[j - 1],
-                newLineNo: j,
-                oldSpans,
-                newSpans,
-            });
-            i--;
-            j--;
         } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
             result.push({
                 type: "added",
@@ -183,15 +219,15 @@ function computeDiff(original: string, modified: string, opts: DiffOptions): Dif
         }
     }
 
-    return result.reverse();
+    return pairDiffLines(result.reverse());
 }
 
 // ── UI helpers ───────────────────────────────────────────────────────────────
 
 const LINE_BG: Record<DiffLineType, string> = {
-    added: "bg-emerald-50/80 dark:bg-emerald-500/10",
-    removed: "bg-red-50/80 dark:bg-red-500/10",
-    modified: "bg-amber-50/80 dark:bg-amber-500/10",
+    added: "bg-emerald-100/30 dark:bg-emerald-950/30",
+    removed: "bg-red-100/30 dark:bg-red-950/30",
+    modified: "bg-amber-100/30 dark:bg-amber-950/30",
     unchanged: "",
 };
 
@@ -203,10 +239,10 @@ const LINE_GUTTER: Record<DiffLineType, string> = {
 };
 
 const CHAR_HL = {
-    removed: "bg-red-200/70 dark:bg-red-500/30 rounded-sm",
-    added: "bg-emerald-200/70 dark:bg-emerald-500/30 rounded-sm",
-    modified_old: "bg-red-200/60 dark:bg-red-400/25 rounded-sm",
-    modified_new: "bg-emerald-200/60 dark:bg-emerald-400/25 rounded-sm",
+    removed: "bg-red-200/90 text-red-900 dark:bg-red-500/40 dark:text-red-100 rounded-sm px-[1px]",
+    added: "bg-emerald-200/90 text-emerald-900 dark:bg-emerald-500/40 dark:text-emerald-100 rounded-sm px-[1px]",
+    modified_old: "bg-red-300/90 text-red-950 dark:bg-red-500/60 dark:text-red-100 rounded-sm px-[1px]",
+    modified_new: "bg-emerald-300/90 text-emerald-950 dark:bg-emerald-500/60 dark:text-emerald-100 rounded-sm px-[1px]",
 };
 
 const UNIFIED_PREFIX: Record<DiffLineType, string> = {
@@ -242,6 +278,68 @@ function buildUnifiedText(diff: DiffLine[]): string {
         .join("\n");
 }
 
+// ── Input Textarea with Line Numbers Gutter ──────────────────────────────────
+
+function TextareaWithLineNumbers({
+    value,
+    onChange,
+    placeholder,
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+}) {
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const gutterRef = useRef<HTMLDivElement | null>(null);
+
+    const lines = useMemo(() => {
+        const count = value.split("\n").length;
+        return Array.from({ length: count }, (_, i) => i + 1);
+    }, [value]);
+
+    const handleScroll = useCallback(() => {
+        if (textareaRef.current && gutterRef.current) {
+            gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+        }
+    }, []);
+
+    // Sync scroll when lines length changes to prevent line offsets
+    useEffect(() => {
+        handleScroll();
+    }, [lines.length, handleScroll]);
+
+    return (
+        <div className="flex w-full h-[250px] resize-y rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 shadow-sm overflow-hidden focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20">
+            {/* Line Numbers Gutter */}
+            <div
+                ref={gutterRef}
+                className="w-10 select-none py-4 text-right pr-2 bg-zinc-50 dark:bg-zinc-950/40 border-r border-zinc-150 dark:border-zinc-800 text-[13px] font-mono leading-relaxed text-zinc-400 dark:text-zinc-600 overflow-hidden h-full"
+            >
+                {lines.map((l) => (
+                    <div key={l}>
+                        {l}
+                    </div>
+                ))}
+            </div>
+
+            {/* Textarea */}
+            <textarea
+                ref={textareaRef}
+                value={value}
+                onChange={(e) => {
+                    onChange(e.target.value);
+                    requestAnimationFrame(handleScroll);
+                }}
+                onScroll={handleScroll}
+                placeholder={placeholder}
+                spellCheck={false}
+                wrap="off"
+                className="flex-1 h-full p-4 pl-3 bg-transparent font-mono text-[13px] leading-relaxed text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 overflow-y-auto resize-none"
+            />
+        </div>
+    );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 type ViewMode = "side-by-side" | "unified";
@@ -269,6 +367,91 @@ export default function DiffChecker() {
         if (!original && !modified) return [];
         return computeDiff(original, modified, { ignoreWhitespace, caseInsensitive });
     }, [original, modified, ignoreWhitespace, caseInsensitive]);
+
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+    const [scrollState, setScrollState] = useState({
+        scrollTop: 0,
+        scrollHeight: 1,
+        clientHeight: 1,
+    });
+
+    const updateScrollMetrics = useCallback((el: HTMLDivElement | null) => {
+        if (!el) return;
+        setScrollState({
+            scrollTop: el.scrollTop,
+            scrollHeight: el.scrollHeight || 1,
+            clientHeight: el.clientHeight || 1,
+        });
+    }, []);
+
+    const setScrollContainer = useCallback((el: HTMLDivElement | null) => {
+        scrollContainerRef.current = el;
+        updateScrollMetrics(el);
+    }, [updateScrollMetrics]);
+
+    const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+        updateScrollMetrics(e.currentTarget);
+    }, [updateScrollMetrics]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (scrollContainerRef.current) {
+                updateScrollMetrics(scrollContainerRef.current);
+            }
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [diff, viewMode, updateScrollMetrics]);
+
+    const scrollToLine = useCallback((index: number) => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const lineElement = container.querySelector(`#diff-line-${index}`);
+        if (lineElement) {
+            const containerRect = container.getBoundingClientRect();
+            const lineRect = lineElement.getBoundingClientRect();
+            const relativeTop = lineRect.top - containerRect.top + container.scrollTop;
+
+            container.scrollTo({
+                top: relativeTop - (containerRect.height / 2) + (lineRect.height / 2),
+                behavior: "smooth"
+            });
+        }
+    }, []);
+
+    const handleRulerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        const percentage = clickY / rect.height;
+        const targetLineIndex = Math.max(0, Math.min(diff.length - 1, Math.floor(percentage * diff.length)));
+        scrollToLine(targetLineIndex);
+    }, [diff.length, scrollToLine]);
+
+    const markers = useMemo(() => {
+        return diff
+            .map((d, index) => ({ d, index }))
+            .filter(({ d }) => d.type !== "unchanged");
+    }, [diff]);
+
+    const diffIndices = useMemo(() => {
+        const indices: number[] = [];
+        for (let idx = 0; idx < diff.length; idx++) {
+            if (diff[idx].type !== "unchanged") {
+                indices.push(idx);
+            }
+        }
+        return indices;
+    }, [diff]);
+
+    const scrollToNextDiff = useCallback((currentIndex: number) => {
+        if (diffIndices.length === 0) return;
+        const currentPos = diffIndices.indexOf(currentIndex);
+        if (currentPos === -1) return;
+
+        const nextPos = (currentPos + 1) % diffIndices.length;
+        const nextLineIndex = diffIndices[nextPos];
+        scrollToLine(nextLineIndex);
+    }, [diffIndices, scrollToLine]);
 
     const stats = useMemo(() => {
         let added = 0;
@@ -392,13 +575,10 @@ export default function DiffChecker() {
                     <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                         Original
                     </label>
-                    <textarea
+                    <TextareaWithLineNumbers
                         value={original}
-                        onChange={(e) => setOriginal(e.target.value)}
+                        onChange={setOriginal}
                         placeholder="Paste original text here…"
-                        spellCheck={false}
-                        wrap="off"
-                        className="block w-full min-h-[200px] resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-[13px] leading-relaxed text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                     />
                 </div>
 
@@ -407,13 +587,10 @@ export default function DiffChecker() {
                     <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                         Modified
                     </label>
-                    <textarea
+                    <TextareaWithLineNumbers
                         value={modified}
-                        onChange={(e) => setModified(e.target.value)}
+                        onChange={setModified}
                         placeholder="Paste modified text here…"
-                        spellCheck={false}
-                        wrap="off"
-                        className="block w-full min-h-[200px] resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-[13px] leading-relaxed text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
                     />
                 </div>
             </div>
@@ -454,11 +631,70 @@ export default function DiffChecker() {
                         {viewMode === "side-by-side" ? "Side-by-side diff" : "Unified diff"}
                     </label>
 
-                    {viewMode === "side-by-side" ? (
-                        <SideBySideView diff={diff} />
-                    ) : (
-                        <UnifiedView diff={diff} />
-                    )}
+                    <div className="relative flex items-stretch gap-2.5 w-full">
+                        {/* Diff view container */}
+                        <div className="flex-1 min-w-0">
+                            {viewMode === "side-by-side" ? (
+                                <SideBySideView
+                                    diff={diff}
+                                    containerRef={setScrollContainer}
+                                    onScroll={handleScroll}
+                                    scrollToNextDiff={scrollToNextDiff}
+                                    diffIndices={diffIndices}
+                                />
+                            ) : (
+                                <UnifiedView
+                                    diff={diff}
+                                    containerRef={setScrollContainer}
+                                    onScroll={handleScroll}
+                                    scrollToNextDiff={scrollToNextDiff}
+                                    diffIndices={diffIndices}
+                                />
+                            )}
+                        </div>
+
+                        {/* Overview Ruler (Diff Minimap) */}
+                        <div
+                            onClick={handleRulerClick}
+                            className="w-3 rounded-xl border border-zinc-200 bg-zinc-50/50 dark:border-zinc-700/60 dark:bg-zinc-800/30 relative select-none flex-shrink-0 cursor-pointer overflow-hidden self-stretch"
+                            title="Diff minimap — click to jump to change"
+                        >
+                            {/* Viewport Range Indicator */}
+                            <div
+                                className="absolute left-0 right-0 bg-zinc-400/20 dark:bg-zinc-350/20 border-y border-zinc-400/30 dark:border-zinc-500/25 pointer-events-none transition-all duration-75"
+                                style={{
+                                    top: `${(scrollState.scrollTop / scrollState.scrollHeight) * 100}%`,
+                                    height: `${(scrollState.clientHeight / scrollState.scrollHeight) * 100}%`,
+                                }}
+                            />
+
+                            {/* Diff markers */}
+                            {markers.map(({ d, index }) => {
+                                const topPercent = (index / diff.length) * 100;
+                                const markerColor =
+                                    d.type === "added"
+                                        ? "bg-emerald-500 dark:bg-emerald-400"
+                                        : d.type === "removed"
+                                        ? "bg-red-500 dark:bg-red-400"
+                                        : "bg-amber-500 dark:bg-amber-400";
+                                const label = d.type === "added" ? "Added" : d.type === "removed" ? "Removed" : "Modified";
+                                const lineNo = d.type === "added" ? d.newLineNo : d.oldLineNo;
+
+                                return (
+                                    <div
+                                        key={index}
+                                        className={`absolute left-0.5 right-0.5 h-[3px] rounded-sm opacity-80 hover:opacity-100 ${markerColor} transition-opacity`}
+                                        style={{ top: `${topPercent}%` }}
+                                        title={`Line ${lineNo}: ${label}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            scrollToLine(index);
+                                        }}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -476,27 +712,71 @@ export default function DiffChecker() {
 
 // ── Side-by-side view ────────────────────────────────────────────────────────
 
-function SideBySideView({ diff }: { diff: DiffLine[] }) {
+function SideBySideView({
+    diff,
+    containerRef,
+    onScroll,
+    scrollToNextDiff,
+    diffIndices,
+}: {
+    diff: DiffLine[];
+    containerRef: (el: HTMLDivElement | null) => void;
+    onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
+    scrollToNextDiff: (index: number) => void;
+    diffIndices: number[];
+}) {
     return (
-        <div className="grid grid-cols-2 gap-0 overflow-hidden rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700">
-            {/* Left (original) */}
-            <div className="overflow-auto border-r border-zinc-200 dark:border-zinc-700">
-                <div className="min-w-0">
+        <div
+            ref={containerRef}
+            onScroll={onScroll}
+            className="max-h-[600px] overflow-y-auto border border-zinc-200 rounded-xl shadow-sm dark:border-zinc-700 bg-white dark:bg-zinc-900"
+        >
+            <div className="grid grid-cols-2 min-w-[800px] divide-x divide-zinc-200 dark:divide-zinc-700">
+                {/* Left (original) */}
+                <div className="min-w-0 overflow-x-auto">
                     {diff.map((d, i) => {
                         const show = d.type !== "added";
+                        const bgClass = d.type === "modified"
+                            ? LINE_BG.removed
+                            : d.type === "added"
+                            ? "bg-zinc-50 dark:bg-zinc-900/40"
+                            : LINE_BG[d.type];
+                        const gutterColor = d.type === "modified" ? LINE_GUTTER.removed : LINE_GUTTER[d.type];
+
+                        const isDiffLine = d.type !== "unchanged";
+                        const isLastDiff = diffIndices[diffIndices.length - 1] === i;
+
                         return (
                             <div
                                 key={i}
-                                className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${d.type === "added" ? "bg-zinc-50 dark:bg-zinc-900/40" : LINE_BG[d.type]
-                                    }`}
+                                id={`diff-line-${i}`}
+                                className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${bgClass}`}
                             >
-                                <span
-                                    className={`shrink-0 select-none border-r border-zinc-100 px-3 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-12 ${show ? LINE_GUTTER[d.type] : "text-transparent"
-                                        }`}
+                                <div
+                                    className={`shrink-0 select-none border-r border-zinc-100 px-2 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${
+                                        show ? gutterColor : "text-transparent"
+                                    }`}
                                 >
-                                    {show ? d.oldLineNo : ""}
-                                </span>
-                                <span className="flex-1 whitespace-pre px-3 py-0.5 text-zinc-800 dark:text-zinc-200">
+                                    <span>{show ? d.oldLineNo : ""}</span>
+                                    {show && isDiffLine && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                scrollToNextDiff(i);
+                                            }}
+                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                                            title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
+                                        >
+                                            {isLastDiff ? (
+                                                <ChevronUp className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <ChevronDown className="h-3.5 w-3.5" />
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                                <span className="flex-1 whitespace-pre px-3 py-0.5 text-zinc-800 dark:text-zinc-200 font-mono">
                                     {show ? (
                                         d.oldSpans ? (
                                             renderSpans(d.oldSpans, CHAR_HL.modified_old)
@@ -511,26 +791,51 @@ function SideBySideView({ diff }: { diff: DiffLine[] }) {
                         );
                     })}
                 </div>
-            </div>
 
-            {/* Right (modified) */}
-            <div className="overflow-auto">
-                <div className="min-w-0">
+                {/* Right (modified) */}
+                <div className="min-w-0 overflow-x-auto">
                     {diff.map((d, i) => {
                         const show = d.type !== "removed";
+                        const bgClass = d.type === "modified"
+                            ? LINE_BG.added
+                            : d.type === "removed"
+                            ? "bg-zinc-50 dark:bg-zinc-900/40"
+                            : LINE_BG[d.type];
+                        const gutterColor = d.type === "modified" ? LINE_GUTTER.added : LINE_GUTTER[d.type];
+
+                        const isDiffLine = d.type !== "unchanged";
+                        const isLastDiff = diffIndices[diffIndices.length - 1] === i;
+
                         return (
                             <div
                                 key={i}
-                                className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${d.type === "removed" ? "bg-zinc-50 dark:bg-zinc-900/40" : LINE_BG[d.type]
-                                    }`}
+                                className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${bgClass}`}
                             >
-                                <span
-                                    className={`shrink-0 select-none border-r border-zinc-100 px-3 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-12 ${show ? LINE_GUTTER[d.type] : "text-transparent"
-                                        }`}
+                                <div
+                                    className={`shrink-0 select-none border-r border-zinc-100 px-2 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${
+                                        show ? gutterColor : "text-transparent"
+                                    }`}
                                 >
-                                    {show ? d.newLineNo : ""}
-                                </span>
-                                <span className="flex-1 whitespace-pre px-3 py-0.5 text-zinc-800 dark:text-zinc-200">
+                                    <span>{show ? d.newLineNo : ""}</span>
+                                    {show && isDiffLine && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                scrollToNextDiff(i);
+                                            }}
+                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                                            title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
+                                        >
+                                            {isLastDiff ? (
+                                                <ChevronUp className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <ChevronDown className="h-3.5 w-3.5" />
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                                <span className="flex-1 whitespace-pre px-3 py-0.5 text-zinc-800 dark:text-zinc-200 font-mono">
                                     {show ? (
                                         d.newSpans ? (
                                             renderSpans(d.newSpans, CHAR_HL.modified_new)
@@ -552,74 +857,128 @@ function SideBySideView({ diff }: { diff: DiffLine[] }) {
 
 // ── Unified view ─────────────────────────────────────────────────────────────
 
-function UnifiedView({ diff }: { diff: DiffLine[] }) {
+function UnifiedView({
+    diff,
+    containerRef,
+    onScroll,
+    scrollToNextDiff,
+    diffIndices,
+}: {
+    diff: DiffLine[];
+    containerRef: (el: HTMLDivElement | null) => void;
+    onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
+    scrollToNextDiff: (index: number) => void;
+    diffIndices: number[];
+}) {
     return (
-        <div className="overflow-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700">
-            {diff.map((d, i) => {
-                if (d.type === "modified") {
-                    // Show as two lines: removal then addition
+        <div
+            ref={containerRef}
+            onScroll={onScroll}
+            className="max-h-[600px] overflow-y-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700 bg-white dark:bg-zinc-900"
+        >
+            <div className="min-w-[500px]">
+                {diff.map((d, i) => {
+                    if (d.type === "modified") {
+                        const isLastDiff = diffIndices[diffIndices.length - 1] === i;
+                        // Show as two lines: removal then addition
+                        return (
+                            <div key={i} id={`diff-line-${i}`}>
+                                <div className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG.removed}`}>
+                                    <div className={`shrink-0 select-none border-r border-zinc-100 px-2.5 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${LINE_GUTTER.removed}`}>
+                                        <span>{d.oldLineNo}</span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                scrollToNextDiff(i);
+                                            }}
+                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
+                                            title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
+                                        >
+                                            {isLastDiff ? (
+                                                <ChevronUp className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <ChevronDown className="h-3.5 w-3.5" />
+                                            )}
+                                        </button>
+                                    </div>
+                                    <span className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER.removed}`}>
+                                        −
+                                    </span>
+                                    <span className="flex-1 whitespace-pre py-0.5 pr-3 text-zinc-800 dark:text-zinc-200 font-mono">
+                                        {d.oldSpans
+                                            ? renderSpans(d.oldSpans, CHAR_HL.modified_old)
+                                            : d.oldLine}
+                                    </span>
+                                </div>
+                                <div className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG.added}`}>
+                                    <div className={`shrink-0 select-none border-r border-zinc-100 px-2.5 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${LINE_GUTTER.added}`}>
+                                        <span>{d.newLineNo}</span>
+                                    </div>
+                                    <span className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER.added}`}>
+                                        +
+                                    </span>
+                                    <span className="flex-1 whitespace-pre py-0.5 pr-3 text-zinc-800 dark:text-zinc-200 font-mono">
+                                        {d.newSpans
+                                            ? renderSpans(d.newSpans, CHAR_HL.modified_new)
+                                            : d.newLine}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    const isDiffLine = d.type !== "unchanged";
+                    const isLastDiff = diffIndices[diffIndices.length - 1] === i;
+                    const lineNo = d.type === "removed" ? d.oldLineNo : d.newLineNo;
+                    const text = d.type === "removed" ? d.oldLine : d.newLine;
+                    const prefix =
+                        d.type === "added"
+                            ? "+"
+                            : d.type === "removed"
+                                ? "−"
+                                : " ";
+
                     return (
-                        <div key={i}>
-                            <div className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG.removed}`}>
-                                <span className={`shrink-0 select-none border-r border-zinc-100 px-3 py-0.5 text-right text-[12px] dark:border-zinc-800 w-12 ${LINE_GUTTER.removed}`}>
-                                    {d.oldLineNo}
-                                </span>
-                                <span className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER.removed}`}>
-                                    −
-                                </span>
-                                <span className="flex-1 whitespace-pre py-0.5 pr-3 text-zinc-800 dark:text-zinc-200">
-                                    {d.oldSpans
-                                        ? renderSpans(d.oldSpans, CHAR_HL.modified_old)
-                                        : d.oldLine}
-                                </span>
+                        <div
+                            key={i}
+                            id={`diff-line-${i}`}
+                            className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG[d.type]}`}
+                        >
+                            <div
+                                className={`shrink-0 select-none border-r border-zinc-100 px-2.5 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${LINE_GUTTER[d.type]}`}
+                            >
+                                <span>{lineNo}</span>
+                                {isDiffLine && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            scrollToNextDiff(i);
+                                        }}
+                                        className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
+                                        title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
+                                    >
+                                        {isLastDiff ? (
+                                            <ChevronUp className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <ChevronDown className="h-3.5 w-3.5" />
+                                        )}
+                                    </button>
+                                )}
                             </div>
-                            <div className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG.added}`}>
-                                <span className={`shrink-0 select-none border-r border-zinc-100 px-3 py-0.5 text-right text-[12px] dark:border-zinc-800 w-12 ${LINE_GUTTER.added}`}>
-                                    {d.newLineNo}
-                                </span>
-                                <span className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER.added}`}>
-                                    +
-                                </span>
-                                <span className="flex-1 whitespace-pre py-0.5 pr-3 text-zinc-800 dark:text-zinc-200">
-                                    {d.newSpans
-                                        ? renderSpans(d.newSpans, CHAR_HL.modified_new)
-                                        : d.newLine}
-                                </span>
-                            </div>
+                            <span
+                                className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER[d.type]}`}
+                            >
+                                {prefix}
+                            </span>
+                            <span className="flex-1 whitespace-pre py-0.5 pr-3 text-zinc-800 dark:text-zinc-200">
+                                {text}
+                            </span>
                         </div>
                     );
-                }
-
-                const lineNo = d.type === "removed" ? d.oldLineNo : d.newLineNo;
-                const text = d.type === "removed" ? d.oldLine : d.newLine;
-                const prefix =
-                    d.type === "added"
-                        ? "+"
-                        : d.type === "removed"
-                            ? "−"
-                            : " ";
-
-                return (
-                    <div
-                        key={i}
-                        className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG[d.type]}`}
-                    >
-                        <span
-                            className={`shrink-0 select-none border-r border-zinc-100 px-3 py-0.5 text-right text-[12px] dark:border-zinc-800 w-12 ${LINE_GUTTER[d.type]}`}
-                        >
-                            {lineNo}
-                        </span>
-                        <span
-                            className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER[d.type]}`}
-                        >
-                            {prefix}
-                        </span>
-                        <span className="flex-1 whitespace-pre py-0.5 pr-3 text-zinc-800 dark:text-zinc-200">
-                            {text}
-                        </span>
-                    </div>
-                );
-            })}
+                })}
+            </div>
         </div>
     );
 }
