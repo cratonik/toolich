@@ -164,6 +164,16 @@ const TOOLS: ToolMeta[] = [
             "ttl", "network", "networking",
         ],
     },
+    {
+        name: "Markdown Editor",
+        slug: "markdown-editor",
+        description: "Write and preview Markdown in a split-pane editor with live rendering.",
+        category: "managers",
+        keywords: [
+            "markdown", "editor", "preview", "gfm", "commonmark", "writer",
+            "wysiwyg", "mermaid", "diagram", "graph", "chart",
+        ],
+    },
 ];
 
 // ---------------------------------------------------------------------------
@@ -188,7 +198,8 @@ export function getToolBySlug(
     category: string,
     slug: string,
 ): ToolMetaWithPath | undefined {
-    return allTools.find((t) => t.category === category && t.slug === slug);
+    const normCategory = category === "manager" ? "managers" : category;
+    return allTools.find((t) => t.category === normCategory && t.slug === slug);
 }
 
 /** Search tools by query (matches name, description, keywords) */
