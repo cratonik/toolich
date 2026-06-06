@@ -1063,7 +1063,7 @@ export default function MarkdownEditor() {
                                 {/* Highlight Layer (rendered behind transparent textarea) */}
                                 <pre
                                     ref={highlightRef}
-                                    className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed overflow-hidden h-full w-full"
+                                    className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
                                     aria-hidden="true"
                                     dangerouslySetInnerHTML={{
                                         __html: highlightedHtml || "&nbsp;",
