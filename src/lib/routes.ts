@@ -35,6 +35,7 @@ export const ROUTES = {
         },
         managers: {
             diffChecker: "/tools/managers/diff-checker",
+            markdownEditor: "/tools/managers/markdown-editor",
         },
     },
 } as const;
