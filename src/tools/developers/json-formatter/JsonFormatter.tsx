@@ -12,120 +12,95 @@ function normalizeRelaxedJson(input: string): string {
     const len = input.length;
     let i = 0;
     const out: string[] = [];
-    let inString = false;
-    let escapeNext = false;
-    let depth = 0;
-
-    function skipWhitespace() {
-        while (i < len && /[\s\n\r\t]/.test(input[i])) {
-            out.push(input[i]);
-            i++;
-        }
-    }
-
-    function readUnquotedValue(): string {
-        const start = i;
-        if (input[i] === "{" && input[i + 1] === "{") {
-            i += 2;
-            while (i < len) {
-                if (input[i] === "}" && input[i + 1] === "}") {
-                    i += 2;
-                    break;
-                }
-                i++;
-            }
-            return input.slice(start, i);
-        }
-        if (/[A-Za-z_$%]/.test(input[i])) {
-            // We added \s (space) and \" (quotes) to the allowed characters
-            // This ensures "action_by or \"system\"" is captured as one block
-            while (i < len && /[A-Za-z0-9_$.%()\s"']/.test(input[i])) {
-                // Optimization: Stop if we hit a comma or closing brace that ISN'T inside parens
-                if (input[i] === ',' || input[i] === '}' || input[i] === ']') break;
-                i++;
-            }
-            return input.slice(start, i).trim(); // trim() removes the trailing space before the comma
-        }
-        return "";
-    }
 
     while (i < len) {
-        if (inString) {
-            if (escapeNext) {
-                escapeNext = false;
-                out.push(input[i]);
-                i++;
-                continue;
-            }
-            if (input[i] === "\\") {
-                escapeNext = true;
-                out.push(input[i]);
-                i++;
-                continue;
-            }
-            if (input[i] === '"') {
-                inString = false;
-                out.push(input[i]);
-                i++;
-                continue;
-            }
-            out.push(input[i]);
-            i++;
-            continue;
-        }
-
         const c = input[i];
 
-        if (c === '"') {
-            inString = true;
+        // Whitespace
+        if (/[\s\n\r\t]/.test(c)) {
             out.push(c);
             i++;
             continue;
         }
 
-        if (c === ":" || c === "," || c === "[") {
-            out.push(c);
-            i++;
-            skipWhitespace();
-            if (i >= len) continue;
-            const next = input[i];
-            // Template var {{...}} must be checked before single '{' (object start)
-            if (next === "{" && input[i + 1] === "{") {
-                const value = readUnquotedValue();
-                if (value) {
-                    const escaped = value
-                        .replace(/\\/g, "\\\\")
-                        .replace(/"/g, '\\"')
-                        .replace(/\n/g, "\\n")
-                        .replace(/\r/g, "\\r")
-                        .replace(/\t/g, "\\t");
-                    out.push('"', escaped, '"');
+        // String literals (single or double quoted)
+        if (c === '"' || c === "'") {
+            const startQuote = c;
+            let j = i + 1;
+            let escaped = false;
+            let strContent = "";
+
+            while (j < len) {
+                const sc = input[j];
+                if (escaped) {
+                    strContent += sc;
+                    escaped = false;
+                    j++;
+                    continue;
                 }
-                continue;
+                if (sc === "\\") {
+                    strContent += sc;
+                    escaped = true;
+                    j++;
+                    continue;
+                }
+                if (sc === startQuote) {
+                    j++;
+                    break;
+                }
+                if (sc === "\n" || sc === "\r") {
+                    // Line break terminates the unclosed string to allow recovery
+                    break;
+                }
+                strContent += sc;
+                j++;
             }
-            if (next === '"' || next === "{" || next === "[") continue;
-            if (next === "t" && input.slice(i, i + 4) === "true") continue;
-            if (next === "f" && input.slice(i, i + 5) === "false") continue;
-            if (next === "n" && input.slice(i, i + 4) === "null") continue;
-            if (next === "-" || (next >= "0" && next <= "9")) continue;
-            const value = readUnquotedValue();
-            if (value) {
-                const escaped = value
-                    .replace(/\\/g, "\\\\")
-                    .replace(/"/g, '\\"')
-                    .replace(/\n/g, "\\n")
-                    .replace(/\r/g, "\\r")
-                    .replace(/\t/g, "\\t");
-                out.push('"', escaped, '"');
-            }
+
+            // Output as double-quoted string
+            // Escape double quotes inside the string content
+            const normalizedContent = strContent.replace(/"/g, '\\"');
+            out.push('"', normalizedContent, '"');
+            i = j;
             continue;
         }
 
-        if (c === "{") depth++;
-        if (c === "}") depth--;
-        if (c === "[") depth++;
-        if (c === "]") depth--;
+        // Template variables or unquoted words / identifiers
+        // (e.g. fals, theme, verified, or {{VAR}})
+        if (c === "{" && input[i + 1] === "{") {
+            let j = i + 2;
+            let content = "";
+            while (j < len) {
+                if (input[j] === "}" && input[j + 1] === "}") {
+                    j += 2;
+                    break;
+                }
+                content += input[j];
+                j++;
+            }
+            out.push('"', `{{${content.trim()}}}`, '"');
+            i = j;
+            continue;
+        }
 
+        // If it is an identifier (unquoted key or unquoted value like fals)
+        if (/[A-Za-z_$]/.test(c)) {
+            let j = i;
+            let word = "";
+            while (j < len && /[A-Za-z0-9_$]/.test(input[j])) {
+                word += input[j];
+                j++;
+            }
+            
+            if (word === "true" || word === "false" || word === "null") {
+                out.push(word);
+            } else {
+                out.push('"', word, '"');
+            }
+            i = j;
+            continue;
+        }
+
+        // Default: push other characters
         out.push(c);
         i++;
     }
@@ -139,13 +114,14 @@ function prettifyStructureOnly(input: string, spaces: IndentSize): string {
     let i = 0;
     const out: string[] = [];
     let inString = false;
+    let stringQuote: string | null = null;
     let escapeNext = false;
     let inTemplate = false;
     let depth = 0;
     const indentStr = " ".repeat(spaces);
 
     function indent(d: number) {
-        return indentStr.repeat(d);
+        return indentStr.repeat(Math.max(0, d));
     }
 
     function needNewlineBefore(): boolean {
@@ -170,15 +146,23 @@ function prettifyStructureOnly(input: string, spaces: IndentSize): string {
                 i++;
                 continue;
             }
-            if (input[i] === '"') {
+            if (input[i] === stringQuote) {
                 inString = false;
+                stringQuote = null;
                 out.push(input[i]);
                 i++;
                 continue;
             }
-            out.push(input[i]);
-            i++;
-            continue;
+            if (input[i] === "\n" || input[i] === "\r") {
+                // Terminate unclosed string on newline to allow recovery
+                inString = false;
+                stringQuote = null;
+                // do not continue, let it fall through to be processed as normal character
+            } else {
+                out.push(input[i]);
+                i++;
+                continue;
+            }
         }
 
         if (inTemplate) {
@@ -195,8 +179,9 @@ function prettifyStructureOnly(input: string, spaces: IndentSize): string {
 
         const c = input[i];
 
-        if (c === '"') {
+        if (c === '"' || c === "'") {
             inString = true;
+            stringQuote = c;
             out.push(c);
             i++;
             continue;
@@ -219,7 +204,7 @@ function prettifyStructureOnly(input: string, spaces: IndentSize): string {
         }
         if (c === "}") {
             depth--;
-            out.push("\n", indent(depth), c);
+            out.push("\n", indent(Math.max(0, depth)), c);
             i++;
             continue;
         }
@@ -233,7 +218,7 @@ function prettifyStructureOnly(input: string, spaces: IndentSize): string {
         }
         if (c === "]") {
             depth--;
-            out.push("\n", indent(depth), c);
+            out.push("\n", indent(Math.max(0, depth)), c);
             i++;
             continue;
         }
@@ -265,6 +250,7 @@ function minifyStructureOnly(input: string): string {
     let i = 0;
     const out: string[] = [];
     let inString = false;
+    let stringQuote: string | null = null;
     let escapeNext = false;
     let inTemplate = false;
 
@@ -282,15 +268,23 @@ function minifyStructureOnly(input: string): string {
                 i++;
                 continue;
             }
-            if (input[i] === '"') {
+            if (input[i] === stringQuote) {
                 inString = false;
+                stringQuote = null;
                 out.push(input[i]);
                 i++;
                 continue;
             }
-            out.push(input[i]);
-            i++;
-            continue;
+            if (input[i] === "\n" || input[i] === "\r") {
+                // Terminate unclosed string on newline to allow recovery
+                inString = false;
+                stringQuote = null;
+                // do not continue, let it fall through to be processed as normal character
+            } else {
+                out.push(input[i]);
+                i++;
+                continue;
+            }
         }
 
         if (inTemplate) {
@@ -307,8 +301,9 @@ function minifyStructureOnly(input: string): string {
 
         const c = input[i];
 
-        if (c === '"') {
+        if (c === '"' || c === "'") {
             inString = true;
+            stringQuote = c;
             out.push(c);
             i++;
             continue;
@@ -338,7 +333,7 @@ type TokenType = "key" | "string" | "number" | "boolean" | "null" | "brace" | "p
 
 function colorizeJson(text: string): { text: string; type: TokenType }[] {
     const tokens: { text: string; type: TokenType }[] = [];
-    const regex = /(\"(?:[^\"\\]|\\.)*\")\s*(:)|\"(?:[^\"\\]|\\.)*\"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:\s]+/g;
+    const regex = /(\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*')\s*(:)|\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:\s]+/g;
     let match;
     let lastIndex = 0;
 
@@ -351,10 +346,10 @@ function colorizeJson(text: string): { text: string; type: TokenType }[] {
         const full = match[0];
 
         if (match[1] && match[2]) {
-            // Key: "key":
+            // Key: "key": or 'key':
             tokens.push({ text: match[1], type: "key" });
             tokens.push({ text: match[2], type: "plain" });
-        } else if (full.startsWith('"')) {
+        } else if (full.startsWith('"') || full.startsWith("'")) {
             tokens.push({ text: full, type: "string" });
         } else if (/^-?\d/.test(full)) {
             tokens.push({ text: full, type: "number" });
@@ -764,7 +759,6 @@ export default function JsonFormatter() {
     const highlightedHtml = useMemo(() => {
         if (!content) return "";
         try {
-            JSON.parse(content); // only highlight valid JSON
             const tokens = colorizeJson(content);
             return tokens
                 .map((t) => {
@@ -776,7 +770,6 @@ export default function JsonFormatter() {
                 })
                 .join("");
         } catch {
-            // Invalid JSON — no highlighting, just escape text
             return content
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
@@ -784,20 +777,22 @@ export default function JsonFormatter() {
         }
     }, [content]);
 
-
-
     const prettify = useCallback(
-        (text: string, spaces: IndentSize): string | null => {
-            if (!text.trim()) return text;
+        (text: string, spaces: IndentSize): string => {
+            if (!text.trim()) {
+                setError(null);
+                return text;
+            }
             const { parsed, normalized } = tryParseJson(text);
             if (parsed !== null) {
+                setError(null);
                 if (normalized !== null) {
                     return prettifyStructureOnly(text, spaces);
                 }
                 return JSON.stringify(parsed, null, spaces);
             }
             setError("Invalid JSON");
-            return null;
+            return prettifyStructureOnly(text, spaces);
         },
         [tryParseJson]
     );
@@ -821,12 +816,7 @@ export default function JsonFormatter() {
         if (isPasteRef.current) {
             isPasteRef.current = false;
             const result = prettify(newValue, indent);
-            if (result !== null) {
-                setContent(result);
-                setError(null);
-            } else {
-                setContent(newValue);
-            }
+            setContent(result);
         } else {
             setContent(newValue);
             // Live validation — accept strict or relaxed (template vars) JSON
@@ -841,10 +831,7 @@ export default function JsonFormatter() {
 
     const handlePrettify = () => {
         const result = prettify(content, indent);
-        if (result !== null) {
-            setContent(result);
-            setError(null);
-        }
+        setContent(result);
     };
 
     const handleMinify = () => {
@@ -854,6 +841,7 @@ export default function JsonFormatter() {
             setContent(normalized !== null ? minifyStructureOnly(content) : JSON.stringify(parsed));
             setError(null);
         } else {
+            setContent(minifyStructureOnly(content));
             setError("Invalid JSON");
         }
     };
@@ -916,12 +904,7 @@ export default function JsonFormatter() {
             reader.onload = () => {
                 const text = reader.result as string;
                 const result = prettify(text, indent);
-                if (result !== null) {
-                    setContent(result);
-                    setError(null);
-                } else {
-                    setContent(text);
-                }
+                setContent(result);
             };
             reader.readAsText(file);
         },
@@ -954,10 +937,7 @@ export default function JsonFormatter() {
                             onClick={() => {
                                 setIndent(size);
                                 const result = prettify(content, size);
-                                if (result !== null) {
-                                    setContent(result);
-                                    setError(null);
-                                }
+                                setContent(result);
                             }}
                             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${indent === size
                                 ? "bg-indigo-500 text-white shadow-sm"
