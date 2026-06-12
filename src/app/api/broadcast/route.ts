@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import * as emoji from "node-emoji";
 
 export const dynamic = "force-dynamic";
 
@@ -131,9 +132,12 @@ export async function POST(request: Request) {
                 return NextResponse.json({ success: true, cleared: true });
             }
 
+            // Emojify Slack shortcodes (e.g. :fire:, :warning:) to Unicode emojis
+            const emojifiedText = emoji.emojify(rawText);
+
             // Save new broadcast
             const broadcast = {
-                text: rawText,
+                text: emojifiedText,
                 timestamp: Date.now(),
             };
             writeBroadcast(broadcast);
