@@ -6,7 +6,7 @@ import { useTabContext } from "@/lib/tab-context";
 import { useToast } from "@/components/Toast";
 
 export function TabBar() {
-    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs } = useTabContext();
+    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs, isWide } = useTabContext();
     const { showToast } = useToast();
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const dragSourceIndex = useRef<number | null>(null);
@@ -84,7 +84,7 @@ export function TabBar() {
 
     return (
         <div className="sticky top-14 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mx-auto max-w-5xl px-4 sm:px-6">
+            <div className={`mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} px-4 sm:px-6 transition-all duration-300`}>
                 <div className="-mb-px flex items-center gap-0.5 overflow-x-auto scrollbar-none">
                     {tabs.map((tab, index) => {
                         const isActive = tab.id === activeTabId;

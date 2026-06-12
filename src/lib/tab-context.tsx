@@ -34,6 +34,8 @@ type TabContextType = {
     splitTabId: string | null;
     splitRatio: number;
     maxTabs: number;
+    isWide: boolean;
+    toggleWide: () => void;
     openTab: (tool: { name: string; slug: string; category: string }) => void;
     openInCurrentTab: (tool: {
         name: string;
@@ -142,6 +144,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const [activeTabId, setActiveTabId] = useState("home");
     const [splitTabId, setSplitTabId] = useState<string | null>(null);
     const [splitRatio, setSplitRatio] = useState(0.5);
+    const [isWide, setIsWide] = useState(false);
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
     const activeTabIdRef = useRef(activeTabId);
@@ -445,6 +448,21 @@ export function TabProvider({ children }: { children: ReactNode }) {
         setActiveTabId("home");
     }, []);
 
+    useEffect(() => {
+        const saved = localStorage.getItem("toolich-wide");
+        if (saved === "true") {
+            setIsWide(true);
+        }
+    }, []);
+
+    const toggleWide = useCallback(() => {
+        setIsWide((prev) => {
+            const next = !prev;
+            localStorage.setItem("toolich-wide", String(next));
+            return next;
+        });
+    }, []);
+
     return (
         <TabContext.Provider
             value={{
@@ -453,6 +471,8 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 splitTabId,
                 splitRatio,
                 maxTabs: MAX_TABS,
+                isWide,
+                toggleWide,
                 openTab,
                 openInCurrentTab,
                 openCategoryInCurrentTab,
