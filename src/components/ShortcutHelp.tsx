@@ -14,8 +14,12 @@ const SHORTCUTS = [
     { keys: ["Esc"], label: "Close modal / search" },
 ];
 
-export function ShortcutHelp() {
-    const [isOpen, setIsOpen] = useState(false);
+interface ShortcutHelpProps {
+    isOpen: boolean;
+    setIsOpen: (open: boolean) => void;
+}
+
+export function ShortcutHelp({ isOpen, setIsOpen }: ShortcutHelpProps) {
     const [isMac, setIsMac] = useState(false);
 
     useEffect(() => {
@@ -30,7 +34,7 @@ export function ShortcutHelp() {
 
             if (e.key === "?" && !e.metaKey && !e.ctrlKey) {
                 e.preventDefault();
-                setIsOpen((prev) => !prev);
+                setIsOpen(!isOpen);
             }
             if (e.key === "Escape" && isOpen) {
                 setIsOpen(false);
@@ -39,20 +43,10 @@ export function ShortcutHelp() {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isOpen]);
+    }, [isOpen, setIsOpen]);
 
     return (
         <>
-            {/* Floating trigger button */}
-            <button
-                type="button"
-                onClick={() => setIsOpen((prev) => !prev)}
-                className="fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 dark:border-zinc-700 dark:bg-zinc-800"
-                aria-label="Keyboard shortcuts"
-            >
-                <Keyboard className="h-5 w-5 text-zinc-600 dark:text-zinc-300" />
-            </button>
-
             {/* Shortcut panel */}
             {isOpen && (
                 <div
