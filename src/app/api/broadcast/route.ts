@@ -4,26 +4,59 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
-const DATA_DIR = path.join(process.cwd(), "src/data");
-const FILE_PATH = path.join(DATA_DIR, "broadcast.json");
+const STATIC_FILE_PATH = path.join(process.cwd(), "src/data/broadcast.json");
+const TMP_FILE_PATH = "/tmp/broadcast.json";
 
-// Helper to ensure data directory exists
-function ensureDirectory() {
-    if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+// Helper to read broadcast
+function readBroadcast() {
+    // 1. Try to read from /tmp (most up-to-date in serverless environment)
+    if (fs.existsSync(TMP_FILE_PATH)) {
+        try {
+            const dataStr = fs.readFileSync(TMP_FILE_PATH, "utf-8");
+            return JSON.parse(dataStr);
+        } catch (e) {
+            console.error("Error reading /tmp/broadcast.json:", e);
+        }
+    }
+    // 2. Fallback to static bundled file
+    if (fs.existsSync(STATIC_FILE_PATH)) {
+        try {
+            const dataStr = fs.readFileSync(STATIC_FILE_PATH, "utf-8");
+            return JSON.parse(dataStr);
+        } catch (e) {
+            console.error("Error reading static broadcast file:", e);
+        }
+    }
+    return {};
+}
+
+// Helper to write broadcast
+function writeBroadcast(data: any) {
+    const dataStr = JSON.stringify(data, null, 2);
+    
+    // Always write to /tmp (writeable in Vercel Serverless environment)
+    try {
+        fs.writeFileSync(TMP_FILE_PATH, dataStr);
+    } catch (e) {
+        console.error("Failed to write to /tmp/broadcast.json:", e);
+    }
+
+    // Try to write to static workspace file (works in local dev, fails gracefully in prod)
+    try {
+        const dir = path.dirname(STATIC_FILE_PATH);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(STATIC_FILE_PATH, dataStr);
+    } catch (e) {
+        console.log("Note: Static file path is read-only (expected in serverless production environment)");
     }
 }
 
 // GET active broadcast
 export async function GET() {
     try {
-        ensureDirectory();
-        if (!fs.existsSync(FILE_PATH)) {
-            return NextResponse.json({ active: false });
-        }
-
-        const dataStr = fs.readFileSync(FILE_PATH, "utf-8");
-        const broadcast = JSON.parse(dataStr);
+        const broadcast = readBroadcast();
 
         if (!broadcast.text || !broadcast.timestamp) {
             return NextResponse.json({ active: false });
@@ -35,7 +68,7 @@ export async function GET() {
 
         if (ageInMs > oneDayInMs) {
             // Expired, clear it
-            fs.writeFileSync(FILE_PATH, JSON.stringify({}));
+            writeBroadcast({});
             return NextResponse.json({ active: false });
         }
 
@@ -92,11 +125,9 @@ export async function POST(request: Request) {
 
             const rawText = event.text?.trim() || "";
 
-            ensureDirectory();
-
             // Check if text is "done" or "close" to clear
             if (rawText.toLowerCase() === "done" || rawText.toLowerCase() === "close") {
-                fs.writeFileSync(FILE_PATH, JSON.stringify({}));
+                writeBroadcast({});
                 return NextResponse.json({ success: true, cleared: true });
             }
 
@@ -105,7 +136,7 @@ export async function POST(request: Request) {
                 text: rawText,
                 timestamp: Date.now(),
             };
-            fs.writeFileSync(FILE_PATH, JSON.stringify(broadcast, null, 2));
+            writeBroadcast(broadcast);
 
             return NextResponse.json({ success: true, updated: true });
         }
