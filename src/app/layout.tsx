@@ -7,6 +7,7 @@ import { TabProvider } from "@/lib/tab-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { ToastProvider } from "@/components/Toast";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,19 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q4GXZK2JXF"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+
+              gtag('config', 'G-Q4GXZK2JXF');
+            `,
+          }}
+        />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
@@ -64,6 +78,7 @@ export default function RootLayout({
                 <Header />
                 {children}
                 <ShortcutHelp />
+                <SpeedInsights />
               </ToastProvider>
             </SearchProvider>
           </TabProvider>

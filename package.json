@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "cron-parser": "^5.5.0",
     "cronstrue": "^3.13.0",
     "hash-wasm": "^4.12.0",
