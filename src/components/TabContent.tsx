@@ -8,7 +8,7 @@ import { ToolPageHeader } from "@/components/ToolPageHeader";
 import HomePanel from "@/components/HomePanel";
 import CategoryPanel from "@/components/CategoryPanel";
 import { SplitDivider } from "@/components/SplitDivider";
-import { X, Pin } from "lucide-react";
+import { X, Pin, Maximize2, Minimize2 } from "lucide-react";
 
 function ToolLoadingFallback() {
     return (
@@ -59,7 +59,7 @@ function TabPanel({ tab }: { tab: Tab }) {
 }
 
 export function TabContent() {
-    const { tabs, activeTabId, splitTabId, splitRatio, splitTab, unsplit, setSplitRatio } = useTabContext();
+    const { tabs, activeTabId, splitTabId, splitRatio, splitTab, unsplit, setSplitRatio, isWide, toggleWide } = useTabContext();
     const [dropTarget, setDropTarget] = useState(false);
 
     const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -147,6 +147,20 @@ export function TabContent() {
                         </div>
                     </div>
                 </div>
+
+                {/* Floating Expand/Shrink View Button */}
+                <button
+                    type="button"
+                    onClick={toggleWide}
+                    className="fixed bottom-6 right-20 z-40 hidden md:flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white/85 shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900/85 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    title={isWide ? "Switch to standard width" : "Switch to wide width"}
+                >
+                    {isWide ? (
+                        <Minimize2 className="h-5 w-5" />
+                    ) : (
+                        <Maximize2 className="h-5 w-5" />
+                    )}
+                </button>
             </div>
         );
     }
@@ -168,7 +182,7 @@ export function TabContent() {
                     </div>
                 </div>
             )}
-            <div className="mx-auto max-w-5xl">
+            <div className={`mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} transition-all duration-300`}>
                 {tabs.map((tab) => (
                     <div
                         key={tab.id}
@@ -178,6 +192,20 @@ export function TabContent() {
                     </div>
                 ))}
             </div>
+
+            {/* Floating Expand/Shrink View Button */}
+            <button
+                type="button"
+                onClick={toggleWide}
+                className="fixed bottom-6 right-20 z-40 hidden md:flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white/85 shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900/85 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                title={isWide ? "Switch to standard width" : "Switch to wide width"}
+            >
+                {isWide ? (
+                    <Minimize2 className="h-5 w-5" />
+                ) : (
+                    <Maximize2 className="h-5 w-5" />
+                )}
+            </button>
         </div>
     );
 }
