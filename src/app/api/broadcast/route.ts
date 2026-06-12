@@ -129,6 +129,7 @@ export async function POST(request: Request) {
             // Check if text is "done" or "close" to clear
             if (rawText.toLowerCase() === "done" || rawText.toLowerCase() === "close") {
                 writeBroadcast({});
+                forwardRequest(body);
                 return NextResponse.json({ success: true, cleared: true });
             }
 
@@ -142,6 +143,8 @@ export async function POST(request: Request) {
             };
             writeBroadcast(broadcast);
 
+            forwardRequest(body);
+
             return NextResponse.json({ success: true, updated: true });
         }
 
@@ -149,5 +152,22 @@ export async function POST(request: Request) {
     } catch (error) {
         console.error("Error writing broadcast file:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}
+
+// Helper to forward the webhook payload to a dev/preview environment (e.g., netlify app)
+function forwardRequest(body: any) {
+    const forwardUrl = process.env.FORWARD_BROADCAST_URL;
+    if (forwardUrl) {
+        console.log("Forwarding broadcast event to:", forwardUrl);
+        fetch(forwardUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        }).catch((err) => {
+            console.error("Failed to forward broadcast event:", err);
+        });
     }
 }
