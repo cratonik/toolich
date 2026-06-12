@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SearchTrigger, SearchModal } from "./SpotlightSearch";
 import { ThemeToggle } from "./ThemeToggle";
+import { useTabContext } from "@/lib/tab-context";
 
 type HeaderProps = {
   githubUrl?: string;
@@ -12,10 +13,12 @@ type HeaderProps = {
 export default function Header({
   githubUrl = "https://github.com/cratonik/toolich",
 }: HeaderProps) {
+  const { isWide } = useTabContext();
+
   return (
     <>
       <header className="fixed w-full top-0 z-50 border-b border-zinc-200/80 bg-white/80 backdrop-blur-sm dark:border-zinc-800/80 dark:bg-zinc-950/80">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+        <div className={`mx-auto flex h-14 ${isWide ? "max-w-[94%]" : "max-w-5xl"} items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
           <Link
             href="/"
             className="flex items-center gap-2.5 text-zinc-900 no-underline transition-opacity hover:opacity-80 dark:text-zinc-50"

@@ -5,7 +5,6 @@ import Header from "@/components/Header";
 import { SearchProvider } from "@/components/SpotlightSearch";
 import { TabProvider } from "@/lib/tab-context";
 import { ThemeProvider } from "@/lib/theme-context";
-import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { ToastProvider } from "@/components/Toast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -77,7 +76,6 @@ export default function RootLayout({
               <ToastProvider>
                 <Header />
                 {children}
-                <ShortcutHelp />
                 <SpeedInsights />
               </ToastProvider>
             </SearchProvider>
