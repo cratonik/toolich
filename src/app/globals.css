@@ -91,3 +91,12 @@ body {
 .animate-slide-in-right {
   animation: slide-in-right 0.25s ease-out;
 }
+
+/* Disable font ligatures in monospaced code elements to prevent layout shifting, character overlap, and cursor drift */
+.font-mono,
+pre,
+code,
+textarea {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0, "clig" 0, "dlig" 0;
+}
