@@ -183,7 +183,7 @@ export default function HomePanel() {
             {/* Footer */}
             <footer className="flex flex-col items-center justify-between gap-4 border-t border-zinc-200 pt-6 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400 sm:flex-row">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <span>© {new Date().getFullYear()} Toolich by Cratonik</span>
+                    <span>© {new Date().getFullYear()} Toolich by <a href="https://cratonik.com" target="_blank"><b>Cratonik</b></a></span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <a
@@ -208,7 +208,7 @@ export default function HomePanel() {
                     </a>
                 </div>
                 <div className="text-zinc-600 dark:text-zinc-400">
-                    Built for engineers
+                    Built for engineers by <a href="https://chaitany.com" target="_blank"><b>Chaitanya Shimpi</b></a>
                 </div>
             </footer>
         </div>

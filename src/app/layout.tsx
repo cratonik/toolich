@@ -25,9 +25,53 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "Toolich — Developer Tools",
-  description:
-    "A platform to help you with development and day-to-day corporate work.",
+  metadataBase: new URL("https://toolich.com"),
+  title: {
+    default: "Toolich — Developer Tools & Utilities",
+    template: "%s | Toolich"
+  },
+  description: "A fast, minimal, and secure collection of everyday developer tools, DevOps helpers, networking tools, and code formatters.",
+  keywords: [
+    "developer tools",
+    "JSON formatter",
+    "Base64 encoder",
+    "YAML to JSON",
+    "diff checker",
+    "UUID generator",
+    "subnet calculator",
+    "cron parser",
+    "regex tester",
+    "hash generator",
+    "DNS lookup",
+    "markdown editor",
+    "networking utilities"
+  ],
+  authors: [{ name: "Chaitanya Shimpi", url: "https://chaitany.com" }],
+  creator: "Chaitanya Shimpi",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://toolich.com",
+    title: "Toolich — Developer Tools & Utilities",
+    description: "Fast, minimal, and secure online utilities built for developers, engineers, and DevOps managers.",
+    siteName: "Toolich"
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Toolich — Developer Tools & Utilities",
+    description: "Fast, minimal, and secure online utilities built for developers, engineers, and DevOps managers."
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 // Inline script to apply the saved theme BEFORE React hydrates, preventing
