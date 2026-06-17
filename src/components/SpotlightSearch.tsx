@@ -91,15 +91,17 @@ function Trigger() {
 }
 
 // ---------------------------------------------------------------------------
-// Modal (rendered once at the layout level)
-// ---------------------------------------------------------------------------
 function Modal() {
   const { isOpen, close } = useContext(SearchContext);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ToolMetaWithPath[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { openTab } = useTabContext();
+  const selectedItemRef = useRef<HTMLButtonElement | null>(null);
+  const { openTab, favorites } = useTabContext();
+
+  const favoriteTools = allTools.filter((t) => favorites.includes(t.slug));
+  const activeList = query ? results : [...favoriteTools, ...allTools];
 
   // Search
   useEffect(() => {
@@ -124,10 +126,21 @@ function Modal() {
   useEffect(() => {
     if (isOpen) {
       requestAnimationFrame(() => inputRef.current?.focus());
+      setSelectedIndex(0);
     } else {
       setQuery("");
     }
   }, [isOpen]);
+
+  // Scroll active item into view
+  useEffect(() => {
+    if (selectedItemRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        block: "nearest",
+        behavior: "auto",
+      });
+    }
+  }, [selectedIndex]);
 
   const navigateToTool = (tool: ToolMetaWithPath) => {
     close();
@@ -137,13 +150,13 @@ function Modal() {
   const handleKeyNavigation = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex((prev) => Math.min(prev + 1, results.length - 1));
+      setSelectedIndex((prev) => Math.min(prev + 1, activeList.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter" && results[selectedIndex]) {
+    } else if (e.key === "Enter" && activeList[selectedIndex]) {
       e.preventDefault();
-      navigateToTool(results[selectedIndex]);
+      navigateToTool(activeList[selectedIndex]);
     }
   };
 
@@ -197,6 +210,7 @@ function Modal() {
                 {results.map((tool, i) => (
                   <li key={tool.slug}>
                     <button
+                      ref={i === selectedIndex ? selectedItemRef : null}
                       type="button"
                       onClick={() => navigateToTool(tool)}
                       className={`flex w-full items-center justify-between px-6 py-3 text-left transition-colors ${i === selectedIndex
@@ -230,33 +244,79 @@ function Modal() {
             </div>
           )}
 
-          {/* All tools (empty state) */}
+          {/* All tools & Favorites (empty state) */}
           {!query && (
-            <div className="border-t border-zinc-200/50 dark:border-zinc-700/50">
-              <div className="px-6 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                All tools
+            <div className="border-t border-zinc-200/50 dark:border-zinc-700/50 max-h-[400px] overflow-y-auto">
+              
+              {/* Favorites sub-section */}
+              {favoriteTools.length > 0 && (
+                <div className="py-2">
+                  <div className="px-6 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
+                    <span>⭐</span> Favorites
+                  </div>
+                  <ul>
+                    {favoriteTools.map((tool, i) => (
+                      <li key={`fav-${tool.slug}`}>
+                        <button
+                          ref={i === selectedIndex ? selectedItemRef : null}
+                          type="button"
+                          onClick={() => navigateToTool(tool)}
+                          className={`flex w-full items-center justify-between px-6 py-2.5 text-left transition-colors ${i === selectedIndex
+                            ? "bg-indigo-50 dark:bg-indigo-500/10"
+                            : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                            }`}
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                              {tool.name}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                              {CATEGORY_LABELS[tool.category] ?? tool.category}
+                            </div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* All tools sub-section */}
+              <div className="py-2">
+                <div className="px-6 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                  All tools
+                </div>
+                <ul>
+                  {allTools.map((tool, i) => {
+                    const itemIndex = favoriteTools.length + i;
+                    return (
+                      <li key={tool.slug}>
+                        <button
+                          ref={itemIndex === selectedIndex ? selectedItemRef : null}
+                          type="button"
+                          onClick={() => navigateToTool(tool)}
+                          className={`flex w-full items-center justify-between px-6 py-2.5 text-left transition-colors ${itemIndex === selectedIndex
+                            ? "bg-indigo-50 dark:bg-indigo-500/10"
+                            : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                            }`}
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                              {tool.name}
+                            </div>
+                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                              {CATEGORY_LABELS[tool.category] ?? tool.category}
+                            </div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-              <ul className="max-h-64 overflow-y-auto pb-2">
-                {allTools.map((tool, i) => (
-                  <li key={tool.slug}>
-                    <button
-                      type="button"
-                      onClick={() => navigateToTool(tool)}
-                      className="flex w-full items-center justify-between px-6 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                    >
-                      <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {tool.name}
-                        </div>
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {CATEGORY_LABELS[tool.category] ?? tool.category}
-                        </div>
-                      </div>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+
             </div>
           )}
         </div>

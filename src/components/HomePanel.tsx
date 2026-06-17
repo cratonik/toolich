@@ -88,13 +88,14 @@ const NEW_TOOL_SLUGS = ["diff-checker", "subnet-calculator", "cron-parser", "has
 
 export default function HomePanel() {
     const [recentTools, setRecentTools] = useState<{ name: string; slug: string; category: string }[]>([]);
-    const { openTab } = useTabContext();
+    const { openTab, favorites } = useTabContext();
 
     useEffect(() => {
         setRecentTools(getRecentTools());
     }, []);
 
     const newTools = allTools.filter((t) => NEW_TOOL_SLUGS.includes(t.slug));
+    const favoriteTools = allTools.filter((t) => favorites.includes(t.slug));
 
     return (
         <div className="space-y-10">
@@ -108,6 +109,28 @@ export default function HomePanel() {
                     run your day-to-day work with less friction.
                 </p>
             </section>
+
+            {/* Favorite Tools */}
+            {favoriteTools.length > 0 && (
+                <section className="space-y-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                        <span className="text-amber-500">⭐</span> Favorite Tools
+                    </h2>
+                    <div className="flex flex-wrap gap-2.5">
+                        {favoriteTools.map((tool) => (
+                            <button
+                                key={tool.slug}
+                                type="button"
+                                onClick={() => openTab(tool)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50/40 px-3.5 py-1.5 text-xs font-medium text-amber-800 shadow-sm transition-all duration-200 hover:border-amber-300 hover:bg-amber-50 hover:scale-105 active:scale-95 dark:border-amber-500/10 dark:bg-amber-500/5 dark:text-amber-300 dark:hover:border-amber-500/30 dark:hover:bg-amber-500/10"
+                            >
+                                <span className="text-amber-400 dark:text-amber-500">✦</span>
+                                {tool.name}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Tool categories */}
             <section className="grid gap-6 md:grid-cols-2">
