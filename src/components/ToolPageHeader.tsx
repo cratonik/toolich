@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Star, ShieldCheck } from "lucide-react";
+import { ChevronRight, Star } from "lucide-react";
 import { ROUTES } from "@/lib/routes";
 import { CATEGORY_LABELS } from "@/lib/routes";
 import { useTabContext } from "@/lib/tab-context";
@@ -101,12 +101,6 @@ export function ToolPageHeader({
             <p className="max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
                 {description}
             </p>
-            {activeSlug !== "dns-lookup" && (
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50/80 px-2.5 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>Local & Secure: All processing happens in your browser. No data is sent to the server.</span>
-                </div>
-            )}
         </div>
     );
 }
