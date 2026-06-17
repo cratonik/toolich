@@ -59,8 +59,14 @@ export async function GET() {
     try {
         const broadcast = readBroadcast();
 
+        const noCacheHeaders = {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        };
+
         if (!broadcast.text || !broadcast.timestamp) {
-            return NextResponse.json({ active: false });
+            return NextResponse.json({ active: false }, { headers: noCacheHeaders });
         }
 
         // Check if 24 hours have passed
@@ -70,14 +76,14 @@ export async function GET() {
         if (ageInMs > oneDayInMs) {
             // Expired, clear it
             writeBroadcast({});
-            return NextResponse.json({ active: false });
+            return NextResponse.json({ active: false }, { headers: noCacheHeaders });
         }
 
         return NextResponse.json({
             active: true,
             text: broadcast.text,
             timestamp: broadcast.timestamp,
-        });
+        }, { headers: noCacheHeaders });
     } catch (error) {
         console.error("Error reading broadcast file:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
