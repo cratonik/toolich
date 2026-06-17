@@ -14,7 +14,7 @@ type HeaderProps = {
 export default function Header({
   githubUrl = "https://github.com/cratonik/toolich",
 }: HeaderProps) {
-  const { isWide } = useTabContext();
+  const { isWide, goHome } = useTabContext();
 
   return (
     <>
@@ -22,6 +22,10 @@ export default function Header({
         <div className={`mx-auto flex h-14 ${isWide ? "max-w-[94%]" : "max-w-5xl"} items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
           <Link
             href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              goHome();
+            }}
             className="flex items-center gap-2.5 text-zinc-900 no-underline transition-opacity hover:opacity-80 dark:text-zinc-50"
             aria-label="Toolich – Home"
           >
