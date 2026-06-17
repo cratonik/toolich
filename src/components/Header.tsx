@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SearchTrigger, SearchModal } from "./SpotlightSearch";
 import { ThemeToggle } from "./ThemeToggle";
 import { useTabContext } from "@/lib/tab-context";
+import { ShieldCheck } from "lucide-react";
 
 type HeaderProps = {
   githubUrl?: string;
@@ -13,7 +14,7 @@ type HeaderProps = {
 export default function Header({
   githubUrl = "https://github.com/cratonik/toolich",
 }: HeaderProps) {
-  const { isWide } = useTabContext();
+  const { isWide, goHome } = useTabContext();
 
   return (
     <>
@@ -21,6 +22,10 @@ export default function Header({
         <div className={`mx-auto flex h-14 ${isWide ? "max-w-[94%]" : "max-w-5xl"} items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
           <Link
             href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              goHome();
+            }}
             className="flex items-center gap-2.5 text-zinc-900 no-underline transition-opacity hover:opacity-80 dark:text-zinc-50"
             aria-label="Toolich – Home"
           >
@@ -40,6 +45,27 @@ export default function Header({
           </Link>
 
           <div className="flex items-center gap-3">
+            {/* Privacy indicator */}
+            <div className="relative group flex items-center justify-center">
+              <div
+                className="flex h-8 w-8 cursor-help items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-emerald-600 shadow-sm transition-colors hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-emerald-400"
+                aria-label="Secure & Local processing indicator"
+              >
+                <ShieldCheck className="h-4.5 w-4.5" />
+              </div>
+              
+              {/* Tooltip Card */}
+              <div className="pointer-events-none absolute right-0 top-10 w-72 origin-top-right scale-95 rounded-xl border border-zinc-200 bg-white/95 p-3.5 text-xs text-zinc-600 opacity-0 shadow-2xl backdrop-blur-xl transition-all duration-200 group-hover:scale-100 group-hover:opacity-100 dark:border-zinc-800 dark:bg-zinc-900/95 dark:text-zinc-400 z-50">
+                <div className="flex items-start gap-2.5">
+                  <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-zinc-900 dark:text-zinc-50 mb-0.5">100% Local & Secure</h4>
+                    <p className="leading-relaxed">All utility tools process your data entirely in your browser. No inputs or files are ever sent to a server.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Search trigger */}
             <SearchTrigger />
 
