@@ -51,6 +51,7 @@ function TabPanel({ tab }: { tab: Tab }) {
                     toolName={meta.name}
                     description={meta.description}
                     category={meta.category}
+                    slug={meta.slug}
                 />
             )}
             <Suspense fallback={<ToolLoadingFallback />}>

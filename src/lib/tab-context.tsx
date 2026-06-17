@@ -50,6 +50,9 @@ type TabContextType = {
     setSplitRatio: (ratio: number) => void;
     reorderTab: (fromIndex: number, toIndex: number) => void;
     goHome: () => void;
+    favorites: string[];
+    toggleFavorite: (slug: string) => void;
+    isFavorite: (slug: string) => boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -153,6 +156,38 @@ export function TabProvider({ children }: { children: ReactNode }) {
     splitTabIdRef.current = splitTabId;
     // Prevent pushState during popstate handling
     const skipPushRef = useRef(false);
+
+    const [favorites, setFavorites] = useState<string[]>([]);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem("toolich-favorites");
+            if (raw) {
+                setFavorites(JSON.parse(raw));
+            }
+        } catch (e) {
+            console.error("Failed to load favorites", e);
+        }
+    }, []);
+
+    const toggleFavorite = useCallback((slug: string) => {
+        setFavorites((prev) => {
+            const next = prev.includes(slug)
+                ? prev.filter((s) => s !== slug)
+                : [...prev, slug];
+            try {
+                localStorage.setItem("toolich-favorites", JSON.stringify(next));
+            } catch (e) {
+                console.error("Failed to save favorites", e);
+            }
+            return next;
+        });
+    }, []);
+
+    const isFavorite = useCallback(
+        (slug: string) => favorites.includes(slug),
+        [favorites]
+    );
 
     // ── Initialise: restore from session (soft reload) or from URL (hard reload / direct link) ──
     useEffect(() => {
@@ -483,6 +518,9 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 setSplitRatio,
                 reorderTab,
                 goHome,
+                favorites,
+                toggleFavorite,
+                isFavorite,
             }}
         >
             {children}
