@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useCallback, Suspense, useEffect } from "react";
-import { useTabContext, type Tab } from "@/lib/tab-context";
+import { useTabContext, TabIdContext, type Tab, getTabDisplayTitle, getTabStorageSuffix } from "@/lib/tab-context";
 import { getToolComponent } from "@/lib/tool-components";
 import { getToolBySlug } from "@/lib/tool-registry";
 import { ToolPageHeader } from "@/components/ToolPageHeader";
 import HomePanel from "@/components/HomePanel";
 import CategoryPanel from "@/components/CategoryPanel";
 import { SplitDivider } from "@/components/SplitDivider";
-import { X, Pin, Maximize2, Minimize2, Keyboard, Bot } from "lucide-react";
+import { X, Columns2, Maximize2, Minimize2, Keyboard, Bot } from "lucide-react";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 
@@ -21,6 +21,8 @@ function ToolLoadingFallback() {
 }
 
 function TabPanel({ tab }: { tab: Tab }) {
+    const { tabs } = useTabContext();
+
     // Home tab
     if (tab.toolSlug === null) {
         return <HomePanel />;
@@ -48,7 +50,7 @@ function TabPanel({ tab }: { tab: Tab }) {
         <div>
             {meta && (
                 <ToolPageHeader
-                    toolName={meta.name}
+                    toolName={getTabDisplayTitle(tab, tabs)}
                     description={meta.description}
                     category={meta.category}
                     slug={meta.slug}
@@ -62,12 +64,23 @@ function TabPanel({ tab }: { tab: Tab }) {
 }
 
 export function TabContent() {
-    const { tabs, activeTabId, splitTabId, splitRatio, splitTab, unsplit, setSplitRatio, isWide, toggleWide } = useTabContext();
+    const { tabs, activeTabId, splitTabId, splitRatio, splitTab, unsplit, setSplitRatio, isWide, toggleWide, splitHighlightTrigger } = useTabContext();
     const [dropTarget, setDropTarget] = useState(false);
     const [isOpenShortcuts, setIsOpenShortcuts] = useState(false);
     const [isOpenChatbot, setIsOpenChatbot] = useState(false);
     const [activeBroadcast, setActiveBroadcast] = useState<{ text: string; timestamp: number } | null>(null);
     const [hasNewBroadcast, setHasNewBroadcast] = useState(false);
+    const [isHighlighting, setIsHighlighting] = useState(false);
+
+    useEffect(() => {
+        if (splitHighlightTrigger > 0) {
+            setIsHighlighting(true);
+            const timer = setTimeout(() => {
+                setIsHighlighting(false);
+            }, 800);
+            return () => clearTimeout(timer);
+        }
+    }, [splitHighlightTrigger]);
 
     // Check for active Slack broadcasts on load and poll every 30 seconds
     // Suspends requests if tab is running in the background to protect server load
@@ -231,93 +244,110 @@ export function TabContent() {
         </>
     );
 
-    // Split/pin view
-    if (isSplit && activeTab) {
-        return (
-            <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
-                {/* Left pane */}
-                <div
-                    className="overflow-y-auto px-4 pt-6 pb-10 sm:px-6"
-                    style={{ width: `${splitRatio * 100}%` }}
-                >
-                    <div className="mx-auto max-w-none">
-                        <TabPanel tab={activeTab} />
-                    </div>
-                </div>
-
-                {/* Resizable divider */}
-                <SplitDivider ratio={splitRatio} onRatioChange={setSplitRatio} />
-
-                {/* Right pane (pinned) */}
-                <div
-                    className={`relative flex flex-col overflow-y-auto ${dropTarget ? "ring-2 ring-inset ring-indigo-400/40" : ""
-                        }`}
-                    style={{ width: `${(1 - splitRatio) * 100}%` }}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                >
-                    {/* Pinned pane header */}
-                    <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white/90 px-4 py-2 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/90">
-                        <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                            <Pin className="h-3.5 w-3.5" />
-                            <span>{splitTabData.title}</span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={unsplit}
-                            className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
-                            title="Unpin"
-                        >
-                            <X className="h-3 w-3" />
-                            Unpin
-                        </button>
-                    </div>
-                    {dropTarget && (
-                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-indigo-500/5 backdrop-blur-[1px]">
-                            <div className="rounded-lg border-2 border-dashed border-indigo-400 bg-white/80 px-6 py-3 text-sm font-medium text-indigo-600 shadow-sm dark:bg-zinc-900/80 dark:text-indigo-400">
-                                Drop to swap pinned tool
-                            </div>
-                        </div>
-                    )}
-                    <div className="flex-1 px-4 pt-6 pb-10 sm:px-6">
-                        <div className="mx-auto max-w-none">
-                            <TabPanel tab={splitTabData} />
-                        </div>
-                    </div>
-                </div>
-
-                {renderFloatingControls()}
-            </div>
-        );
-    }
-
-    // Normal single-pane view
     return (
         <div
-            className={`relative min-h-screen bg-zinc-50 px-4 pt-6 pb-10 dark:bg-zinc-950 sm:px-6 lg:px-8 ${dropTarget ? "ring-2 ring-inset ring-indigo-400/40" : ""
-                }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            className={`relative flex min-h-screen bg-zinc-50 dark:bg-zinc-950 ${
+                !isSplit && dropTarget ? "ring-2 ring-inset ring-indigo-400/40" : ""
+            }`}
+            onDragOver={!isSplit ? handleDragOver : undefined}
+            onDragLeave={!isSplit ? handleDragLeave : undefined}
+            onDrop={!isSplit ? handleDrop : undefined}
         >
-            {/* Drop overlay */}
-            {dropTarget && (
-                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-1/2 items-center justify-center rounded-r-xl bg-indigo-500/5 backdrop-blur-[1px]">
+            {/* Drop overlay for splitting (only shown when not split) */}
+            {!isSplit && dropTarget && (
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-1/2 items-center justify-center bg-indigo-500/5 backdrop-blur-[1px]">
                     <div className="rounded-lg border-2 border-dashed border-indigo-400 bg-white/80 px-6 py-3 text-sm font-medium text-indigo-600 shadow-sm dark:bg-zinc-900/80 dark:text-indigo-400">
                         Drop to split view
                     </div>
                 </div>
             )}
-            <div className={`mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} transition-all duration-300`}>
-                {tabs.map((tab) => (
-                    <div
-                        key={tab.id}
-                        style={{ display: tab.id === activeTabId ? "block" : "none" }}
-                    >
-                        <TabPanel tab={tab} />
+
+            {/* Flex Container for side-by-side tabs */}
+            <div className="flex w-full items-stretch overflow-hidden">
+                {tabs.map((tab) => {
+                    const isActive = tab.id === activeTabId;
+                    const isSplitTab = isSplit && tab.id === splitTabId;
+                    const isVisible = isActive || isSplitTab;
+
+                    // Determine width, padding, and order dynamically
+                    let widthStyle = "0px";
+                    let orderStyle = 4;
+                    let displayHeader = false;
+
+                    if (isActive) {
+                        widthStyle = isSplit ? `${splitRatio * 100}%` : "100%";
+                        orderStyle = 1;
+                    } else if (isSplitTab) {
+                        widthStyle = `${(1 - splitRatio) * 100}%`;
+                        orderStyle = 3;
+                        displayHeader = true;
+                    }
+
+                    return (
+                        <div
+                            key={tab.id}
+                            style={{
+                                width: widthStyle,
+                                order: orderStyle,
+                                display: isVisible ? "flex" : "none",
+                            }}
+                            className={`flex-col overflow-y-auto transition-all duration-300 ${
+                                isSplitTab && dropTarget ? "ring-2 ring-inset ring-indigo-400/40" : ""
+                            } ${
+                                isSplitTab && isHighlighting
+                                    ? "ring-4 ring-indigo-500/50 dark:ring-indigo-400/50 scale-[1.005] shadow-lg z-20"
+                                    : ""
+                            }`}
+                            onDragOver={isSplitTab ? handleDragOver : undefined}
+                            onDragLeave={isSplitTab ? handleDragLeave : undefined}
+                            onDrop={isSplitTab ? handleDrop : undefined}
+                        >
+                            {/* Split pane header (only for split tab) */}
+                            {displayHeader && (
+                                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white/90 px-4 py-2 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/90">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                                        <Columns2 className="h-3.5 w-3.5" />
+                                        <span>{getTabDisplayTitle(tab, tabs)} (Split View)</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={unsplit}
+                                        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                                        title="Close Split View"
+                                    >
+                                        <X className="h-3 w-3" />
+                                        Close Split
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Drop overlay for swapping (only shown when split) */}
+                            {isSplitTab && dropTarget && (
+                                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-indigo-500/5 backdrop-blur-[1px]">
+                                    <div className="rounded-lg border-2 border-dashed border-indigo-400 bg-white/80 px-6 py-3 text-sm font-medium text-indigo-600 shadow-sm dark:bg-zinc-900/80 dark:text-indigo-400">
+                                        Drop to swap split tool
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Tab Panel Content */}
+                            <div className={`flex-1 px-4 pt-6 pb-10 sm:px-6 ${!isSplit ? "lg:px-8" : ""}`}>
+                                <div className={!isSplit ? `mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} transition-all duration-300` : "mx-auto max-w-none"}>
+                                    <TabIdContext.Provider value={getTabStorageSuffix(tab, tabs)}>
+                                        <TabPanel tab={tab} />
+                                    </TabIdContext.Provider>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {/* Resizable Divider (positioned in between active and split tab via order style) */}
+                {isSplit && (
+                    <div style={{ order: 2 }}>
+                        <SplitDivider ratio={splitRatio} onRatioChange={setSplitRatio} />
                     </div>
-                ))}
+                )}
             </div>
 
             {renderFloatingControls()}

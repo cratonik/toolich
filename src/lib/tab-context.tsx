@@ -53,6 +53,7 @@ type TabContextType = {
     favorites: string[];
     toggleFavorite: (slug: string) => void;
     isFavorite: (slug: string) => boolean;
+    splitHighlightTrigger: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -96,6 +97,29 @@ function parsePathname(pathname: string): { category: string; slug: string } | n
 // ---------------------------------------------------------------------------
 
 const TabContext = createContext<TabContextType | null>(null);
+
+export const TabIdContext = createContext<string | null>(null);
+
+/** Get clean display title with instance number if duplicate */
+export function getTabDisplayTitle(tab: Tab, allTabs: Tab[]): string {
+    if (!tab.toolSlug) return tab.title;
+    const duplicates = allTabs.filter((t) => t.toolSlug === tab.toolSlug);
+    if (duplicates.length > 1) {
+        const dupIndex = duplicates.findIndex((t) => t.id === tab.id);
+        return `${tab.title} #${dupIndex + 1}`;
+    }
+    return tab.title;
+}
+
+/** Get storage suffix for a tab */
+export function getTabStorageSuffix(tab: Tab, allTabs: Tab[]): string {
+    if (!tab.toolSlug) return "home";
+    const toolTabs = allTabs.filter((t) => t.toolSlug === tab.toolSlug);
+    const index = toolTabs.findIndex((t) => t.id === tab.id);
+    const occurrence = index !== -1 ? index + 1 : 1;
+    const cleanSlug = tab.toolSlug.replace(/[^a-zA-Z0-9-]/g, "-");
+    return `${cleanSlug}-${occurrence}`;
+}
 
 export function useTabContext(): TabContextType {
     const ctx = useContext(TabContext);
@@ -147,6 +171,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const [activeTabId, setActiveTabId] = useState("home");
     const [splitTabId, setSplitTabId] = useState<string | null>(null);
     const [splitRatio, setSplitRatio] = useState(0.5);
+    const [splitHighlightTrigger, setSplitHighlightTrigger] = useState(0);
     const [isWide, setIsWide] = useState(false);
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
@@ -293,6 +318,22 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     const openTab = useCallback(
         (tool: { name: string; slug: string; category: string }) => {
+            // Always create a new tab instance if under the limit
+            if (tabsRef.current.length < MAX_TABS) {
+                const id = `tab-${nextTabId++}`;
+                const newTab: Tab = {
+                    id,
+                    title: tool.name,
+                    toolSlug: tool.slug,
+                    category: tool.category,
+                };
+                setTabs((prev) => [...prev, newTab]);
+                setActiveTabId(id);
+                trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
+                return;
+            }
+
+            // Fallback to switching to the first existing tab instance of the tool
             const existing = tabsRef.current.find(
                 (t) => t.toolSlug === tool.slug && t.category === tool.category,
             );
@@ -301,20 +342,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
                 return;
             }
-            if (tabsRef.current.length >= MAX_TABS) return false;
-            const id = `tab-${nextTabId++}`;
-            const newTab: Tab = {
-                id,
-                title: tool.name,
-                toolSlug: tool.slug,
-                category: tool.category,
-            };
-            setTabs((prev) => {
-                if (prev.length >= MAX_TABS) return prev;
-                return [...prev, newTab];
-            });
-            setActiveTabId(id);
-            trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
+            return false;
         },
         [],
     );
@@ -322,14 +350,6 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const openInCurrentTab = useCallback(
         (tool: { name: string; slug: string; category: string }) => {
             const current = tabsRef.current;
-            const existing = current.find(
-                (t) => t.toolSlug === tool.slug && t.category === tool.category,
-            );
-            if (existing) {
-                setActiveTabId(existing.id);
-                trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
-                return;
-            }
 
             if (activeTabIdRef.current === "home") {
                 if (current.length >= MAX_TABS) return;
@@ -407,19 +427,57 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const closeTab = useCallback(
         (id: string) => {
             if (id === "home") return;
-            // Auto-unsplit if closing the split tab
-            if (id === splitTabIdRef.current) {
+            // Auto-unsplit if closing the split tab or closing the active tab while split view is active
+            if (id === splitTabIdRef.current || (splitTabIdRef.current !== null && id === activeTabIdRef.current)) {
                 setSplitTabId(null);
             }
             const current = tabsRef.current;
+            const tabToClose = current.find((t) => t.id === id);
             const idx = current.findIndex((t) => t.id === id);
             const next = current.filter((t) => t.id !== id);
 
             setTabs(next);
 
+            // Clean up session storage and local storage keys for this tab
+            if (tabToClose && tabToClose.toolSlug) {
+                try {
+                    const count = current.filter((t) => t.toolSlug === tabToClose.toolSlug).length;
+                    const cleanSlug = tabToClose.toolSlug.replace(/[^a-zA-Z0-9-]/g, "-");
+                    const suffix = `-${cleanSlug}-${count}`;
+                    
+                    // Session Storage
+                    const sessionKeys: string[] = [];
+                    for (let i = 0; i < sessionStorage.length; i++) {
+                        const key = sessionStorage.key(i);
+                        if (key && key.endsWith(suffix)) {
+                            sessionKeys.push(key);
+                        }
+                    }
+                    sessionKeys.forEach((key) => sessionStorage.removeItem(key));
+
+                    // Local Storage
+                    const localKeys: string[] = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && key.endsWith(suffix)) {
+                            localKeys.push(key);
+                        }
+                    }
+                    localKeys.forEach((key) => localStorage.removeItem(key));
+                } catch (e) {
+                    console.error("Failed to clean up storage for tab", e);
+                }
+            }
+
             if (id === activeTabIdRef.current) {
                 const newActive =
                     next[Math.min(idx, next.length - 1)]?.id ?? "home";
+                
+                // If the new active tab matches the split tab, clear split view
+                if (newActive === splitTabIdRef.current) {
+                    setSplitTabId(null);
+                }
+
                 setActiveTabId(newActive);
 
                 // If falling back to home from a different tab, reset home to default view
@@ -439,6 +497,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     const splitTab = useCallback((id: string) => {
         if (id === "home") return;
+        if (id === activeTabIdRef.current) return;
         setSplitTabId(id);
     }, []);
 
@@ -459,6 +518,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const switchTab = useCallback((id: string) => {
+        if (id === splitTabIdRef.current) {
+            setSplitHighlightTrigger((prev) => prev + 1);
+            return;
+        }
         setActiveTabId(id);
         // Reset home tab to default view when switching to it
         if (id === "home") {
@@ -521,6 +584,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 favorites,
                 toggleFavorite,
                 isFavorite,
+                splitHighlightTrigger,
             }}
         >
             {children}
