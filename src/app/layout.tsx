@@ -111,6 +111,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
+        <meta name="google-adsense-account" content="ca-pub-5052542306758700" />
         <script dangerouslySetInnerHTML={{ __html: swScript }} />
         <script dangerouslySetInnerHTML={{ __html: clarityScript }} />
       </head>
