@@ -81,6 +81,9 @@ const themeScript = `(function(){try{var t=localStorage.getItem('toolich-theme')
 // Register service worker for PWA support
 const swScript = `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`;
 
+// Microsoft Clarity analytics
+const clarityScript = `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "x917gspjef");`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -109,6 +112,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
         <script dangerouslySetInnerHTML={{ __html: swScript }} />
+        <script dangerouslySetInnerHTML={{ __html: clarityScript }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} antialiased`}
