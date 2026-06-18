@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Home, X, Pin } from "lucide-react";
-import { useTabContext } from "@/lib/tab-context";
+import { Home, X, Columns2 } from "lucide-react";
+import { useTabContext, getTabDisplayTitle } from "@/lib/tab-context";
 import { useToast } from "@/components/Toast";
 
 export function TabBar() {
@@ -23,7 +23,7 @@ export function TabBar() {
         }
     }, [tabs.length, maxTabs, showToast]);
 
-    // Alt/Option + 1-9 to switch tabs, Alt + digit then W to close, Alt + P to pin/unpin
+    // Alt/Option + 1-9 to switch tabs, Alt + digit then W to close, Alt + P to split/unsplit
     const lastAltDigitRef = useRef<string | null>(null);
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -40,7 +40,7 @@ export function TabBar() {
                 return;
             }
 
-            // Alt + P → toggle pin on the active tab
+            // Alt + P → toggle split on the active tab
             if (e.code === "KeyP") {
                 e.preventDefault();
                 if (splitTabId === activeTabId) {
@@ -73,10 +73,10 @@ export function TabBar() {
         };
     }, [tabs, switchTab, closeTab, splitTab, unsplit, splitTabId, activeTabId]);
 
-    // Hide pin button on small screens
-    const [canPin, setCanPin] = useState(false);
+    // Hide split button on small screens
+    const [canSplit, setCanSplit] = useState(false);
     useEffect(() => {
-        const check = () => setCanPin(window.innerWidth >= 768);
+        const check = () => setCanSplit(window.innerWidth >= 768);
         check();
         window.addEventListener("resize", check);
         return () => window.removeEventListener("resize", check);
@@ -143,10 +143,10 @@ export function TabBar() {
                                     </span>
                                 )}
                                 {isHome && <Home className="h-3.5 w-3.5" />}
-                                <span className="max-w-[120px] truncate">{tab.title}</span>
+                                <span className="max-w-[120px] truncate">{getTabDisplayTitle(tab, tabs)}</span>
 
-                                {/* Pin button (not for Home, only on screens >= tablet) */}
-                                {!isHome && canPin && (
+                                {/* Split view button (not for Home, only on screens >= tablet, and not for active tab) */}
+                                {!isHome && !isActive && canSplit && (
                                     <span
                                         role="button"
                                         tabIndex={0}
@@ -172,10 +172,10 @@ export function TabBar() {
                                             ? "opacity-100 text-emerald-500"
                                             : "opacity-0 group-hover:opacity-100"
                                             }`}
-                                        aria-label={isSplit ? `Unpin ${tab.title}` : `Pin ${tab.title}`}
-                                        title={isSplit ? "Unpin" : "Pin to side"}
+                                        aria-label={isSplit ? `Close Split View for ${getTabDisplayTitle(tab, tabs)}` : `Split View for ${getTabDisplayTitle(tab, tabs)}`}
+                                        title={isSplit ? "Close Split View" : "Split View"}
                                     >
-                                        <Pin className="h-3 w-3" />
+                                        <Columns2 className="h-3 w-3" />
                                     </span>
                                 )}
 
@@ -195,7 +195,7 @@ export function TabBar() {
                                             }
                                         }}
                                         className="ml-0.5 flex h-4 w-4 items-center justify-center rounded opacity-0 transition-opacity hover:bg-zinc-200 group-hover:opacity-100 dark:hover:bg-zinc-700"
-                                        aria-label={`Close ${tab.title}`}
+                                        aria-label={`Close ${getTabDisplayTitle(tab, tabs)}`}
                                     >
                                         <X className="h-3 w-3" />
                                     </span>
