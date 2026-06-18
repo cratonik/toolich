@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useSessionState } from "@/lib/use-session-state";
 import { marked } from "marked";
 import { 
     Bold, Italic, Heading, Link, Image, Code, List, ListOrdered, CheckSquare, 
@@ -341,9 +342,9 @@ ${PREVIEW_CSS_VARIABLES}
 const mermaidCache = new Map<string, string>();
 
 export default function MarkdownEditor() {
-    const [content, setContent] = useState(DEFAULT_MARKDOWN);
-    const [viewMode, setViewMode] = useState<"split" | "editor" | "preview">("split");
-    const [syncScroll, setSyncScroll] = useState(true);
+    const [content, setContent] = useSessionState("markdown-editor:content", DEFAULT_MARKDOWN);
+    const [viewMode, setViewMode] = useSessionState<"split" | "editor" | "preview">("markdown-editor:viewmode", "split");
+    const [syncScroll, setSyncScroll] = useSessionState("markdown-editor:syncscroll", true);
     const [copiedRaw, setCopiedRaw] = useState(false);
     const [copiedHtml, setCopiedHtml] = useState(false);
     const [mermaidInstance, setMermaidInstance] = useState<any>(null);
