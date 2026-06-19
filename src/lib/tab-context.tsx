@@ -10,7 +10,7 @@ import {
     type ReactNode,
 } from "react";
 import { getToolBySlug, getToolsByCategory } from "@/lib/tool-registry";
-import { toolPath, categoryPath } from "@/lib/routes";
+import { toolPath, categoryPath, CATEGORY_LABELS } from "@/lib/routes";
 import { trackToolUsage } from "@/lib/recent-tools";
 
 // ---------------------------------------------------------------------------
@@ -88,6 +88,9 @@ function parsePathname(pathname: string): { category: string; slug: string } | n
     const segments = pathname.split("/").filter(Boolean);
     if (segments.length >= 3 && segments[0] === "tools") {
         return { category: segments[1], slug: segments[2] };
+    }
+    if (segments.length === 2 && segments[0] === "tools") {
+        return { category: segments[1], slug: `__category__/${segments[1]}` };
     }
     return null;
 }
@@ -230,17 +233,33 @@ export function TabProvider({ children }: { children: ReactNode }) {
         // Hard reload or fresh visit — init from URL
         const parsed = parsePathname(window.location.pathname);
         if (parsed) {
-            const meta = getToolBySlug(parsed.category, parsed.slug);
-            if (meta) {
+            const isCategory = parsed.slug.startsWith("__category__/");
+            const categorySlug = isCategory ? parsed.slug.replace("__category__/", "") : parsed.category;
+
+            if (isCategory) {
+                const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
                 const id = `tab-${nextTabId++}`;
                 const newTab: Tab = {
                     id,
-                    title: meta.name,
-                    toolSlug: meta.slug,
-                    category: meta.category,
+                    title,
+                    toolSlug: parsed.slug,
+                    category: categorySlug,
                 };
                 setTabs([HOME_TAB, newTab]);
                 setActiveTabId(id);
+            } else {
+                const meta = getToolBySlug(parsed.category, parsed.slug);
+                if (meta) {
+                    const id = `tab-${nextTabId++}`;
+                    const newTab: Tab = {
+                        id,
+                        title: meta.name,
+                        toolSlug: meta.slug,
+                        category: meta.category,
+                    };
+                    setTabs([HOME_TAB, newTab]);
+                    setActiveTabId(id);
+                }
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -278,35 +297,86 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     // ── Handle browser back/forward ──
     useEffect(() => {
-        const onPopState = () => {
+        const onPopState = (e: PopStateEvent) => {
+            const state = e.state as { tabId?: string } | null;
             const parsed = parsePathname(window.location.pathname);
             if (!parsed) {
                 // Home
                 skipPushRef.current = true;
                 setActiveTabId("home");
+                setSplitTabId(null);
                 return;
             }
-            // Find if we already have this tab open
-            const existing = tabsRef.current.find(
-                (t) => t.toolSlug === parsed.slug && t.category === parsed.category,
-            );
-            if (existing) {
+
+            const targetTabId = state?.tabId;
+            const isCategory = parsed.slug.startsWith("__category__/");
+            const categorySlug = isCategory ? parsed.slug.replace("__category__/", "") : parsed.category;
+
+            // Find if target tab exists
+            const tabExists = targetTabId ? tabsRef.current.some((t) => t.id === targetTabId) : false;
+
+            if (tabExists && targetTabId) {
+                // Update the existing tab's content
                 skipPushRef.current = true;
-                setActiveTabId(existing.id);
+                if (isCategory) {
+                    const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
+                    setTabs((prev) =>
+                        prev.map((t) =>
+                            t.id === targetTabId
+                                ? { ...t, title, toolSlug: parsed.slug, category: categorySlug }
+                                : t
+                        )
+                    );
+                } else {
+                    const meta = getToolBySlug(parsed.category, parsed.slug);
+                    if (meta) {
+                        setTabs((prev) =>
+                            prev.map((t) =>
+                                t.id === targetTabId
+                                    ? { ...t, title: meta.name, toolSlug: meta.slug, category: meta.category }
+                                    : t
+                            )
+                        );
+                    }
+                }
+                setActiveTabId(targetTabId);
             } else {
-                // Open it as a new tab
-                const meta = getToolBySlug(parsed.category, parsed.slug);
-                if (meta) {
-                    const id = `tab-${nextTabId++}`;
-                    const newTab: Tab = {
-                        id,
-                        title: meta.name,
-                        toolSlug: meta.slug,
-                        category: meta.category,
-                    };
+                // Fallback: Find if we already have this tab open by slug/category
+                const existing = tabsRef.current.find(
+                    (t) => t.toolSlug === parsed.slug && t.category === parsed.category,
+                );
+                if (existing) {
                     skipPushRef.current = true;
-                    setTabs((prev) => [...prev, newTab]);
-                    setActiveTabId(id);
+                    setActiveTabId(existing.id);
+                } else {
+                    // Open as new tab
+                    if (isCategory) {
+                        const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
+                        const id = `tab-${nextTabId++}`;
+                        const newTab: Tab = {
+                            id,
+                            title,
+                            toolSlug: parsed.slug,
+                            category: categorySlug,
+                        };
+                        skipPushRef.current = true;
+                        setTabs((prev) => [...prev, newTab]);
+                        setActiveTabId(id);
+                    } else {
+                        const meta = getToolBySlug(parsed.category, parsed.slug);
+                        if (meta) {
+                            const id = `tab-${nextTabId++}`;
+                            const newTab: Tab = {
+                                id,
+                                title: meta.name,
+                                toolSlug: meta.slug,
+                                category: meta.category,
+                            };
+                            skipPushRef.current = true;
+                            setTabs((prev) => [...prev, newTab]);
+                            setActiveTabId(id);
+                        }
+                    }
                 }
             }
         };
@@ -482,6 +552,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
                 // If falling back to home from a different tab, reset home to default view
                 if (newActive === "home") {
+                    setSplitTabId(null);
                     setTabs((prev) =>
                         prev.map((t) =>
                             t.id === "home"
@@ -496,7 +567,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     );
 
     const splitTab = useCallback((id: string) => {
-        if (id === "home") return;
+        if (id === "home" || activeTabIdRef.current === "home") return;
         if (id === activeTabIdRef.current) return;
         setSplitTabId(id);
     }, []);
@@ -525,6 +596,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
         setActiveTabId(id);
         // Reset home tab to default view when switching to it
         if (id === "home") {
+            setSplitTabId(null);
             setTabs((prev) =>
                 prev.map((t) =>
                     t.id === "home"
@@ -536,6 +608,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const goHome = useCallback(() => {
+        setSplitTabId(null);
         setTabs((prev) =>
             prev.map((t) =>
                 t.id === "home"

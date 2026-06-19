@@ -43,9 +43,10 @@ export function TabBar() {
             // Alt + P → toggle split on the active tab
             if (e.code === "KeyP") {
                 e.preventDefault();
+                if (activeTabId === "home") return;
                 if (splitTabId === activeTabId) {
                     unsplit();
-                } else if (activeTabId !== "home") {
+                } else {
                     splitTab(activeTabId);
                 }
                 return;
@@ -145,8 +146,8 @@ export function TabBar() {
                                 {isHome && <Home className="h-3.5 w-3.5" />}
                                 <span className="max-w-[120px] truncate">{getTabDisplayTitle(tab, tabs)}</span>
 
-                                {/* Split view button (not for Home, only on screens >= tablet, and not for active tab) */}
-                                {!isHome && !isActive && canSplit && (
+                                {/* Split view button (not for Home, only on screens >= tablet, not for active tab, and not when active tab is Home) */}
+                                {!isHome && !isActive && canSplit && activeTabId !== "home" && (
                                     <span
                                         role="button"
                                         tabIndex={0}

@@ -7,6 +7,7 @@ import { TabProvider } from "@/lib/tab-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/Toast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,7 +82,7 @@ const themeScript = `(function(){try{var t=localStorage.getItem('toolich-theme')
 // Register service worker for PWA support
 const swScript = `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`;
 
-// Microsoft Clarity analytics
+// Microsoft Clarity analytics (test commit)
 const clarityScript = `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "x917gspjef");`;
 
 export default function RootLayout({
@@ -92,20 +93,26 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Google tag (gtag.js) */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q4GXZK2JXF"></script>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5052542306758700" crossOrigin="anonymous"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-
-              gtag('config', 'G-Q4GXZK2JXF');
-            `,
-          }}
+        {/* Google Analytics & AdSense via next/script */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-Q4GXZK2JXF"
+          strategy="afterInteractive"
         />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-Q4GXZK2JXF');
+          `}
+        </Script>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5052542306758700"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+        {/* Theme script needs to remain synchronous in head to prevent layout theme flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
@@ -113,8 +120,24 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
         <meta name="google-adsense-account" content="ca-pub-5052542306758700" />
-        <script dangerouslySetInnerHTML={{ __html: swScript }} />
-        <script dangerouslySetInnerHTML={{ __html: clarityScript }} />
+        <Script id="pwa-service-worker" strategy="afterInteractive">
+          {`
+            if('serviceWorker' in navigator){
+              window.addEventListener('load',function(){
+                navigator.serviceWorker.register('/sw.js')
+              })
+            }
+          `}
+        </Script>
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`
+            (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "x917gspjef");
+          `}
+        </Script>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} antialiased`}
