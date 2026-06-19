@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Star } from "lucide-react";
-import { ROUTES } from "@/lib/routes";
+import { ChevronRight, Star, Plus } from "lucide-react";
+import { ROUTES, categoryPath } from "@/lib/routes";
 import { CATEGORY_LABELS } from "@/lib/routes";
 import { useTabContext } from "@/lib/tab-context";
+import { getToolBySlug } from "@/lib/tool-registry";
 
 type Breadcrumb = {
     label: string;
@@ -24,7 +25,7 @@ export function ToolPageHeader({
     category,
     slug,
 }: ToolPageHeaderProps) {
-    const { isFavorite, toggleFavorite } = useTabContext();
+    const { isFavorite, toggleFavorite, openTab, openCategoryInCurrentTab, goHome } = useTabContext();
     
     // Automatically derive the slug from the URL if not provided directly (e.g. on direct page access)
     let activeSlug = slug;
@@ -36,10 +37,12 @@ export function ToolPageHeader({
     }
 
     const isFav = activeSlug ? isFavorite(activeSlug) : false;
+    const meta = activeSlug ? getToolBySlug(category, activeSlug) : null;
+    const originalName = meta ? meta.name : toolName.split(" #")[0];
 
     const breadcrumbs: Breadcrumb[] = [
         { label: "Home", href: ROUTES.home },
-        { label: CATEGORY_LABELS[category] ?? category },
+        { label: CATEGORY_LABELS[category] ?? category, href: categoryPath(category) },
         { label: toolName },
     ];
 
@@ -56,6 +59,15 @@ export function ToolPageHeader({
                         {crumb.href ? (
                             <Link
                                 href={crumb.href}
+                                onClick={(e) => {
+                                    if (crumb.href === ROUTES.home) {
+                                        e.preventDefault();
+                                        goHome();
+                                    } else if (crumb.href === categoryPath(category)) {
+                                        e.preventDefault();
+                                        openCategoryInCurrentTab(category, crumb.label);
+                                    }
+                                }}
                                 className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                             >
                                 {crumb.label}
@@ -81,21 +93,33 @@ export function ToolPageHeader({
                     {toolName}
                 </h1>
                 {activeSlug && (
-                    <button
-                        type="button"
-                        onClick={() => toggleFavorite(activeSlug)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
-                        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-                        title={isFav ? "Remove from favorites" : "Add to favorites"}
-                    >
-                        <Star
-                            className={`h-4 w-4 transition-colors ${
-                                isFav
-                                    ? "fill-amber-400 text-amber-500"
-                                    : "text-zinc-400 dark:text-zinc-500 hover:text-amber-500"
-                            }`}
-                        />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => toggleFavorite(activeSlug)}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white shadow-sm transition-all duration-200 hover:border-zinc-300 hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+                            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+                            title={isFav ? "Remove from favorites" : "Add to favorites"}
+                        >
+                            <Star
+                                className={`h-4 w-4 transition-colors ${
+                                    isFav
+                                        ? "fill-amber-400 text-amber-500"
+                                        : "text-zinc-400 dark:text-zinc-500 hover:text-amber-500"
+                                }`}
+                            />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => openTab({ name: originalName, slug: activeSlug!, category })}
+                            className="flex h-8 px-2.5 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-600 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:text-zinc-900 hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100"
+                            aria-label="Open tool again in a new tab"
+                            title="Open same tool in a new tab"
+                        >
+                            <Plus className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+                            <span>Open Again</span>
+                        </button>
+                    </div>
                 )}
             </div>
             <p className="max-w-xl text-sm text-zinc-600 dark:text-zinc-400">

@@ -247,14 +247,14 @@ export function TabContent() {
     return (
         <div
             className={`relative flex min-h-screen bg-zinc-50 dark:bg-zinc-950 ${
-                !isSplit && dropTarget ? "ring-2 ring-inset ring-indigo-400/40" : ""
+                !isSplit && activeTabId !== "home" && dropTarget ? "ring-2 ring-inset ring-indigo-400/40" : ""
             }`}
-            onDragOver={!isSplit ? handleDragOver : undefined}
-            onDragLeave={!isSplit ? handleDragLeave : undefined}
-            onDrop={!isSplit ? handleDrop : undefined}
+            onDragOver={!isSplit && activeTabId !== "home" ? handleDragOver : undefined}
+            onDragLeave={!isSplit && activeTabId !== "home" ? handleDragLeave : undefined}
+            onDrop={!isSplit && activeTabId !== "home" ? handleDrop : undefined}
         >
-            {/* Drop overlay for splitting (only shown when not split) */}
-            {!isSplit && dropTarget && (
+            {/* Drop overlay for splitting (only shown when not split and active tab is not home) */}
+            {!isSplit && activeTabId !== "home" && dropTarget && (
                 <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex w-1/2 items-center justify-center bg-indigo-500/5 backdrop-blur-[1px]">
                     <div className="rounded-lg border-2 border-dashed border-indigo-400 bg-white/80 px-6 py-3 text-sm font-medium text-indigo-600 shadow-sm dark:bg-zinc-900/80 dark:text-indigo-400">
                         Drop to split view
