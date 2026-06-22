@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, Suspense, useEffect } from "react";
+import { useState, useCallback, Suspense, useEffect, createElement } from "react";
 import { useTabContext, TabIdContext, type Tab, getTabDisplayTitle, getTabStorageSuffix } from "@/lib/tab-context";
 import { getToolComponent } from "@/lib/tool-components";
 import { getToolBySlug } from "@/lib/tool-registry";
@@ -59,7 +59,7 @@ function TabPanel({ tab }: { tab: Tab }) {
                 />
             )}
             <Suspense fallback={<ToolLoadingFallback />}>
-                <Component />
+                {createElement(Component)}
             </Suspense>
         </div>
     );
@@ -76,11 +76,16 @@ export function TabContent() {
 
     useEffect(() => {
         if (splitHighlightTrigger > 0) {
-            setIsHighlighting(true);
+            const hId = setTimeout(() => {
+                setIsHighlighting(true);
+            }, 0);
             const timer = setTimeout(() => {
                 setIsHighlighting(false);
             }, 800);
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(hId);
+                clearTimeout(timer);
+            };
         }
     }, [splitHighlightTrigger]);
 
@@ -125,7 +130,6 @@ export function TabContent() {
         };
     }, []);
 
-    const activeTab = tabs.find((t) => t.id === activeTabId);
     const splitTabData = splitTabId ? tabs.find((t) => t.id === splitTabId) : null;
     const isSplit = !!splitTabData;
 

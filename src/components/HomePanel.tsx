@@ -91,7 +91,11 @@ export default function HomePanel() {
     const { openTab, favorites } = useTabContext();
 
     useEffect(() => {
-        setRecentTools(getRecentTools());
+        const tools = getRecentTools();
+        const timer = setTimeout(() => {
+            setRecentTools(tools);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     const newTools = allTools.filter((t) => NEW_TOOL_SLUGS.includes(t.slug));
