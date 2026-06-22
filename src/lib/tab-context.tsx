@@ -326,7 +326,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 // Update the existing tab's content
                 skipPushRef.current = true;
                 if (isCategory) {
-                    const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
+                    const title = targetTabId === "home" ? "Home" : (categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`);
                     setTabs((prev) =>
                         prev.map((t) =>
                             t.id === targetTabId
@@ -340,7 +340,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                         setTabs((prev) =>
                             prev.map((t) =>
                                 t.id === targetTabId
-                                    ? { ...t, title: meta.name, toolSlug: meta.slug, category: meta.category }
+                                    ? { ...t, title: targetTabId === "home" ? "Home" : meta.name, toolSlug: meta.slug, category: meta.category }
                                     : t
                             )
                         );
