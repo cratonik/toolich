@@ -8,10 +8,39 @@ import { ToolPageHeader } from "@/components/ToolPageHeader";
 import HomePanel from "@/components/HomePanel";
 import CategoryPanel from "@/components/CategoryPanel";
 import { SplitDivider } from "@/components/SplitDivider";
-import { X, Columns2, Maximize2, Minimize2, Keyboard, Bot } from "lucide-react";
+import { X, Columns2, Maximize2, Minimize2, Keyboard, Bot, Megaphone } from "lucide-react";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import Footer from "@/components/Footer";
+
+function playNotificationSound() {
+    try {
+        const AudioContextClass = typeof window !== "undefined" 
+            ? (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext) 
+            : null;
+        if (!AudioContextClass) return;
+        const audioCtx = new AudioContextClass();
+        
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880.00, audioCtx.currentTime + 0.15); // A5
+        
+        gainNode.gain.setValueAtTime(0.06, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+    } catch (err) {
+        console.warn("Failed to play synthesized sound:", err);
+    }
+}
+
 
 
 function ToolLoadingFallback() {
@@ -72,7 +101,19 @@ export function TabContent() {
     const [isOpenChatbot, setIsOpenChatbot] = useState(false);
     const [activeBroadcast, setActiveBroadcast] = useState<{ text: string; timestamp: number } | null>(null);
     const [hasNewBroadcast, setHasNewBroadcast] = useState(false);
+    const [playedSoundTimestamp, setPlayedSoundTimestamp] = useState<number | null>(null);
     const [isHighlighting, setIsHighlighting] = useState(false);
+
+    // Play chime when new broadcast is loaded
+    useEffect(() => {
+        if (hasNewBroadcast && activeBroadcast && playedSoundTimestamp !== activeBroadcast.timestamp) {
+            playNotificationSound();
+            const timer = setTimeout(() => {
+                setPlayedSoundTimestamp(activeBroadcast.timestamp);
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+    }, [hasNewBroadcast, activeBroadcast, playedSoundTimestamp]);
 
     useEffect(() => {
         if (splitHighlightTrigger > 0) {
@@ -161,6 +202,25 @@ export function TabContent() {
 
     const renderFloatingControls = () => (
         <>
+            {/* New Broadcast Tooltip Speech Bubble */}
+            {hasNewBroadcast && activeBroadcast && !isOpenChatbot && (
+                <div 
+                    className="fixed bottom-20 right-6 z-50 max-w-xs scale-95 md:scale-100 origin-bottom-right rounded-2xl border border-rose-200 bg-rose-50 p-3 shadow-xl animate-bounce dark:border-rose-900/40 dark:bg-rose-950/20 text-rose-900 dark:text-rose-200"
+                    style={{ animationDuration: '3s' }}
+                >
+                    {/* Speech bubble arrow pointing down */}
+                    <div className="absolute right-4 bottom-[-6px] h-3 w-3 rotate-45 border-r border-b border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20" />
+                    
+                    <div className="flex items-start gap-2.5 text-xs">
+                        <Megaphone className="h-4 w-4 shrink-0 text-rose-500 animate-pulse mt-0.5" />
+                        <div className="flex-1">
+                            <div className="font-bold text-rose-600 dark:text-rose-400 mb-0.5">New Announcement:</div>
+                            <p className="leading-relaxed line-clamp-3 font-medium">{activeBroadcast.text}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Unified Floating Action Dock */}
             <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-0 md:p-1.5 rounded-full md:border md:border-zinc-200 md:bg-white/90 md:shadow-[0_8px_30px_rgb(0,0,0,0.06)] md:backdrop-blur-md md:dark:border-zinc-800 md:dark:bg-zinc-950/90 transition-all duration-300">
                 {/* Keyboard Shortcuts Trigger */}
