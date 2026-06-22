@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import { createClient } from "redis";
+
+// Create client using the Vercel Redis URL
+const redis = await createClient({
+    url: process.env.TOOLICH_STORAGE_REDIS_URL,
+}).connect();
 
 export async function POST(request: Request) {
     try {
@@ -56,6 +62,21 @@ export async function POST(request: Request) {
             } catch (err) {
                 console.error("Slack send error:", err);
             }
+        }
+
+        // 3. Persist feedback list in Redis
+        try {
+            await redis.lPush(
+                "toolich:feedback_list",
+                JSON.stringify({
+                    category,
+                    message,
+                    email,
+                    timestamp: timestamp || Date.now(),
+                })
+            );
+        } catch (err) {
+            console.error("Redis feedback persistence error:", err);
         }
 
         // Log locally if no external notifications are configured
