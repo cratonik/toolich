@@ -30,8 +30,16 @@ async function readBroadcast(): Promise<BroadcastData> {
 // Helper to write broadcast to Redis
 async function writeBroadcast(data: BroadcastData) {
     try {
-        const dataStr = JSON.stringify(data);
-        await redis.set("toolich:broadcast", dataStr);
+        if (!data.text || !data.timestamp) {
+            // Delete the key to free up Redis memory
+            await redis.del("toolich:broadcast");
+        } else {
+            const dataStr = JSON.stringify(data);
+            // Automatically expire the key after 24 hours (86400 seconds)
+            await redis.set("toolich:broadcast", dataStr, {
+                EX: 86400,
+            });
+        }
     } catch (e) {
         console.error("Error writing broadcast to Redis:", e);
     }

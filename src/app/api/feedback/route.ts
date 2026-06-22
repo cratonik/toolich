@@ -75,6 +75,8 @@ export async function POST(request: Request) {
                     timestamp: timestamp || Date.now(),
                 })
             );
+            // Keep only the most recent 100 entries to prevent database memory bloating
+            await redis.lTrim("toolich:feedback_list", 0, 99);
         } catch (err) {
             console.error("Redis feedback persistence error:", err);
         }
