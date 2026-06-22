@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 const STATIC_FILE_PATH = path.join(process.cwd(), "src/data/broadcast.json");
 const TMP_FILE_PATH = "/tmp/broadcast.json";
 
+interface BroadcastData {
+    text?: string;
+    timestamp?: number;
+}
+
 // Helper to read broadcast
 function readBroadcast() {
     // 1. Try to read from /tmp (most up-to-date in serverless environment)
@@ -32,7 +37,7 @@ function readBroadcast() {
 }
 
 // Helper to write broadcast
-function writeBroadcast(data: any) {
+function writeBroadcast(data: BroadcastData) {
     const dataStr = JSON.stringify(data, null, 2);
     
     // Always write to /tmp (writeable in Vercel Serverless environment)
@@ -49,7 +54,7 @@ function writeBroadcast(data: any) {
             fs.mkdirSync(dir, { recursive: true });
         }
         fs.writeFileSync(STATIC_FILE_PATH, dataStr);
-    } catch (e) {
+    } catch {
         console.log("Note: Static file path is read-only (expected in serverless production environment)");
     }
 }
@@ -162,7 +167,7 @@ export async function POST(request: Request) {
 }
 
 // Helper to forward the webhook payload to a dev/preview environment (e.g., netlify app)
-function forwardRequest(body: any) {
+function forwardRequest(body: unknown) {
     const forwardUrl = process.env.FORWARD_BROADCAST_URL;
     if (forwardUrl) {
         console.log("Forwarding broadcast event to:", forwardUrl);

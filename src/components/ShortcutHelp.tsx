@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Keyboard, X } from "lucide-react";
+import { X } from "lucide-react";
 
 const SHORTCUTS = [
     { keys: ["⌘", "K"], label: "Search tools", winKeys: ["Ctrl", "K"] },
@@ -23,7 +23,10 @@ export function ShortcutHelp({ isOpen, setIsOpen }: ShortcutHelpProps) {
     const [isMac, setIsMac] = useState(false);
 
     useEffect(() => {
-        setIsMac(navigator.userAgent.toLowerCase().includes("mac"));
+        const timer = setTimeout(() => {
+            setIsMac(navigator.userAgent.toLowerCase().includes("mac"));
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {

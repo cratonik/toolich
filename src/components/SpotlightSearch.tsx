@@ -71,7 +71,10 @@ function Trigger() {
   const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
-    setIsMac(navigator.userAgent.toLowerCase().includes("mac"));
+    const timer = setTimeout(() => {
+      setIsMac(navigator.userAgent.toLowerCase().includes("mac"));
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -106,9 +109,11 @@ function Modal() {
   // Search
   useEffect(() => {
     if (!query.trim()) {
-      setResults([]);
-      setSelectedIndex(0);
-      return;
+      const timer = setTimeout(() => {
+        setResults([]);
+        setSelectedIndex(0);
+      }, 0);
+      return () => clearTimeout(timer);
     }
     const q = query.toLowerCase().trim();
     const filtered = allTools.filter(
@@ -118,17 +123,26 @@ function Modal() {
         t.keywords.some((k) => k.includes(q)) ||
         t.category.includes(q),
     );
-    setResults(filtered);
-    setSelectedIndex(0);
+    const timer = setTimeout(() => {
+      setResults(filtered);
+      setSelectedIndex(0);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [query]);
 
   // Focus input when opened
   useEffect(() => {
     if (isOpen) {
       requestAnimationFrame(() => inputRef.current?.focus());
-      setSelectedIndex(0);
+      const timer = setTimeout(() => {
+        setSelectedIndex(0);
+      }, 0);
+      return () => clearTimeout(timer);
     } else {
-      setQuery("");
+      const timer = setTimeout(() => {
+        setQuery("");
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
