@@ -15,6 +15,7 @@ import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalcula
 import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
 import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
+import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
 
 /**
  * Registry of tool components.
@@ -28,6 +29,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/json-formatter": JsonFormatter,
     "developers/uuid-generator": UuidGenerator,
     "developers/json-to-schema": JsonToSchema,
+    "developers/json-to-types": JsonToTypes,
     "security/hash-generator": HashGenerator,
     "security/password-generator": PasswordGenerator,
     "devops/cron-parser": CronParser,
