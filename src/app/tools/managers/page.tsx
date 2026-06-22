@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { BarChart3, ArrowRight } from "lucide-react";
 import { getToolsByCategory } from "@/lib/tool-registry";
+import { constructMetadata } from "@/lib/seo";
 
-export const metadata = {
-    title: "Manager Tools | Toolich",
-    description: "Sprint calculators, time zone helpers, and productivity tools.",
-};
+export const metadata = constructMetadata({
+    title: "Manager Tools",
+    description: "Markdown editor, side-by-side text diff checkers, and productivity tools for project managers and developers.",
+    path: "/tools/managers",
+    keywords: ["manager tools", "markdown editor", "diff checker", "productivity utilities"],
+});
 
 export default function ManagersPage() {
     const tools = getToolsByCategory("managers");

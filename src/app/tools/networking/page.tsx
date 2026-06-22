@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Network, ArrowRight } from "lucide-react";
 import { getToolsByCategory } from "@/lib/tool-registry";
+import { constructMetadata } from "@/lib/seo";
 
-export const metadata = {
-    title: "Networking Tools | Toolich",
-    description: "IP tools, DNS lookup, URL utilities, and network testing.",
-};
+export const metadata = constructMetadata({
+    title: "Networking Tools",
+    description: "IP subnet calculators, DNS lookup utilities, network analysis, and network testing helper tools.",
+    path: "/tools/networking",
+    keywords: ["networking tools", "subnet calculator", "dns lookup", "ip tools", "network utility"],
+});
 
 export default function NetworkingPage() {
     const tools = getToolsByCategory("networking");

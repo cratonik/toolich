@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Server, ArrowRight } from "lucide-react";
 import { getToolsByCategory } from "@/lib/tool-registry";
+import { constructMetadata } from "@/lib/seo";
 
-export const metadata = {
-    title: "DevOps Tools | Toolich",
-    description: "Docker, Kubernetes, CI/CD, and infrastructure helpers.",
-};
+export const metadata = constructMetadata({
+    title: "DevOps Tools",
+    description: "Cron parser, environment variable editor, regex tester, and infrastructure configuration utilities.",
+    path: "/tools/devops",
+    keywords: ["devops tools", "cron parser", "dotenv editor", "regex tester", "infrastructure helper"],
+});
 
 export default function DevOpsPage() {
     const tools = getToolsByCategory("devops");
