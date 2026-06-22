@@ -21,21 +21,37 @@ function playNotificationSound() {
         if (!AudioContextClass) return;
         const audioCtx = new AudioContextClass();
         
-        const osc = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        osc.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-        osc.frequency.exponentialRampToValueAtTime(880.00, audioCtx.currentTime + 0.15); // A5
-        
-        gainNode.gain.setValueAtTime(0.06, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
-        
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
+        const play = () => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); // High chime A5
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.5);
+        };
+
+        if (audioCtx.state === "suspended") {
+            const resumeAndPlay = () => {
+                audioCtx.resume().then(() => {
+                    play();
+                    document.removeEventListener("click", resumeAndPlay);
+                    document.removeEventListener("keydown", resumeAndPlay);
+                }).catch(err => console.warn("Failed to resume audio context:", err));
+            };
+            document.addEventListener("click", resumeAndPlay);
+            document.addEventListener("keydown", resumeAndPlay);
+        } else {
+            play();
+        }
     } catch (err) {
         console.warn("Failed to play synthesized sound:", err);
     }
@@ -205,8 +221,7 @@ export function TabContent() {
             {/* New Broadcast Tooltip Speech Bubble */}
             {hasNewBroadcast && activeBroadcast && !isOpenChatbot && (
                 <div 
-                    className="fixed bottom-20 right-6 z-50 max-w-xs scale-95 md:scale-100 origin-bottom-right rounded-2xl border border-rose-200 bg-rose-50 p-3 shadow-xl animate-bounce dark:border-rose-900/40 dark:bg-rose-950/20 text-rose-900 dark:text-rose-200"
-                    style={{ animationDuration: '3s' }}
+                    className="fixed bottom-20 right-6 z-50 max-w-xs scale-95 md:scale-100 origin-bottom-right rounded-2xl border border-rose-200 bg-rose-50 p-3 shadow-xl dark:border-rose-900/40 dark:bg-rose-950/20 text-rose-900 dark:text-rose-200"
                 >
                     {/* Speech bubble arrow pointing down */}
                     <div className="absolute right-4 bottom-[-6px] h-3 w-3 rotate-45 border-r border-b border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20" />
