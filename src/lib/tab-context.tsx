@@ -303,6 +303,13 @@ export function TabProvider({ children }: { children: ReactNode }) {
             if (!parsed) {
                 // Home
                 skipPushRef.current = true;
+                setTabs((prev) =>
+                    prev.map((t) =>
+                        t.id === "home"
+                            ? { ...t, title: "Home", toolSlug: null, category: null }
+                            : t
+                    )
+                );
                 setActiveTabId("home");
                 setSplitTabId(null);
                 return;
