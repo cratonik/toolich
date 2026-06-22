@@ -12,6 +12,7 @@ import { X, Columns2, Maximize2, Minimize2, Keyboard, Bot, Megaphone } from "luc
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import Footer from "@/components/Footer";
+import { renderSlackText } from "@/lib/slack-format";
 
 function playNotificationSound() {
     try {
@@ -230,7 +231,7 @@ export function TabContent() {
                         <Megaphone className="h-4 w-4 shrink-0 text-rose-500 animate-pulse mt-0.5" />
                         <div className="flex-1">
                             <div className="font-bold text-rose-600 dark:text-rose-400 mb-0.5">New Announcement:</div>
-                            <p className="leading-relaxed line-clamp-3 font-medium">{activeBroadcast.text}</p>
+                            <p className="leading-relaxed line-clamp-3 font-medium">{renderSlackText(activeBroadcast.text)}</p>
                         </div>
                     </div>
                 </div>

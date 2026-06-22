@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, Bot, User, CornerDownLeft, Megaphone } from "lucide-react";
 import { useTabContext } from "@/lib/tab-context";
 import { searchTools } from "@/lib/tool-registry";
+import { renderSlackText } from "@/lib/slack-format";
 
 type Message = {
     id: string;
@@ -310,7 +311,7 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
                                             </span>
                                         </div>
                                         <p className="text-xs leading-relaxed mt-1 font-medium whitespace-pre-wrap">
-                                            {activeBroadcast.text}
+                                            {renderSlackText(activeBroadcast.text)}
                                         </p>
                                     </div>
                                 </div>
