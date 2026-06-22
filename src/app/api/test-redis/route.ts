@@ -1,13 +1,9 @@
-import { createClient } from "redis";
+import { getRedis } from "@/lib/redis";
 import { NextResponse } from "next/server";
-
-// Create client using the Vercel Redis URL
-const redis = await createClient({
-    url: process.env.TOOLICH_STORAGE_REDIS_URL,
-}).connect();
 
 export async function POST() {
     try {
+        const redis = await getRedis();
         // Fetch data from Redis
         const result = await redis.get("item");
 

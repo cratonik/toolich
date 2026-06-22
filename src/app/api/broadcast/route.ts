@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
 import * as emoji from "node-emoji";
-import { createClient } from "redis";
+import { getRedis } from "@/lib/redis";
 
 export const dynamic = "force-dynamic";
-
-// Create client using the Vercel Redis URL
-const redis = await createClient({
-    url: process.env.TOOLICH_STORAGE_REDIS_URL,
-}).connect();
 
 interface BroadcastData {
     text?: string;
@@ -17,6 +12,7 @@ interface BroadcastData {
 // Helper to read broadcast from Redis
 async function readBroadcast(): Promise<BroadcastData> {
     try {
+        const redis = await getRedis();
         const dataStr = await redis.get("toolich:broadcast");
         if (dataStr) {
             return JSON.parse(dataStr);
@@ -30,6 +26,7 @@ async function readBroadcast(): Promise<BroadcastData> {
 // Helper to write broadcast to Redis
 async function writeBroadcast(data: BroadcastData) {
     try {
+        const redis = await getRedis();
         if (!data.text || !data.timestamp) {
             // Delete the key to free up Redis memory
             await redis.del("toolich:broadcast");
