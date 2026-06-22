@@ -11,6 +11,8 @@ import { SplitDivider } from "@/components/SplitDivider";
 import { X, Columns2, Maximize2, Minimize2, Keyboard, Bot } from "lucide-react";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
+import Footer from "@/components/Footer";
+
 
 function ToolLoadingFallback() {
     return (
@@ -338,6 +340,10 @@ export function TabContent() {
                                     </TabIdContext.Provider>
                                 </div>
                             </div>
+
+                            {/* Footer */}
+                            <Footer />
+
                         </div>
                     );
                 })}
