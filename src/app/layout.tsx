@@ -79,12 +79,6 @@ export const metadata: Metadata = {
 // a flash of the wrong theme. Runs synchronously in <head>.
 const themeScript = `(function(){try{var t=localStorage.getItem('toolich-theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`;
 
-// Register service worker for PWA support
-const swScript = `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`;
-
-// Microsoft Clarity analytics (test commit)
-const clarityScript = `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "x917gspjef");`;
-
 export default function RootLayout({
   children,
 }: Readonly<{

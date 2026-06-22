@@ -82,6 +82,10 @@ function tabToPath(tab: Tab): string {
     return toolPath(tab.category, tab.toolSlug);
 }
 
+function isStaticPath(path: string): boolean {
+    return path === "/terms" || path === "/privacy";
+}
+
 /** Parse the current pathname into { category, slug } or null for home */
 function parsePathname(pathname: string): { category: string; slug: string } | null {
     // pathname like "/tools/developers/base64-encode"
@@ -287,10 +291,13 @@ export function TabProvider({ children }: { children: ReactNode }) {
             skipPushRef.current = false;
             return;
         }
+        const path = window.location.pathname;
+        if (isStaticPath(path)) return;
+
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (!activeTab) return;
         const targetPath = tabToPath(activeTab);
-        if (window.location.pathname !== targetPath) {
+        if (path !== targetPath) {
             window.history.pushState({ tabId: activeTabId }, "", targetPath);
         }
     }, [activeTabId, tabs]);
@@ -395,6 +402,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     const openTab = useCallback(
         (tool: { name: string; slug: string; category: string }) => {
+            if (typeof window !== "undefined" && isStaticPath(window.location.pathname)) {
+                window.location.href = toolPath(tool.category, tool.slug);
+                return;
+            }
             // Always create a new tab instance if under the limit
             if (tabsRef.current.length < MAX_TABS) {
                 const id = `tab-${nextTabId++}`;
@@ -426,6 +437,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     const openInCurrentTab = useCallback(
         (tool: { name: string; slug: string; category: string }) => {
+            if (typeof window !== "undefined" && isStaticPath(window.location.pathname)) {
+                window.location.href = toolPath(tool.category, tool.slug);
+                return;
+            }
             const current = tabsRef.current;
 
             if (activeTabIdRef.current === "home") {
@@ -462,6 +477,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     const openCategoryInCurrentTab = useCallback(
         (category: string, title: string): boolean => {
+            if (typeof window !== "undefined" && isStaticPath(window.location.pathname)) {
+                window.location.href = categoryPath(category);
+                return true;
+            }
             // Block empty categories (but always allow __all__)
             if (category !== "__all__") {
                 const tools = getToolsByCategory(category);
@@ -615,6 +634,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const goHome = useCallback(() => {
+        if (typeof window !== "undefined" && isStaticPath(window.location.pathname)) {
+            window.location.href = "/";
+            return;
+        }
         setSplitTabId(null);
         setTabs((prev) =>
             prev.map((t) =>

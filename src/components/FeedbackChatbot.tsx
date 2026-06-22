@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, X, Send, Bot, User, CornerDownLeft, Megaphone } from "lucide-react";
+import { X, Send, Bot, User, CornerDownLeft, Megaphone } from "lucide-react";
 import { useTabContext } from "@/lib/tab-context";
 import { searchTools } from "@/lib/tool-registry";
 
@@ -17,6 +17,8 @@ type Message = {
 
 type FeedbackCategory = "bug" | "feature" | "feedback" | null;
 
+const getTimestamp = () => Date.now();
+
 
 
 interface FeedbackChatbotProps {
@@ -27,7 +29,7 @@ interface FeedbackChatbotProps {
 }
 
 export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroadcast }: FeedbackChatbotProps) {
-    const { openTab, isWide } = useTabContext();
+    const { openTab } = useTabContext();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -49,20 +51,23 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
     // Initial greeting on load
     useEffect(() => {
         if (messages.length === 0) {
-            setMessages([
-                {
-                    id: "init-1",
-                    sender: "bot",
-                    text: "Hi! I'm the Toolich Assistant. 👋 How can I help you today? Please choose an option or type your question below:",
-                    options: [
-                        "🐛 Report a Bug",
-                        "💡 Suggest a Feature",
-                        "💬 General Feedback",
-                        "🔍 Ask about Tools"
-                    ],
-                    timestamp: Date.now(),
-                }
-            ]);
+            const timer = setTimeout(() => {
+                setMessages([
+                    {
+                        id: "init-1",
+                        sender: "bot",
+                        text: "Hi! I'm the Toolich Assistant. 👋 How can I help you today? Please choose an option or type your question below:",
+                        options: [
+                            "🐛 Report a Bug",
+                            "💡 Suggest a Feature",
+                            "💬 General Feedback",
+                            "🔍 Ask about Tools"
+                        ],
+                        timestamp: getTimestamp(),
+                    }
+                ]);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [messages.length]);
 
@@ -95,7 +100,7 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
                     options,
                     toolLink,
                     toolLinks,
-                    timestamp: Date.now(),
+                    timestamp: getTimestamp(),
                 }
             ]);
         }, 850);
@@ -108,7 +113,7 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
             category,
             message: feedbackText,
             email: emailAddr === "Skipped" ? "" : emailAddr,
-            timestamp: Date.now()
+            timestamp: getTimestamp()
         };
 
         // 1. Local Storage fallback
@@ -141,7 +146,7 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
                 id: `user-${Math.random().toString(36).substring(2, 9)}`,
                 sender: "user",
                 text: option,
-                timestamp: Date.now()
+                timestamp: getTimestamp()
             }
         ]);
 
@@ -190,7 +195,7 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
                 id: `user-${Math.random().toString(36).substring(2, 9)}`,
                 sender: "user",
                 text,
-                timestamp: Date.now()
+                timestamp: getTimestamp()
             }
         ]);
         setInputValue("");

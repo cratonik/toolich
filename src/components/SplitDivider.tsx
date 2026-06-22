@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 type SplitDividerProps = {
     ratio: number;
     onRatioChange: (ratio: number) => void;
 };
 
-export function SplitDivider({ ratio, onRatioChange }: SplitDividerProps) {
+export function SplitDivider({ onRatioChange }: SplitDividerProps) {
     const dragging = useRef(false);
     const containerRef = useRef<HTMLDivElement>(null);
 

@@ -30,10 +30,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(STORAGE_KEY) as ThemeMode | null;
-    if (stored === "light" || stored === "dark" || stored === "system") {
-      setMode(stored);
-    }
-    setMounted(true);
+    const timer = setTimeout(() => {
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        setMode(stored);
+      }
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const effectiveTheme = useMemo<"light" | "dark">(() => {

@@ -50,10 +50,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const chosen: Theme = stored === "light" || stored === "dark" ? stored : "system";
         const resolved: ResolvedTheme = chosen === "system" ? getSystemPreference() : chosen;
 
-        setThemeRaw(chosen);
-        setResolvedTheme(resolved);
-        applyClass(resolved);
-        setMounted(true);
+        const timer = setTimeout(() => {
+            setThemeRaw(chosen);
+            setResolvedTheme(resolved);
+            applyClass(resolved);
+            setMounted(true);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     // Listen for OS theme changes when mode = "system"
