@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/Toast";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
+import { HomeStructuredData } from "@/components/StructuredData";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -87,6 +88,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <HomeStructuredData />
         {/* Google Analytics & AdSense via next/script */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-Q4GXZK2JXF"

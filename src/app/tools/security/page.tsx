@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Shield, ArrowRight } from "lucide-react";
 import { getToolsByCategory } from "@/lib/tool-registry";
+import { constructMetadata } from "@/lib/seo";
 
-export const metadata = {
-    title: "Security Tools | Toolich",
-    description: "Encryption, password tools, JWT, and security checkers.",
-};
+export const metadata = constructMetadata({
+    title: "Security Tools",
+    description: "Cryptographic hash generators, secure password generators, and client-side encryption utility tools.",
+    path: "/tools/security",
+    keywords: ["security tools", "hash generator", "password generator", "encryption", "cryptography"],
+});
 
 export default function SecurityPage() {
     const tools = getToolsByCategory("security");

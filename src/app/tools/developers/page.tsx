@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Code, ArrowRight } from "lucide-react";
 import { getToolsByCategory } from "@/lib/tool-registry";
+import { constructMetadata } from "@/lib/seo";
 
-export const metadata = {
-    title: "Developer Tools | Toolich",
-    description: "Code formatters, converters, validators, and generators.",
-};
+export const metadata = constructMetadata({
+    title: "Developer Tools",
+    description: "Code formatters, base64 converters, schema validators, and UUID generators.",
+    path: "/tools/developers",
+    keywords: ["developer tools", "code formatters", "validators", "base64", "json schema"],
+});
 
 export default function DevelopersPage() {
     const tools = getToolsByCategory("developers");
