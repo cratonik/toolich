@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "redis";
-
-// Create client using the Vercel Redis URL
-const redis = await createClient({
-    url: process.env.TOOLICH_STORAGE_REDIS_URL,
-}).connect();
+import { getRedis } from "@/lib/redis";
 
 export async function POST(request: Request) {
     try {
@@ -66,6 +61,7 @@ export async function POST(request: Request) {
 
         // 3. Persist feedback list in Redis
         try {
+            const redis = await getRedis();
             await redis.lPush(
                 "toolich:feedback_list",
                 JSON.stringify({
