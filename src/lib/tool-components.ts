@@ -16,6 +16,7 @@ import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
 import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
 import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
+import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
 
 /**
  * Registry of tool components.
@@ -32,6 +33,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/json-to-types": JsonToTypes,
     "security/hash-generator": HashGenerator,
     "security/password-generator": PasswordGenerator,
+    "security/jwt-decoder": JwtDecoder,
     "devops/cron-parser": CronParser,
     "devops/env-editor": EnvEditor,
     "devops/regex-tester": RegexTester,
