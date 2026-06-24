@@ -184,6 +184,17 @@ const TOOLS: ToolMeta[] = [
             "pydantic", "generator", "converter", "model",
         ],
     },
+    {
+        name: "JWT Decoder",
+        slug: "jwt-decoder",
+        description: "Decode, inspect, and verify JSON Web Tokens (JWT) client-side.",
+        category: "security",
+        additionalCategories: ["developers"],
+        keywords: [
+            "jwt", "token", "decoder", "inspect", "base64url",
+            "security", "json web token", "claims", "header", "payload",
+        ],
+    },
 ];
 
 // ---------------------------------------------------------------------------
