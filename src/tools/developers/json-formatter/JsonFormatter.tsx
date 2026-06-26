@@ -522,11 +522,34 @@ type JsonTreeNodeProps = {
     depth: number;
     path: string;
     isLast?: boolean;
+    expandTrigger: number;
+    collapseTrigger: number;
 };
 
-function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTreeNodeProps) {
+function JsonTreeNode({
+    name,
+    index,
+    value,
+    depth,
+    path,
+    isLast = true,
+    expandTrigger,
+    collapseTrigger,
+}: JsonTreeNodeProps) {
     const [collapsed, setCollapsed] = useState(depth > 0);
     const isCollapsible = isObject(value) || isArray(value);
+
+    useEffect(() => {
+        if (expandTrigger > 0) {
+            setCollapsed(false);
+        }
+    }, [expandTrigger]);
+
+    useEffect(() => {
+        if (collapseTrigger > 0) {
+            setCollapsed(depth > 0);
+        }
+    }, [collapseTrigger, depth]);
 
     const toggle = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -563,14 +586,24 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                     {name != null && (
                         <>
                             <TooltipTrigger tooltipText={path}>
-                                <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                                <span
+                                    onClick={toggle}
+                                    className={`${TOKEN_COLORS.key} ${isCollapsible ? "cursor-pointer hover:underline" : ""}`}
+                                >
+                                    &quot;{name}&quot;
+                                </span>
                             </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
                     {depth === 0 && rootLabel}
                     {depth === 0 && rootLabel && "\u00A0"}
-                    <span className={TOKEN_COLORS.brace}>{"{"}</span>
+                    <span
+                        onClick={toggle}
+                        className={`${TOKEN_COLORS.brace} ${isCollapsible ? "cursor-pointer hover:scale-105" : ""}`}
+                    >
+                        {"{"}
+                    </span>
                     {collapsed && entries.length > 0 && (
                         <span className="text-zinc-400 dark:text-zinc-500 text-xs">
                             {" "}
@@ -589,6 +622,8 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                                 depth={depth + 1}
                                 path={path ? `${path}.${key}` : key}
                                 isLast={i === entries.length - 1}
+                                expandTrigger={expandTrigger}
+                                collapseTrigger={collapseTrigger}
                             />
                         ))}
                         <div className={rowClass} style={{ marginLeft: indentPx }}>
@@ -620,14 +655,24 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                     {name != null && (
                         <>
                             <TooltipTrigger tooltipText={path}>
-                                <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                                <span
+                                    onClick={toggle}
+                                    className={`${TOKEN_COLORS.key} ${isCollapsible ? "cursor-pointer hover:underline" : ""}`}
+                                >
+                                    &quot;{name}&quot;
+                                </span>
                             </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
                     {depth === 0 && rootLabel}
                     {depth === 0 && rootLabel && "\u00A0"}
-                    <span className={TOKEN_COLORS.brace}>{"["}</span>
+                    <span
+                        onClick={toggle}
+                        className={`${TOKEN_COLORS.brace} ${isCollapsible ? "cursor-pointer hover:scale-105" : ""}`}
+                    >
+                        {"["}
+                    </span>
                     {collapsed && len > 0 && (
                         <span className="text-zinc-400 dark:text-zinc-500 text-xs">
                             {" "}
@@ -646,6 +691,8 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                                 depth={depth + 1}
                                 path={`${path}[${i}]`}
                                 isLast={i === len - 1}
+                                expandTrigger={expandTrigger}
+                                collapseTrigger={collapseTrigger}
                             />
                         ))}
                         <div className={rowClass} style={{ marginLeft: indentPx }}>
@@ -706,10 +753,24 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
     );
 }
 
-function JsonTree({ value }: { value: JsonValue }) {
+function JsonTree({
+    value,
+    expandTrigger,
+    collapseTrigger,
+}: {
+    value: JsonValue;
+    expandTrigger: number;
+    collapseTrigger: number;
+}) {
     return (
         <div className="font-mono text-[13px] leading-snug text-zinc-800 dark:text-zinc-100 py-1">
-            <JsonTreeNode value={value} depth={0} path="" />
+            <JsonTreeNode
+                value={value}
+                depth={0}
+                path=""
+                expandTrigger={expandTrigger}
+                collapseTrigger={collapseTrigger}
+            />
         </div>
     );
 }
@@ -725,6 +786,8 @@ export default function JsonFormatter() {
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const [showTree, setShowTree] = useState(false);
+    const [expandTrigger, setExpandTrigger] = useState(0);
+    const [collapseTrigger, setCollapseTrigger] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
@@ -1042,6 +1105,25 @@ export default function JsonFormatter() {
                     <ListTree className="h-3.5 w-3.5" />
                     {showTree ? "Hide tree view" : "Show tree view"}
                 </button>
+
+                {showTree && !!parsedJson && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setExpandTrigger((prev) => prev + 1)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 active:scale-[0.97] transition-all"
+                        >
+                            Expand all
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCollapseTrigger((prev) => prev + 1)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 active:scale-[0.97] transition-all"
+                        >
+                            Collapse all
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* Editor / tree area (single panel to avoid scrolling) */}
@@ -1052,7 +1134,11 @@ export default function JsonFormatter() {
 
                 {treeMode && parsedJson ? (
                     <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90">
-                        <JsonTree value={parsedJson} />
+                        <JsonTree
+                            value={parsedJson}
+                            expandTrigger={expandTrigger}
+                            collapseTrigger={collapseTrigger}
+                        />
                     </div>
                 ) : (
                     <>
