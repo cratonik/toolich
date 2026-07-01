@@ -12,6 +12,7 @@ import {
 import { getToolBySlug, getToolsByCategory } from "@/lib/tool-registry";
 import { toolPath, categoryPath, CATEGORY_LABELS } from "@/lib/routes";
 import { trackToolUsage } from "@/lib/recent-tools";
+import { usePathname } from "next/navigation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -174,8 +175,46 @@ function loadFromSession(): StoredState | null {
 let nextTabId = 1;
 
 export function TabProvider({ children }: { children: ReactNode }) {
-    const [tabs, setTabs] = useState<Tab[]>([HOME_TAB]);
-    const [activeTabId, setActiveTabId] = useState("home");
+    const pathname = usePathname();
+
+    // ── Initialise state based on URL pathname (safe for SSR & initial client render) ──
+    const initialParsed = parsePathname(pathname);
+    let initialTabs = [HOME_TAB];
+    let initialActiveTabId = "home";
+
+    if (initialParsed) {
+        const isCategory = initialParsed.slug.startsWith("__category__/");
+        const categorySlug = isCategory ? initialParsed.slug.replace("__category__/", "") : initialParsed.category;
+
+        if (isCategory) {
+            const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
+            const id = "tab-1";
+            const newTab: Tab = {
+                id,
+                title,
+                toolSlug: initialParsed.slug,
+                category: categorySlug,
+            };
+            initialTabs = [HOME_TAB, newTab];
+            initialActiveTabId = id;
+        } else {
+            const meta = getToolBySlug(initialParsed.category, initialParsed.slug);
+            if (meta) {
+                const id = "tab-1";
+                const newTab: Tab = {
+                    id,
+                    title: meta.name,
+                    toolSlug: meta.slug,
+                    category: meta.category,
+                };
+                initialTabs = [HOME_TAB, newTab];
+                initialActiveTabId = id;
+            }
+        }
+    }
+
+    const [tabs, setTabs] = useState<Tab[]>(initialTabs);
+    const [activeTabId, setActiveTabId] = useState(initialActiveTabId);
     const [splitTabId, setSplitTabId] = useState<string | null>(null);
     const [splitRatio, setSplitRatio] = useState(0.5);
     const [splitHighlightTrigger, setSplitHighlightTrigger] = useState(0);
@@ -221,7 +260,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
         [favorites]
     );
 
-    // ── Initialise: restore from session (soft reload) or from URL (hard reload / direct link) ──
+    // ── Initialise: restore from session (soft reload) or align nextTabId ──
     useEffect(() => {
         const saved = loadFromSession();
         if (saved && saved.tabs.length > 1) {
@@ -234,37 +273,12 @@ export function TabProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        // Hard reload or fresh visit — init from URL
-        const parsed = parsePathname(window.location.pathname);
-        if (parsed) {
-            const isCategory = parsed.slug.startsWith("__category__/");
-            const categorySlug = isCategory ? parsed.slug.replace("__category__/", "") : parsed.category;
-
-            if (isCategory) {
-                const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
-                const id = `tab-${nextTabId++}`;
-                const newTab: Tab = {
-                    id,
-                    title,
-                    toolSlug: parsed.slug,
-                    category: categorySlug,
-                };
-                setTabs([HOME_TAB, newTab]);
-                setActiveTabId(id);
-            } else {
-                const meta = getToolBySlug(parsed.category, parsed.slug);
-                if (meta) {
-                    const id = `tab-${nextTabId++}`;
-                    const newTab: Tab = {
-                        id,
-                        title: meta.name,
-                        toolSlug: meta.slug,
-                        category: meta.category,
-                    };
-                    setTabs([HOME_TAB, newTab]);
-                    setActiveTabId(id);
-                }
-            }
+        // Hard reload or fresh visit — we already initialized tabs from URL during render.
+        // We just need to make sure nextTabId is set correctly.
+        if (initialParsed) {
+            nextTabId = 2;
+        } else {
+            nextTabId = 1;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
