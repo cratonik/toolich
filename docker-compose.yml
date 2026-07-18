@@ -11,3 +11,5 @@ services:
       - "4000:4000" # Exposes your app on port 4000 for your reverse proxy
     environment:
       - NODE_ENV=production
+      - TOOLICH_STORAGE_REDIS_URL=redis://default:esoaoGZZHp37sxuokTxPXJBgbehtanrp@round-proactive-veracious-95723.db.redis.io:12785
+      - REDIS_URL=redis://default:esoaoGZZHp37sxuokTxPXJBgbehtanrp@round-proactive-veracious-95723.db.redis.io:12785
