@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  toolich-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: toolich_app
+    restart: unless-stopped
+    ports:
+      - "4000:4000" # Exposes your app on port 4000 for your reverse proxy
+    environment:
+      - NODE_ENV=production
