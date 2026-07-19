@@ -123,39 +123,35 @@ export default function GlobalFloatingDock() {
 
             {/* Unified Floating Action Dock */}
             <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-0 md:p-1.5 rounded-full md:border md:border-zinc-200 md:bg-white/90 md:shadow-[0_8px_30px_rgb(0,0,0,0.06)] md:backdrop-blur-md md:dark:border-zinc-800 md:dark:bg-zinc-950/90 transition-all duration-300">
-                {showWorkspaceTriggers && (
-                    <>
-                        {/* Keyboard Shortcuts Trigger */}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsOpenShortcuts((prev) => !prev);
-                                setIsOpenChatbot(false);
-                            }}
-                            className={`hidden md:flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95 ${
-                                isOpenShortcuts
-                                    ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
-                                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
-                            }`}
-                            title="Keyboard Shortcuts"
-                        >
-                            <Keyboard className="h-[18px] w-[18px]" />
-                        </button>
+                {/* Keyboard Shortcuts Trigger */}
+                <button
+                    type="button"
+                    onClick={() => {
+                        setIsOpenShortcuts((prev) => !prev);
+                        setIsOpenChatbot(false);
+                    }}
+                    className={`hidden md:flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95 ${
+                        isOpenShortcuts
+                            ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
+                            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+                    }`}
+                    title="Keyboard Shortcuts"
+                >
+                    <Keyboard className="h-[18px] w-[18px]" />
+                </button>
 
-                        {/* Wide View Toggle Trigger */}
-                        <button
-                            type="button"
-                            onClick={toggleWide}
-                            className="hidden md:flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
-                            title={isWide ? "Switch to standard width" : "Switch to wide width"}
-                        >
-                            {isWide ? <Minimize2 className="h-[18px] w-[18px]" /> : <Maximize2 className="h-[18px] w-[18px]" />}
-                        </button>
+                {/* Wide View Toggle Trigger */}
+                <button
+                    type="button"
+                    onClick={toggleWide}
+                    className="hidden md:flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
+                    title={isWide ? "Switch to standard width" : "Switch to wide width"}
+                >
+                    {isWide ? <Minimize2 className="h-[18px] w-[18px]" /> : <Maximize2 className="h-[18px] w-[18px]" />}
+                </button>
 
-                        {/* Subtle vertical divider */}
-                        <span className="hidden md:block h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
-                    </>
-                )}
+                {/* Subtle vertical divider */}
+                <span className="hidden md:block h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
 
                 {/* Feedback Chatbot Trigger */}
                 <button
