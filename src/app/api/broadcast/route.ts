@@ -90,8 +90,8 @@ export async function POST(request: Request) {
         console.log("Query Token:", queryToken);
 
         // Security check
-        if (configuredToken && queryToken !== configuredToken) {
-            console.warn("Unauthorized: Tokens do not match!");
+        if (!configuredToken || queryToken !== configuredToken) {
+            console.warn("Unauthorized: Tokens do not match or BROADCAST_TOKEN is not configured!");
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
