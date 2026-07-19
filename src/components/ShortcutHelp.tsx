@@ -8,6 +8,7 @@ const SHORTCUTS = [
     { keys: ["⌥", "1-9"], label: "Switch tab", winKeys: ["Alt", "1-9"] },
     { keys: ["⌥", "1-9", "W"], label: "Close tab", winKeys: ["Alt", "1-9", "W"] },
     { keys: ["⌥", "P"], label: "Split / unsplit tab", winKeys: ["Alt", "P"] },
+    { keys: ["⌥", "A"], label: "Open active tool again", winKeys: ["Alt", "A"] },
     { keys: ["?"], label: "Toggle shortcut help", winKeys: ["?"] },
     { keys: ["↑", "↓"], label: "Navigate search results" },
     { keys: ["↵"], label: "Select search result" },
