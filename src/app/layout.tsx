@@ -6,7 +6,6 @@ import { SearchProvider } from "@/components/SpotlightSearch";
 import { TabProvider } from "@/lib/tab-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/Toast";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { HomeStructuredData } from "@/components/StructuredData";
 
@@ -112,6 +111,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
@@ -145,7 +145,6 @@ export default function RootLayout({
               <ToastProvider>
                 <Header />
                 {children}
-                <SpeedInsights />
               </ToastProvider>
             </SearchProvider>
           </TabProvider>
