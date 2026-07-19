@@ -8,7 +8,6 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/Toast";
 import Script from "next/script";
 import { HomeStructuredData } from "@/components/StructuredData";
-import GlobalFloatingDock from "@/components/GlobalFloatingDock";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -146,7 +145,6 @@ export default function RootLayout({
               <ToastProvider>
                 <Header />
                 {children}
-                <GlobalFloatingDock />
               </ToastProvider>
             </SearchProvider>
           </TabProvider>

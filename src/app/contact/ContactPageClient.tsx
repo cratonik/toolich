@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Mail, Send, CheckCircle2, MessageSquare } from "lucide-react";
 import { useTabContext } from "@/lib/tab-context";
 import Footer from "@/components/Footer";
+import { StaticFloatingDock } from "@/components/StaticFloatingDock";
 
 export default function ContactPageClient() {
     const { goHome } = useTabContext();
@@ -207,6 +208,7 @@ export default function ContactPageClient() {
                 </div>
             </div>
             <Footer />
+            <StaticFloatingDock />
         </div>
     );
 }

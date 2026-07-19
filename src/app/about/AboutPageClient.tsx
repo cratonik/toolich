@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, Cpu, Shield, Zap, Sparkles } from "lucide-react";
 import { useTabContext } from "@/lib/tab-context";
 import Footer from "@/components/Footer";
+import { StaticFloatingDock } from "@/components/StaticFloatingDock";
 
 export default function AboutPageClient() {
     const { goHome } = useTabContext();
@@ -110,6 +111,7 @@ export default function AboutPageClient() {
                 </div>
             </div>
             <Footer />
+            <StaticFloatingDock />
         </div>
     );
 }
