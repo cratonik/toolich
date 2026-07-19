@@ -84,7 +84,7 @@ function tabToPath(tab: Tab): string {
 }
 
 function isStaticPath(path: string): boolean {
-    return path === "/terms" || path === "/privacy";
+    return path === "/terms" || path === "/privacy" || path === "/about" || path === "/contact";
 }
 
 /** Parse the current pathname into { category, slug } or null for home */
