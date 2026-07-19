@@ -6,6 +6,7 @@ import { useTabContext } from "@/lib/tab-context";
 import { renderSlackText } from "@/lib/slack-format";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
+import { usePathname } from "next/navigation";
 
 function playNotificationSound() {
     try {
@@ -52,7 +53,10 @@ function playNotificationSound() {
 }
 
 export default function GlobalFloatingDock() {
+    const pathname = usePathname();
     const { isWide, toggleWide, activeTabId } = useTabContext();
+
+    if (pathname === "/offline") return null;
     const [isOpenShortcuts, setIsOpenShortcuts] = useState(false);
     const [isOpenChatbot, setIsOpenChatbot] = useState(false);
     const [activeBroadcast, setActiveBroadcast] = useState<{ text: string; timestamp: number } | null>(null);
