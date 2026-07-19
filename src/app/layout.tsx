@@ -118,7 +118,7 @@ export default function RootLayout({
         <meta name="google-adsense-account" content="ca-pub-5052542306758700" />
         <Script id="pwa-service-worker" strategy="afterInteractive">
           {`
-            if('serviceWorker' in navigator){
+            if('serviceWorker' in navigator && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'){
               window.addEventListener('load',function(){
                 navigator.serviceWorker.register('/sw.js')
               })
