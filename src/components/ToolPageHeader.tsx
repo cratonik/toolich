@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, Star, Plus } from "lucide-react";
 import { ROUTES, categoryPath } from "@/lib/routes";
@@ -26,6 +27,10 @@ export function ToolPageHeader({
     slug,
 }: ToolPageHeaderProps) {
     const { isFavorite, toggleFavorite, openTab, openCategoryInCurrentTab, goHome } = useTabContext();
+    const [isMac, setIsMac] = useState(false);
+    useEffect(() => {
+        setIsMac(navigator.userAgent.toLowerCase().includes("mac"));
+    }, []);
     
     // Automatically derive the slug from the URL if not provided directly (e.g. on direct page access)
     let activeSlug = slug;
@@ -114,7 +119,7 @@ export function ToolPageHeader({
                             onClick={() => openTab({ name: originalName, slug: activeSlug!, category })}
                             className="flex h-8 px-2.5 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-600 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:text-zinc-900 hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100"
                             aria-label="Open tool again in a new tab"
-                            title="Open same tool in a new tab"
+                            title={isMac ? "Open same tool in a new tab (⌥ A)" : "Open same tool in a new tab (Alt + A)"}
                         >
                             <Plus className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
                             <span>Open Again</span>
