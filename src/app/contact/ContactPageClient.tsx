@@ -50,7 +50,7 @@ export default function ContactPageClient() {
 
     return (
         <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-            <div className="mx-auto w-full max-w-2xl flex-1 px-4 pt-20 pb-16 sm:px-6">
+            <div className="mx-auto w-full max-w-5xl flex-1 px-4 pt-20 pb-16 sm:px-6">
                 <Link
                     href="/"
                     onClick={(e) => {
