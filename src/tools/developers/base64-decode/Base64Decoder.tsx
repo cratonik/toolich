@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Copy, Check, Trash2, AlertTriangle, Upload, Undo2, ClipboardCopy } from "lucide-react";
+import { Copy, Check, Trash2, AlertTriangle, Upload, Undo2, ClipboardCopy, Columns, Rows } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
 export default function Base64Decoder() {
     const [input, setInput] = useSessionState("base64-decode:input", "");
     const [output, setOutput] = useSessionState("base64-decode:output", "");
     const [autoCopy, setAutoCopy] = useSessionState("base64-decode:autocopy", false);
+    const [layout, setLayout] = useSessionState("base64-decode:layout", "horizontal");
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [dragActive, setDragActive] = useState(false);
@@ -157,6 +158,18 @@ export default function Base64Decoder() {
                     Auto-copy {autoCopy ? "ON" : "OFF"}
                 </button>
 
+                <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+                <button
+                    type="button"
+                    onClick={() => setLayout(layout === "vertical" ? "horizontal" : "vertical")}
+                    className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                    title={layout === "vertical" ? "Switch to side-by-side view" : "Switch to stacked view"}
+                >
+                    {layout === "vertical" ? <Columns className="h-3.5 w-3.5" /> : <Rows className="h-3.5 w-3.5" />}
+                    {layout === "vertical" ? "Side-by-side" : "Stacked"}
+                </button>
+
                 {/* Undo button (visible right after clear) */}
                 {!input && !output && undoRef.current !== null && (
                     <button
@@ -170,7 +183,7 @@ export default function Base64Decoder() {
                 )}
             </div>
             {/* Input / Output panels */}
-            <div className="grid gap-6 md:grid-cols-1">
+            <div className={`grid gap-6 ${layout === "horizontal" ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
                 {/* Input */}
                 <div className="space-y-2">
                     <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
