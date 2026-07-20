@@ -72,6 +72,13 @@ function ToolLoadingFallback() {
 function TabPanel({ tab }: { tab: Tab }) {
     const { tabs } = useTabContext();
 
+    useEffect(() => {
+        const container = document.getElementById(`tab-scroll-${tab.id}`);
+        if (container) {
+            container.scrollTop = 0;
+        }
+    }, [tab.toolSlug, tab.id]);
+
     // Home tab
     if (tab.toolSlug === null) {
         return <HomePanel />;
@@ -201,6 +208,20 @@ export function TabContent() {
     const [hasNewBroadcast, setHasNewBroadcast] = useState(false);
     const [playedSoundTimestamp, setPlayedSoundTimestamp] = useState<number | null>(null);
     const [isHighlighting, setIsHighlighting] = useState(false);
+
+    // Get the active tab to track its changes
+    const activeTab = tabs.find((t) => t.id === activeTabId);
+
+    // Scroll to top when active tab changes or its content changes
+    useEffect(() => {
+        if (activeTab) {
+            window.scrollTo({ top: 0, behavior: "auto" });
+            const container = document.getElementById(`tab-scroll-${activeTab.id}`);
+            if (container) {
+                container.scrollTop = 0;
+            }
+        }
+    }, [activeTabId, activeTab?.toolSlug, activeTab?.category]);
 
     // Play chime when new broadcast is loaded
     useEffect(() => {
@@ -449,6 +470,7 @@ export function TabContent() {
                     return (
                         <div
                             key={tab.id}
+                            id={`tab-scroll-${tab.id}`}
                             style={{
                                 width: widthStyle,
                                 order: orderStyle,
