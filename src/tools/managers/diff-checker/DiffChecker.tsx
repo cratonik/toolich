@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import {
     Copy,
     Check,
@@ -11,6 +11,8 @@ import {
     Space,
     ChevronDown,
     ChevronUp,
+    Link as LinkIcon,
+    Unlink,
 } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
@@ -359,6 +361,7 @@ export default function DiffChecker() {
         "diff-checker:view",
         "side-by-side",
     );
+    const [syncScroll, setSyncScroll] = useSessionState("diff-checker:sync-scroll", true);
     const [copied, setCopied] = useState(false);
 
     const hasInput = original.trim() !== "" || modified.trim() !== "";
@@ -453,6 +456,16 @@ export default function DiffChecker() {
         scrollToLine(nextLineIndex);
     }, [diffIndices, scrollToLine]);
 
+    const scrollToPrevDiff = useCallback((currentIndex: number) => {
+        if (diffIndices.length === 0) return;
+        const currentPos = diffIndices.indexOf(currentIndex);
+        if (currentPos === -1) return;
+
+        const prevPos = (currentPos - 1 + diffIndices.length) % diffIndices.length;
+        const prevLineIndex = diffIndices[prevPos];
+        scrollToLine(prevLineIndex);
+    }, [diffIndices, scrollToLine]);
+
     const stats = useMemo(() => {
         let added = 0;
         let removed = 0;
@@ -535,6 +548,20 @@ export default function DiffChecker() {
                     <CaseSensitive className="h-3.5 w-3.5" />
                     Ignore case
                 </button>
+
+                {viewMode === "side-by-side" && (
+                    <button
+                        type="button"
+                        onClick={() => setSyncScroll((prev) => !prev)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${syncScroll
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600/50 dark:bg-emerald-500/10 dark:text-emerald-400"
+                            : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                            }`}
+                    >
+                        {syncScroll ? <LinkIcon className="h-3.5 w-3.5" /> : <Unlink className="h-3.5 w-3.5" />}
+                        Sync scroll
+                    </button>
+                )}
 
                 <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
 
@@ -640,7 +667,9 @@ export default function DiffChecker() {
                                     containerRef={setScrollContainer}
                                     onScroll={handleScroll}
                                     scrollToNextDiff={scrollToNextDiff}
+                                    scrollToPrevDiff={scrollToPrevDiff}
                                     diffIndices={diffIndices}
+                                    syncScroll={syncScroll}
                                 />
                             ) : (
                                 <UnifiedView
@@ -648,6 +677,7 @@ export default function DiffChecker() {
                                     containerRef={setScrollContainer}
                                     onScroll={handleScroll}
                                     scrollToNextDiff={scrollToNextDiff}
+                                    scrollToPrevDiff={scrollToPrevDiff}
                                     diffIndices={diffIndices}
                                 />
                             )}
@@ -712,19 +742,52 @@ export default function DiffChecker() {
 
 // ── Side-by-side view ────────────────────────────────────────────────────────
 
-function SideBySideView({
+const SideBySideView = memo(function SideBySideView({
     diff,
     containerRef,
     onScroll,
     scrollToNextDiff,
+    scrollToPrevDiff,
     diffIndices,
+    syncScroll,
 }: {
     diff: DiffLine[];
     containerRef: (el: HTMLDivElement | null) => void;
     onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
     scrollToNextDiff: (index: number) => void;
+    scrollToPrevDiff: (index: number) => void;
     diffIndices: number[];
+    syncScroll: boolean;
 }) {
+    const leftScrollRef = useRef<HTMLDivElement>(null);
+    const rightScrollRef = useRef<HTMLDivElement>(null);
+    const isSyncingLeft = useRef(false);
+    const isSyncingRight = useRef(false);
+
+    const handleLeftScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (!syncScroll) return;
+        if (isSyncingLeft.current) {
+            isSyncingLeft.current = false;
+            return;
+        }
+        if (rightScrollRef.current) {
+            isSyncingRight.current = true;
+            rightScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+    };
+
+    const handleRightScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        if (!syncScroll) return;
+        if (isSyncingRight.current) {
+            isSyncingRight.current = false;
+            return;
+        }
+        if (leftScrollRef.current) {
+            isSyncingLeft.current = true;
+            leftScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }
+    };
+
     return (
         <div
             ref={containerRef}
@@ -733,8 +796,13 @@ function SideBySideView({
         >
             <div className="grid grid-cols-2 min-w-[800px] divide-x divide-zinc-200 dark:divide-zinc-700">
                 {/* Left (original) */}
-                <div className="min-w-0 overflow-x-auto">
-                    {diff.map((d, i) => {
+                <div
+                    ref={leftScrollRef}
+                    onScroll={handleLeftScroll}
+                    className="min-w-0 overflow-x-auto pb-4"
+                >
+                    <div className="w-max min-w-full">
+                        {diff.map((d, i) => {
                         const show = d.type !== "added";
                         const bgClass = d.type === "modified"
                             ? LINE_BG.removed
@@ -744,39 +812,49 @@ function SideBySideView({
                         const gutterColor = d.type === "modified" ? LINE_GUTTER.removed : LINE_GUTTER[d.type];
 
                         const isDiffLine = d.type !== "unchanged";
-                        const isLastDiff = diffIndices[diffIndices.length - 1] === i;
 
                         return (
                             <div
                                 key={i}
                                 id={`diff-line-${i}`}
-                                className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${bgClass}`}
+                                className={`flex h-[26px] font-mono text-[13px] leading-[26px] ${bgClass}`}
                             >
-                                <div
-                                    className={`shrink-0 select-none border-r border-zinc-100 px-2 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${
-                                        show ? gutterColor : "text-transparent"
-                                    }`}
-                                >
-                                    <span>{show ? d.oldLineNo : ""}</span>
-                                    {show && isDiffLine && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                scrollToNextDiff(i);
-                                            }}
-                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
-                                            title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
-                                        >
-                                            {isLastDiff ? (
-                                                <ChevronUp className="h-3.5 w-3.5" />
-                                            ) : (
-                                                <ChevronDown className="h-3.5 w-3.5" />
-                                            )}
-                                        </button>
-                                    )}
+                                <div className="sticky left-0 z-10 shrink-0 w-16 bg-white dark:bg-zinc-900 border-r border-zinc-100 dark:border-zinc-800">
+                                    <div
+                                        className={`w-full h-full flex items-center justify-between select-none px-2 text-right font-mono text-[12px] ${
+                                            show ? gutterColor : "text-transparent"
+                                        } ${bgClass}`}
+                                    >
+                                        <span>{show ? d.oldLineNo : ""}</span>
+                                        {show && isDiffLine && (
+                                            <div className="flex -mr-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        scrollToPrevDiff(i);
+                                                    }}
+                                                    className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                                                    title="Jump to previous difference"
+                                                >
+                                                    <ChevronUp className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        scrollToNextDiff(i);
+                                                    }}
+                                                    className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                                                    title="Jump to next difference"
+                                                >
+                                                    <ChevronDown className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <span className="flex-1 whitespace-pre px-3 py-0.5 text-zinc-800 dark:text-zinc-200 font-mono">
+                                <span className="flex-1 whitespace-pre px-3 text-zinc-800 dark:text-zinc-200 font-mono">
                                     {show ? (
                                         d.oldSpans ? (
                                             renderSpans(d.oldSpans, CHAR_HL.modified_old)
@@ -790,11 +868,17 @@ function SideBySideView({
                             </div>
                         );
                     })}
+                    </div>
                 </div>
 
                 {/* Right (modified) */}
-                <div className="min-w-0 overflow-x-auto">
-                    {diff.map((d, i) => {
+                <div
+                    ref={rightScrollRef}
+                    onScroll={handleRightScroll}
+                    className="min-w-0 overflow-x-auto pb-4"
+                >
+                    <div className="w-max min-w-full">
+                        {diff.map((d, i) => {
                         const show = d.type !== "removed";
                         const bgClass = d.type === "modified"
                             ? LINE_BG.added
@@ -804,38 +888,48 @@ function SideBySideView({
                         const gutterColor = d.type === "modified" ? LINE_GUTTER.added : LINE_GUTTER[d.type];
 
                         const isDiffLine = d.type !== "unchanged";
-                        const isLastDiff = diffIndices[diffIndices.length - 1] === i;
 
                         return (
                             <div
                                 key={i}
-                                className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${bgClass}`}
+                                className={`flex h-[26px] font-mono text-[13px] leading-[26px] ${bgClass}`}
                             >
-                                <div
-                                    className={`shrink-0 select-none border-r border-zinc-100 px-2 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${
-                                        show ? gutterColor : "text-transparent"
-                                    }`}
-                                >
-                                    <span>{show ? d.newLineNo : ""}</span>
-                                    {show && isDiffLine && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                scrollToNextDiff(i);
-                                            }}
-                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
-                                            title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
-                                        >
-                                            {isLastDiff ? (
-                                                <ChevronUp className="h-3.5 w-3.5" />
-                                            ) : (
-                                                <ChevronDown className="h-3.5 w-3.5" />
-                                            )}
-                                        </button>
-                                    )}
+                                <div className="sticky left-0 z-10 shrink-0 w-16 bg-white dark:bg-zinc-900 border-r border-zinc-100 dark:border-zinc-800">
+                                    <div
+                                        className={`w-full h-full flex items-center justify-between select-none px-2 text-right font-mono text-[12px] ${
+                                            show ? gutterColor : "text-transparent"
+                                        } ${bgClass}`}
+                                    >
+                                        <span>{show ? d.newLineNo : ""}</span>
+                                        {show && isDiffLine && (
+                                            <div className="flex -mr-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        scrollToPrevDiff(i);
+                                                    }}
+                                                    className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                                                    title="Jump to previous difference"
+                                                >
+                                                    <ChevronUp className="h-3.5 w-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        scrollToNextDiff(i);
+                                                    }}
+                                                    className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                                                    title="Jump to next difference"
+                                                >
+                                                    <ChevronDown className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <span className="flex-1 whitespace-pre px-3 py-0.5 text-zinc-800 dark:text-zinc-200 font-mono">
+                                <span className="flex-1 whitespace-pre px-3 text-zinc-800 dark:text-zinc-200 font-mono">
                                     {show ? (
                                         d.newSpans ? (
                                             renderSpans(d.newSpans, CHAR_HL.modified_new)
@@ -849,25 +943,28 @@ function SideBySideView({
                             </div>
                         );
                     })}
+                    </div>
                 </div>
             </div>
         </div>
     );
-}
+});
 
 // ── Unified view ─────────────────────────────────────────────────────────────
 
-function UnifiedView({
+const UnifiedView = memo(function UnifiedView({
     diff,
     containerRef,
     onScroll,
     scrollToNextDiff,
+    scrollToPrevDiff,
     diffIndices,
 }: {
     diff: DiffLine[];
     containerRef: (el: HTMLDivElement | null) => void;
     onScroll: (e: React.UIEvent<HTMLDivElement>) => void;
     scrollToNextDiff: (index: number) => void;
+    scrollToPrevDiff: (index: number) => void;
     diffIndices: number[];
 }) {
     return (
@@ -879,28 +976,36 @@ function UnifiedView({
             <div className="min-w-[500px]">
                 {diff.map((d, i) => {
                     if (d.type === "modified") {
-                        const isLastDiff = diffIndices[diffIndices.length - 1] === i;
                         // Show as two lines: removal then addition
                         return (
                             <div key={i} id={`diff-line-${i}`}>
                                 <div className={`flex min-h-[24px] font-mono text-[13px] leading-relaxed ${LINE_BG.removed}`}>
                                     <div className={`shrink-0 select-none border-r border-zinc-100 px-2.5 py-0.5 text-right font-mono text-[12px] dark:border-zinc-800 w-16 flex items-center justify-between ${LINE_GUTTER.removed}`}>
                                         <span>{d.oldLineNo}</span>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                scrollToNextDiff(i);
-                                            }}
-                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
-                                            title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
-                                        >
-                                            {isLastDiff ? (
+                                        <div className="flex -mr-1">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    scrollToPrevDiff(i);
+                                                }}
+                                                className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
+                                                title="Jump to previous difference"
+                                            >
                                                 <ChevronUp className="h-3.5 w-3.5" />
-                                            ) : (
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    scrollToNextDiff(i);
+                                                }}
+                                                className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
+                                                title="Jump to next difference"
+                                            >
                                                 <ChevronDown className="h-3.5 w-3.5" />
-                                            )}
-                                        </button>
+                                            </button>
+                                        </div>
                                     </div>
                                     <span className={`shrink-0 select-none px-2 py-0.5 text-[12px] font-bold ${LINE_GUTTER.removed}`}>
                                         −
@@ -929,7 +1034,6 @@ function UnifiedView({
                     }
 
                     const isDiffLine = d.type !== "unchanged";
-                    const isLastDiff = diffIndices[diffIndices.length - 1] === i;
                     const lineNo = d.type === "removed" ? d.oldLineNo : d.newLineNo;
                     const text = d.type === "removed" ? d.oldLine : d.newLine;
                     const prefix =
@@ -950,21 +1054,30 @@ function UnifiedView({
                             >
                                 <span>{lineNo}</span>
                                 {isDiffLine && (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            scrollToNextDiff(i);
-                                        }}
-                                        className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
-                                        title={isLastDiff ? "Jump to first difference" : "Jump to next difference"}
-                                    >
-                                        {isLastDiff ? (
+                                    <div className="flex -mr-1">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                scrollToPrevDiff(i);
+                                            }}
+                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
+                                            title="Jump to previous difference"
+                                        >
                                             <ChevronUp className="h-3.5 w-3.5" />
-                                        ) : (
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                scrollToNextDiff(i);
+                                            }}
+                                            className="p-0.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-300 transition-colors cursor-pointer font-sans"
+                                            title="Jump to next difference"
+                                        >
                                             <ChevronDown className="h-3.5 w-3.5" />
-                                        )}
-                                    </button>
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                             <span
@@ -981,4 +1094,4 @@ function UnifiedView({
             </div>
         </div>
     );
-}
+});
