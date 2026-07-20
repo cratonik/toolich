@@ -15,22 +15,29 @@ export function useSessionState<T>(key: string, initialValue: T): [T, (value: T 
     const tabId = useContext(TabIdContext);
     const finalKey = tabId ? `${key}-${tabId}` : key;
 
-    const [state, setState] = useState<T>(() => {
-        if (typeof window === "undefined") return initialValue;
+    const [state, setState] = useState<T>(initialValue);
+    const [mounted, setMounted] = useState(false);
+
+    // Initial load from sessionStorage
+    useEffect(() => {
+        setMounted(true);
         try {
             const stored = sessionStorage.getItem(finalKey);
-            return stored !== null ? (JSON.parse(stored) as T) : initialValue;
+            if (stored !== null) {
+                setState(JSON.parse(stored) as T);
+            }
         } catch {
-            return initialValue;
+            // ignore
         }
-    });
+    }, [finalKey]);
 
     // Persist to sessionStorage on every change
     useEffect(() => {
+        if (!mounted) return;
         try {
             sessionStorage.setItem(finalKey, JSON.stringify(state));
         } catch { /* quota exceeded — ignore */ }
-    }, [finalKey, state]);
+    }, [finalKey, state, mounted]);
 
     // Wrapped setter that supports function updater pattern
     const setSessionState = useCallback(
