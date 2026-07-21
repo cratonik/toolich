@@ -56,9 +56,18 @@ async function initPyodide() {
     // Patch builtins.input so that prompts are printed on a separate line.
     // This forces Pyodide's `batched` stdout handler to immediately send the prompt 
     // to the UI before blocking for input, preventing hidden prompts!
+    (self as any).send_html = (html_str: string) => {
+        self.postMessage({ type: "html", html: html_str });
+    };
+
     await pyodide.runPythonAsync(`
 import builtins
 import os
+
+# Force Matplotlib to use the headless Agg backend to prevent it from crashing 
+# when it tries to access js.document (which doesn't exist in a WebWorker)
+os.environ['MPLBACKEND'] = 'AGG'
+
 _original_input = builtins.input
 
 def _custom_input(prompt=""):
@@ -67,6 +76,24 @@ def _custom_input(prompt=""):
     return _original_input()
 
 builtins.input = _custom_input
+
+def display_html(html_str):
+    import js
+    js.send_html(html_str)
+
+builtins.display_html = display_html
+
+def display_matplotlib(fig=None):
+    import matplotlib.pyplot as plt
+    import io
+    if fig is None:
+        fig = plt.gcf()
+    buf = io.StringIO()
+    fig.savefig(buf, format='svg', bbox_inches='tight')
+    display_html(buf.getvalue())
+    plt.close(fig)
+
+builtins.display_matplotlib = display_matplotlib
 
 # Setup persistent directory if it doesn't exist yet
 if not os.path.exists('/mnt'):
