@@ -2,29 +2,35 @@
 
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import Editor from "@monaco-editor/react";
-import { Play, Square, Trash2, Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { Play, Square, Loader2, RotateCcw, Trash2, Code2, ChevronDown } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useTheme } from "@/lib/theme-context";
 
 interface OutputMessage {
-    type: "stdout" | "stderr" | "system" | "stdin";
-    text: string;
+    type: "stdout" | "stderr" | "system" | "stdin" | "html";
+    text?: string;
+    html?: string;
 }
 
-const DEFAULT_CODE = `# Write your Python code here!
+const DEFAULT_CODE = `# Welcome to the Interactive Python Compiler!
+#
+# 🚀 PRO TIPS for Advanced Rendering:
+# 1. Render HTML/SVG inline: display_html("<svg>...</svg>")
+# 2. Render Matplotlib charts: display_matplotlib()
+#
+# Example Chart:
+# import matplotlib.pyplot as plt
+# plt.plot([1, 2, 3], [1, 4, 9])
+# display_matplotlib()
 
 def fibonacci(n):
-    if n <= 0:
-        return []
-    elif n == 1:
-        return [0]
-    
-    sequence = [0, 1]
-    while len(sequence) < n:
-        sequence.append(sequence[-1] + sequence[-2])
-    return sequence
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
 
-print(f"First 10 Fibonacci numbers: {fibonacci(10)}")
+print("Fibonacci sequence up to 10:")
+for i in range(10):
+    print(f"fib({i}) = {fibonacci(i)}")
 `;
 
 const EXAMPLE_CLI_CODE = `import json
@@ -197,6 +203,88 @@ if __name__ == "__main__":
     main()
 `;
 
+const EXAMPLE_MATPLOTLIB_CODE = `import numpy as np
+import matplotlib.pyplot as plt
+
+def render_quantum_ripple():
+    # 1. Create a dense 2D grid of X and Y coordinates
+    x = np.linspace(-15, 15, 400)
+    y = np.linspace(-15, 15, 400)
+    X, Y = np.meshgrid(x, y)
+    
+    # 2. Calculate the radial distance from the center for every point
+    R = np.sqrt(X**2 + Y**2)
+    
+    # 3. Apply the wave mathematics to generate the Z (height) axis
+    # The sine wave creates the ripples, while dividing by (R + 1) makes them decay outward
+    Z = np.sin(R) / (R + 1) * np.cos(X / 3)
+    
+    # 4. Set up the canvas with a deep, dark aesthetic
+    fig = plt.figure(figsize=(10, 8), facecolor='#05050b')
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_facecolor('#05050b')
+    
+    # Hide the structural axes so only the floating geometry remains
+    ax.axis('off')
+    
+    # 5. Render the 3D surface
+    # 'magma' creates a stunning gradient from dark purple to glowing white/yellow
+    surf = ax.plot_surface(X, Y, Z, 
+                           cmap='magma', 
+                           linewidth=0,       # Removes the wireframe lines for a smooth look
+                           antialiased=True,  # Smooths the edges
+                           alpha=0.95)        # Slight transparency
+    
+    # 6. Adjust the camera angle for the most dramatic perspective
+    # elev = elevation (tilt), azim = azimuth (rotation)
+    ax.view_init(elev=35, azim=45)
+    
+    plt.tight_layout()
+    
+    # Render using your compiler's specific output hook
+    display_matplotlib()
+
+if __name__ == "__main__":
+    render_quantum_ripple()`;
+
+const EXAMPLE_SVG_CODE = `def render_animated_hud():
+    svg_code = """
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" style="background-color: #0b0c10; width: 100%; max-width: 500px;">
+      <g transform="translate(250, 250)">
+        
+        <!-- Outer rotating dashed ring -->
+        <circle cx="0" cy="0" r="180" fill="none" stroke="#66fcf1" stroke-width="2" stroke-dasharray="20 40 100 20">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="15s" repeatCount="indefinite" />
+        </circle>
+        
+        <!-- Middle reverse-rotating ring -->
+        <circle cx="0" cy="0" r="140" fill="none" stroke="#45a29e" stroke-width="4" stroke-dasharray="1 15 50 15">
+          <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="10s" repeatCount="indefinite" />
+        </circle>
+        
+        <!-- Inner technical hexagon -->
+        <polygon points="0,-90 78,-45 78,45 0,90 -78,45 -78,-45" fill="none" stroke="#1f2833" stroke-width="3">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="20s" repeatCount="indefinite" />
+        </polygon>
+
+        <!-- Pulsing center core -->
+        <circle cx="0" cy="0" r="40" fill="#66fcf1">
+          <animate attributeName="r" values="40; 55; 40" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8; 0.2; 0.8" dur="3s" repeatCount="indefinite" />
+        </circle>
+        
+        <!-- Core accent dot -->
+        <circle cx="0" cy="0" r="10" fill="#0b0c10" />
+      </g>
+    </svg>
+    """
+    
+    # Inject the raw HTML/SVG into your compiler's output pane
+    display_html(svg_code)
+
+if __name__ == "__main__":
+    render_animated_hud()`;
+
 export default function PythonCompiler() {
     const { resolvedTheme } = useTheme();
     const [code, setCode] = useSessionState("python-compiler:code", DEFAULT_CODE);
@@ -222,13 +310,15 @@ export default function PythonCompiler() {
         const worker = new Worker(new URL("./pyodide.worker.ts", import.meta.url));
         
         worker.onmessage = (e) => {
-            const { type, text, error, results, id } = e.data;
+            const { type, text, html, error, results, id } = e.data;
             if (type === "awaiting_input") {
                 setIsAwaitingInput(true);
                 setCurrentExecutionId(id);
                 setTimeout(() => inputRef.current?.focus(), 50);
             } else if (type === "stdout" || type === "stderr") {
                 setOutput((prev) => [...prev, { type, text }]);
+            } else if (type === "html") {
+                setOutput((prev) => [...prev, { type, html }]);
             } else if (type === "success") {
                 if (results && results !== "undefined") {
                     setOutput((prev) => [...prev, { type: "stdout", text: `>>> ${results}` }]);
@@ -315,32 +405,60 @@ export default function PythonCompiler() {
     }, [setCode]);
 
     return (
-        <div className="flex flex-col h-[700px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden md:flex-row">
-            {/* Editor Pane */}
+        <div className="flex flex-col gap-4">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 p-3.5 rounded-xl text-sm flex items-start gap-3 shadow-sm">
+                <span className="text-lg leading-none">💡</span>
+                <div>
+                    <strong className="font-semibold">Pro Tip: Inline Graphics Supported!</strong>
+                    <p className="mt-1 text-emerald-700 dark:text-emerald-400 opacity-90">
+                        This compiler can render interactive charts and vector graphics directly in the terminal output. 
+                        Use <code className="bg-emerald-100 dark:bg-emerald-800/40 px-1 py-0.5 rounded text-xs font-mono">display_html("&lt;svg&gt;...&lt;/svg&gt;")</code> for raw SVG/HTML, 
+                        or <code className="bg-emerald-100 dark:bg-emerald-800/40 px-1 py-0.5 rounded text-xs font-mono">display_matplotlib()</code> after creating a `matplotlib` figure!
+                    </p>
+                </div>
+            </div>
+
+            <div className="flex flex-col h-[700px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden md:flex-row">
+                {/* Editor Pane */}
             <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 relative min-h-[300px] md:min-h-0 w-full md:w-1/2">
                 <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
                     <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">main.py</span>
                     <div className="flex gap-2">
-                        <button
-                            onClick={handleLoadExample}
-                            className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
-                            title="Load Task Master CLI Example"
-                        >
-                            Example
-                        </button>
+                        <div className="relative">
+                            <select 
+                                onChange={(e) => {
+                                    if (e.target.value === "cli") setCode(EXAMPLE_CLI_CODE);
+                                    else if (e.target.value === "matplotlib") setCode(EXAMPLE_MATPLOTLIB_CODE);
+                                    else if (e.target.value === "svg") setCode(EXAMPLE_SVG_CODE);
+                                    e.target.value = ""; // Reset selection state after action
+                                }}
+                                className="appearance-none px-2.5 py-1.5 pr-7 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors outline-none cursor-pointer bg-transparent"
+                                title="Load Example"
+                            >
+                                <option value="" disabled selected hidden>Examples</option>
+                                <option value="cli">CLI App</option>
+                                <option value="matplotlib">3D Ripple (Matplotlib)</option>
+                                <option value="svg">Animated HUD (SVG)</option>
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-500">
+                                <ChevronDown className="h-3 w-3" />
+                            </div>
+                        </div>
                         <button
                             onClick={handleReset}
-                            className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                            className="px-2.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
                             title="Reset Code & Terminal"
                         >
                             <RotateCcw className="h-3.5 w-3.5" />
+                            Reset
                         </button>
                         <button
                             onClick={handleClearEditor}
-                            className="p-1.5 mr-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                            className="px-2.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors mr-1"
                             title="Clear Editor"
                         >
                             <Trash2 className="h-3.5 w-3.5" />
+                            Clear
                         </button>
                         {isRunning ? (
                             <button
@@ -406,7 +524,14 @@ export default function PythonCompiler() {
                                     : "text-zinc-800 dark:text-zinc-300"
                             }`}
                         >
-                            {out.text}
+                            {out.type === "html" && out.html ? (
+                                <div 
+                                    className="my-4 p-2 bg-white rounded shadow-sm border border-zinc-200 w-fit max-w-full overflow-auto"
+                                    dangerouslySetInnerHTML={{ __html: out.html }} 
+                                />
+                            ) : (
+                                out.text
+                            )}
                         </div>
                     ))}
                     {isAwaitingInput && (
@@ -431,6 +556,7 @@ export default function PythonCompiler() {
                     )}
                 </div>
             </div>
+        </div>
         </div>
     );
 }
