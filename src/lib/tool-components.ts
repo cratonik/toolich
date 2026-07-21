@@ -16,6 +16,7 @@ import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
 import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
 import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
+import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
 
 /**
@@ -31,6 +32,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/uuid-generator": UuidGenerator,
     "developers/json-to-schema": JsonToSchema,
     "developers/json-to-types": JsonToTypes,
+    "developers/python-compiler": PythonCompiler,
     "security/hash-generator": HashGenerator,
     "security/password-generator": PasswordGenerator,
     "security/jwt-decoder": JwtDecoder,
