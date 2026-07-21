@@ -70,6 +70,13 @@ const TOOLS: ToolMeta[] = [
         keywords: ["json", "format", "prettify", "minify", "validate", "beautify"],
     },
     {
+        name: "Python Compiler",
+        slug: "python-compiler",
+        description: "Write and execute Python 3 code entirely in your browser using Pyodide.",
+        category: "developers",
+        keywords: ["python", "compiler", "runner", "interpreter", "pyodide", "wasm", "webassembly", "code", "execute", "repl"],
+    },
+    {
         name: "UUID Generator",
         slug: "uuid-generator",
         description: "Generate universally unique identifiers (UUIDs) with support for v1, v4, and v7.",
