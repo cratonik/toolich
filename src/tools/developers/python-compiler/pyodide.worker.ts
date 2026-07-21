@@ -1,5 +1,7 @@
 /* eslint-disable no-restricted-globals */
 // We load pyodide from the CDN
+declare function importScripts(...urls: string[]): void;
+
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js");
 
 declare let loadPyodide: any;

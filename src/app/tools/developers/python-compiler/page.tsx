@@ -1,24 +1,32 @@
 import { getToolBySlug } from "@/lib/tool-registry";
 import { notFound } from "next/navigation";
 import { ToolPageHeader } from "@/components/ToolPageHeader";
-import { TabContent } from "@/components/TabContent";
+import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import { constructMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
 const tool = getToolBySlug("developers", "python-compiler");
 
 export const metadata: Metadata = constructMetadata({
-    title: tool?.name,
-    description: tool?.description,
+    title: tool?.name || "Python Compiler",
+    description: tool?.description || "Write and execute Python 3 code entirely in your browser using Pyodide.",
+    path: tool?.path || "/tools/developers/python-compiler",
 });
 
 export default function PythonCompilerPage() {
     if (!tool) return notFound();
 
     return (
-        <div className="flex flex-col gap-6">
-            <ToolPageHeader tool={tool} />
-            <TabContent category={tool.category} slug={tool.slug} />
-        </div>
+        <>
+            <ToolPageHeader 
+                toolName={tool.name}
+                description={tool.description}
+                category={tool.category}
+                slug={tool.slug}
+            />
+            <div className="mt-8">
+                <PythonCompiler />
+            </div>
+        </>
     );
 }
