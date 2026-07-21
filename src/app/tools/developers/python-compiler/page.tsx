@@ -1,6 +1,6 @@
 import { getToolBySlug } from "@/lib/tool-registry";
 import { notFound } from "next/navigation";
-import ToolPageHeader from "@/components/ToolPageHeader";
+import { ToolPageHeader } from "@/components/ToolPageHeader";
 import TabContent from "@/components/TabContent";
 import { constructMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
