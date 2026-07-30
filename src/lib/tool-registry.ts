@@ -161,6 +161,15 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "Notepad",
+        slug: "notepad",
+        description: "A simple, persistent notepad with word and character count.",
+        category: "managers",
+        keywords: [
+            "notepad", "notes", "text editor", "scratchpad", "draft", "write"
+        ],
+    },
+    {
         name: "DNS Lookup",
         slug: "dns-lookup",
         description: "Query DNS records for any domain name, displaying A, AAAA, CNAME, MX, TXT, NS, and SOA records.",
