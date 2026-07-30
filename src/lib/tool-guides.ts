@@ -508,5 +508,31 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
             }
         ],
         securityInfo: "Decoding, parsing, and cryptographic signature validations are performed client-side. No tokens or keys are ever uploaded or transmitted."
+    },
+    "notepad": {
+        title: "Notepad Guide",
+        introduction: "Welcome to toolich.com's ultimate online notepad, designed to provide a fast, reliable, and distraction-free environment for all your note-taking needs. Whether you're jotting down a quick idea, drafting a long document, or pasting code snippets, our browser-based text editor ensures that your data is handled efficiently. Because the tool runs entirely in your browser, there's no need to download or install any heavy applications.",
+        features: [
+            "Persistent Storage: Your notes are automatically saved to your local browser session. You can accidentally close the tab, and your text will still be here when you return.",
+            "Live Statistics: Keep track of your progress with real-time character, word, and line counts. Perfect for meeting strict character limits for social media or essays.",
+            "Export to Text File: Done writing? Instantly download your notes as a standard .txt file directly to your device with a single click."
+        ],
+        howToUse: [
+            "Using the Notepad tool is incredibly straightforward. The main interface consists of a large text area where you can immediately start typing or pasting your content.",
+            "As you type, you'll notice the live statistics at the bottom of the editor updating in real-time.",
+            "Click the 'Copy' button in the toolbar to instantly copy the entire contents of the notepad to your clipboard.",
+            "Click the 'Download' button to save your current notes as a standard plain text file (notes.txt)."
+        ],
+        faq: [
+            {
+                question: "Will my notes be saved if I refresh the page?",
+                answer: "Yes! The notepad utilizes your browser's local storage capabilities to persist your data. Every keystroke is saved locally to your active session."
+            },
+            {
+                question: "Can anyone else see my notes?",
+                answer: "No. Your notes are stored purely in your browser's local storage. They are never transmitted over the internet or saved to our servers."
+            }
+        ],
+        securityInfo: "We respect your privacy. All notes remain on your local machine and are never uploaded, stored, or processed on our servers."
     }
 };
