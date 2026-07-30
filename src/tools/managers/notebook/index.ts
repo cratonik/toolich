@@ -5,6 +5,5 @@ export const toolMeta: ToolMeta = {
     slug: "notebook",
     description: "A structured, long-term personal knowledge base with Markdown support and persistent local storage.",
     category: "managers",
-    path: "/tools/managers/notebook",
     keywords: ["notebook", "notes", "markdown", "knowledge base", "journal", "organizer", "persistent notes"],
 };
