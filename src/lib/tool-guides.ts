@@ -534,5 +534,34 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
             }
         ],
         securityInfo: "We respect your privacy. All notes remain on your local machine and are never uploaded, stored, or processed on our servers."
+    },
+    "notebook": {
+        title: "Notebook Guide",
+        introduction: "Welcome to the Notebook—your structured, long-term personal knowledge base. Unlike temporary scratchpads, the Notebook is designed to help you organize multiple notes, journal entries, and documentation snippets. It supports Markdown formatting and saves all your data persistently across sessions using your browser's local storage.",
+        features: [
+            "Multi-Note Organization: Create, manage, and switch between multiple notes from the convenient sidebar.",
+            "Markdown Support: Write your notes using standard Markdown syntax, and toggle Preview mode to see rich text formatting (bold, italics, lists, etc.).",
+            "Persistent Local Storage: Your notes are saved automatically to your device's local storage, meaning they will be here even if you close the browser and return days later.",
+            "Search Functionality: Quickly filter your list of notes by title or content using the sidebar search bar.",
+            "Export: Instantly export any individual note as a `.md` markdown file."
+        ],
+        howToUse: [
+            "Click the '+ New Note' button in the sidebar to create a fresh note.",
+            "Update the 'Note Title' at the top of the editor to keep things organized.",
+            "Start typing your content in the main text area. You can use Markdown formatting like `#` for headings, `**bold**` for bold text, and `-` for bullet points.",
+            "Click the 'Preview' button in the toolbar to see how your Markdown looks rendered as rich HTML.",
+            "To delete a note, hover over its name in the sidebar and click the trash can icon."
+        ],
+        faq: [
+            {
+                question: "Where are my notes actually stored?",
+                answer: "Your notes are stored in your web browser's `localStorage`. This means they are saved securely on your specific device and browser. They are not uploaded to our servers."
+            },
+            {
+                question: "Will I lose my notes if I clear my browser history?",
+                answer: "Yes. Because notes are saved in your browser's local storage, clearing your site data or cache for toolich.com will permanently delete your notes. We highly recommend exporting important notes as files."
+            }
+        ],
+        securityInfo: "Your Notebook operates entirely locally. No textual data, metadata, or titles are ever transmitted over the internet."
     }
 };
