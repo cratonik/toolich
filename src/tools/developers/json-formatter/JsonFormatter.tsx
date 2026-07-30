@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree } from "lucide-react";
+import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree, Type } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
 type IndentSize = 2 | 4;
@@ -706,9 +706,9 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
     );
 }
 
-function JsonTree({ value }: { value: JsonValue }) {
+function JsonTree({ value, fontSizeClass }: { value: JsonValue, fontSizeClass?: string }) {
     return (
-        <div className="font-mono text-[13px] leading-snug text-zinc-800 dark:text-zinc-100 py-1">
+        <div className={`font-mono leading-snug text-zinc-800 dark:text-zinc-100 py-1 ${fontSizeClass || "text-[13px]"}`}>
             <JsonTreeNode value={value} depth={0} path="" />
         </div>
     );
@@ -725,6 +725,7 @@ export default function JsonFormatter() {
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const [showTree, setShowTree] = useState(false);
+    const [fontSize, setFontSize] = useSessionState<"text-sm" | "text-base" | "text-lg" | "text-xl">("json-formatter:size", "text-sm");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
@@ -832,6 +833,12 @@ export default function JsonFormatter() {
     const handlePrettify = () => {
         const result = prettify(content, indent);
         setContent(result);
+    };
+
+    const cycleFontSize = () => {
+        const sizes: typeof fontSize[] = ["text-sm", "text-base", "text-lg", "text-xl"];
+        const currentIndex = sizes.indexOf(fontSize);
+        setFontSize(sizes[(currentIndex + 1) % sizes.length]);
     };
 
     const handleMinify = () => {
@@ -1029,6 +1036,19 @@ export default function JsonFormatter() {
                     Auto-copy {autoCopy ? "ON" : "OFF"}
                 </button>
 
+                {/* Font Size */}
+                <button
+                    type="button"
+                    onClick={cycleFontSize}
+                    className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                    title="Change Text Size"
+                >
+                    <Type className="h-3.5 w-3.5" />
+                    Size
+                </button>
+
+                <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+
                 {/* Tree view toggle */}
                 <button
                     type="button"
@@ -1052,7 +1072,7 @@ export default function JsonFormatter() {
 
                 {treeMode && parsedJson ? (
                     <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90">
-                        <JsonTree value={parsedJson} />
+                        <JsonTree value={parsedJson} fontSizeClass={fontSize} />
                     </div>
                 ) : (
                     <>
@@ -1087,7 +1107,7 @@ export default function JsonFormatter() {
                                         {/* Syntax highlight layer (behind textarea) */}
                                         <pre
                                             ref={highlightRef}
-                                            className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
+                                            className={`pointer-events-none whitespace-pre p-4 font-mono leading-relaxed ${fontSize}`}
                                             aria-hidden="true"
                                             dangerouslySetInnerHTML={{
                                                 __html: highlightedHtml || "&nbsp;",
@@ -1122,10 +1142,10 @@ export default function JsonFormatter() {
                                             placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
                                             wrap="off"
                                             spellCheck={false}
-                                            className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
+                                            className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
                                                 ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                                 : "text-zinc-900 dark:text-zinc-100"
-                                                }`}
+                                                } ${fontSize}`}
                                         />
                                     </div>
                                 </div>
