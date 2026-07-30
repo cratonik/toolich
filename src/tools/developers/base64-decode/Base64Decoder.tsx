@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Copy, Check, Trash2, AlertTriangle, Upload, Undo2, ClipboardCopy, Columns, Rows } from "lucide-react";
+import { Copy, Check, Trash2, AlertTriangle, Upload, Undo2, ClipboardCopy, Columns, Rows, Type } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 
 export default function Base64Decoder() {
@@ -13,8 +13,37 @@ export default function Base64Decoder() {
     const [copied, setCopied] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
+    const [fontSize, setFontSize] = useSessionState<"text-sm" | "text-base" | "text-lg" | "text-xl">("base64-decode:size", "text-sm");
+    const [boxHeight, setBoxHeight] = useSessionState("base64-decode:boxHeight", 300);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const outputRef = useRef<HTMLTextAreaElement>(null);
     const undoRef = useRef<{ input: string; output: string } | null>(null);
+
+    useEffect(() => {
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const target = entry.target as HTMLTextAreaElement;
+                const newHeight = target.style.height;
+                if (!newHeight) continue;
+
+                if (target === inputRef.current && outputRef.current) {
+                    if (outputRef.current.style.height !== newHeight) {
+                        outputRef.current.style.height = newHeight;
+                    }
+                } else if (target === outputRef.current && inputRef.current) {
+                    if (inputRef.current.style.height !== newHeight) {
+                        inputRef.current.style.height = newHeight;
+                    }
+                }
+            }
+        });
+
+        if (inputRef.current) observer.observe(inputRef.current);
+        if (outputRef.current) observer.observe(outputRef.current);
+
+        return () => observer.disconnect();
+    }, []);
 
     const decode = useCallback((text: string) => {
         if (!text.trim()) {
@@ -47,6 +76,12 @@ export default function Base64Decoder() {
         setInput(value);
         setFileName(null);
         decode(value);
+    };
+
+    const cycleFontSize = () => {
+        const sizes: typeof fontSize[] = ["text-sm", "text-base", "text-lg", "text-xl"];
+        const currentIndex = sizes.indexOf(fontSize);
+        setFontSize(sizes[(currentIndex + 1) % sizes.length]);
     };
 
     const handleFile = useCallback(
@@ -170,6 +205,16 @@ export default function Base64Decoder() {
                     {layout === "vertical" ? "Side-by-side" : "Stacked"}
                 </button>
 
+                <button
+                    type="button"
+                    onClick={cycleFontSize}
+                    className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-500 transition-all hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                    title="Change Text Size"
+                >
+                    <Type className="h-3.5 w-3.5" />
+                    Size
+                </button>
+
                 {/* Undo button (visible right after clear) */}
                 {!input && !output && undoRef.current !== null && (
                     <button
@@ -185,19 +230,18 @@ export default function Base64Decoder() {
             {/* Input / Output panels */}
             <div className={`grid gap-6 ${layout === "horizontal" ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
                 {/* Input */}
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col">
                     <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                        Base64 Input
+                        Input
                     </label>
                     <textarea
+                        ref={inputRef}
                         value={input}
                         onChange={(e) => handleInputChange(e.target.value)}
-                        placeholder="Paste your Base64 string here…"
-                        rows={12}
-                        className={`w-full resize-none rounded-xl border p-4 font-mono text-sm shadow-sm outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${error
-                            ? "border-red-300 bg-red-50/50 text-red-900 focus:border-red-400 focus:ring-2 focus:ring-red-500/20 dark:border-red-500/50 dark:bg-red-500/5 dark:text-red-200"
-                            : "border-zinc-200 bg-white text-zinc-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20"
-                            }`}
+                        placeholder="Type or paste Base64 text here…"
+                        style={{ height: boxHeight }}
+                        onMouseUp={(e) => setBoxHeight(e.currentTarget.getBoundingClientRect().height)}
+                        className={`w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20 ${fontSize} ${error ? "border-red-300 bg-red-50/50 text-red-900 dark:border-red-500/50 dark:bg-red-500/5 dark:text-red-200" : ""}`}
                     />
                     {/* Error message */}
                     {error && (
@@ -209,16 +253,18 @@ export default function Base64Decoder() {
                 </div>
 
                 {/* Output */}
-                <div className="space-y-2">
+                <div className="space-y-2 flex flex-col">
                     <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                        Decoded Output
+                        Plain Text Output
                     </label>
                     <textarea
+                        ref={outputRef}
                         value={output}
                         readOnly
-                        placeholder="Decoded text appears here…"
-                        rows={12}
-                        className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-sm text-zinc-900 shadow-sm outline-none dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                        placeholder="Decoded output appears here…"
+                        style={{ height: boxHeight }}
+                        onMouseUp={(e) => setBoxHeight(e.currentTarget.getBoundingClientRect().height)}
+                        className={`w-full resize-y rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-zinc-900 shadow-sm outline-none dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:placeholder:text-zinc-500 ${fontSize}`}
                     />
                 </div>
             </div>
