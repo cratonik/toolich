@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SearchTrigger, SearchModal } from "./SpotlightSearch";
 import { ThemeToggle } from "./ThemeToggle";
+import { GlobalTasksPopover } from "./GlobalTasksPopover";
 import { useTabContext } from "@/lib/tab-context";
 import { ShieldCheck } from "lucide-react";
 
@@ -45,6 +46,9 @@ export default function Header({
           </Link>
 
           <div className="flex items-center gap-3">
+            {/* Tasks Popover */}
+            <GlobalTasksPopover />
+
             {/* Privacy indicator */}
             <div className="relative group flex items-center justify-center">
               <div
