@@ -170,6 +170,15 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "Notebook",
+        slug: "notebook",
+        description: "A structured, long-term personal knowledge base with Markdown support and persistent local storage.",
+        category: "managers",
+        keywords: [
+            "notebook", "notes", "markdown", "knowledge base", "journal", "organizer", "persistent notes"
+        ],
+    },
+    {
         name: "DNS Lookup",
         slug: "dns-lookup",
         description: "Query DNS records for any domain name, displaying A, AAAA, CNAME, MX, TXT, NS, and SOA records.",

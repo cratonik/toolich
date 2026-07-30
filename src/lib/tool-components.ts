@@ -14,6 +14,7 @@ import RegexTester from "@/tools/devops/regex-tester/RegexTester";
 import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
 import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
 import Notepad from "@/tools/managers/notepad/Notepad";
+import Notebook from "@/tools/managers/notebook/Notebook";
 import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
 import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
@@ -44,6 +45,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "networking/dns-lookup": DnsLookup,
     "managers/diff-checker": DiffChecker,
     "managers/notepad": Notepad,
+    "managers/notebook": Notebook,
     "managers/markdown-editor": MarkdownEditor,
     "manager/markdown-editor": MarkdownEditor,
 };
