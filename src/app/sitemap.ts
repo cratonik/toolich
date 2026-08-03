@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 import { allTools } from "@/lib/tool-registry";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = "https://toolich.com";
 
     // 1. Static base pages
@@ -55,5 +55,35 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.8,
     }));
 
-    return [...staticPages, ...categoryPages, ...toolPages];
+    // 4. Blog pages
+    let blogPages: MetadataRoute.Sitemap = [];
+    try {
+        const res = await fetch('https://www.cratonik.com/api/blog', { next: { revalidate: 3600 } });
+        if (res.ok) {
+            const blogs = await res.json();
+            
+            // Add the main /blogs page
+            blogPages.push({
+                url: `${baseUrl}/blogs`,
+                lastModified: blogs.length > 0 ? new Date(blogs[0].createdAt) : new Date(),
+                changeFrequency: "weekly" as const,
+                priority: 0.9,
+            });
+
+            // Add individual blogs
+            for (const blog of blogs) {
+                const slug = encodeURIComponent(blog.title.replace(/\s+/g, '-').toLowerCase());
+                blogPages.push({
+                    url: `${baseUrl}/blogs/${slug}`,
+                    lastModified: new Date(blog.createdAt),
+                    changeFrequency: "monthly" as const,
+                    priority: 0.8,
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch blogs for sitemap", e);
+    }
+
+    return [...staticPages, ...categoryPages, ...toolPages, ...blogPages];
 }
