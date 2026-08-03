@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/Toast";
 import Script from "next/script";
 import { HomeStructuredData } from "@/components/StructuredData";
+import { AdSense } from "@/components/AdSense";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -101,12 +102,7 @@ export default function RootLayout({
             gtag('config', 'G-Q4GXZK2JXF');
           `}
         </Script>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5052542306758700"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        <AdSense />
         {/* Theme script needs to remain synchronous in head to prevent layout theme flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />

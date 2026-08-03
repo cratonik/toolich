@@ -563,5 +563,36 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
             }
         ],
         securityInfo: "Your Notebook operates entirely locally. No textual data, metadata, or titles are ever transmitted over the internet."
+    },
+    "python-compiler": {
+        title: "Python Compiler & REPL Guide",
+        introduction: "Python is one of the most popular programming languages for data science, scripting, and web development. Our Python Compiler uses Pyodide to run a full CPython interpreter compiled to WebAssembly (Wasm) directly inside your browser. This allows you to write, test, and execute Python 3 code instantly without installing any local development environments or sending your code to remote servers.",
+        features: [
+            "Runs a full CPython 3 interpreter locally in your web browser using WebAssembly.",
+            "Live interactive console (REPL) and standard output streaming.",
+            "Supports standard library modules (like math, datetime, json) out of the box.",
+            "Syntax-highlighted code editor with line numbers and auto-indentation."
+        ],
+        howToUse: [
+            "Type your Python 3 code into the editor panel.",
+            "Click the 'Run' button (or use Ctrl+Enter / Cmd+Enter) to execute the script.",
+            "View the standard output, print statements, or error traces in the console terminal below.",
+            "Use the console to interactively test small snippets or check variable values."
+        ],
+        faq: [
+            {
+                question: "Can I import third-party packages like NumPy or Pandas?",
+                answer: "Currently, this lightweight compiler supports the standard Python library. For heavy scientific computing packages, a larger Pyodide bundle is required, which we omit here to keep the tool extremely fast."
+            },
+            {
+                question: "Does my code run on a backend server?",
+                answer: "No. All Python code is executed entirely within your browser's WebAssembly sandbox. We do not transmit or save your code on any server."
+            },
+            {
+                question: "Can I read or write local files using this compiler?",
+                answer: "Because the compiler runs in a secure browser sandbox, it cannot directly access your computer's local file system. However, it can read from a virtual in-memory file system provided by Pyodide."
+            }
+        ],
+        securityInfo: "Your Python code is executed inside a secure, sandboxed WebAssembly environment within your browser. Code is never uploaded to any remote server."
     }
 };
