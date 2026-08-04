@@ -426,6 +426,7 @@ export default function PythonCompiler() {
                     <div className="flex gap-2">
                         <div className="relative">
                             <select 
+                                defaultValue=""
                                 onChange={(e) => {
                                     if (e.target.value === "cli") setCode(EXAMPLE_CLI_CODE);
                                     else if (e.target.value === "matplotlib") setCode(EXAMPLE_MATPLOTLIB_CODE);
@@ -435,7 +436,7 @@ export default function PythonCompiler() {
                                 className="appearance-none px-2.5 py-1.5 pr-7 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors outline-none cursor-pointer bg-transparent"
                                 title="Load Example"
                             >
-                                <option value="" disabled selected hidden>Examples</option>
+                                <option value="" disabled hidden>Examples</option>
                                 <option value="cli">CLI App</option>
                                 <option value="matplotlib">3D Ripple (Matplotlib)</option>
                                 <option value="svg">Animated HUD (SVG)</option>

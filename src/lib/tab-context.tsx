@@ -288,17 +288,6 @@ export function TabProvider({ children }: { children: ReactNode }) {
         saveToSession(tabs, activeTabId, splitTabId, splitRatio);
     }, [tabs, activeTabId, splitTabId, splitRatio]);
 
-    // ── Clear session on hard reload (Ctrl+Shift+R / Cmd+Shift+R) ──
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key === "r") {
-                sessionStorage.clear();
-            }
-        };
-        window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-    }, []);
-
     // ── Sync URL when active tab changes ──
     useEffect(() => {
         if (skipPushRef.current) {
