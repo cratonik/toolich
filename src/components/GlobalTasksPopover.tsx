@@ -38,6 +38,10 @@ export function GlobalTasksPopover() {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t));
     };
 
+    const handleUpdateTaskContent = (id: string, newContent: string) => {
+        setTasks(prev => prev.map(t => t.id === id ? { ...t, content: newContent } : t));
+    };
+
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTaskContent.trim()) return;
@@ -103,9 +107,7 @@ export function GlobalTasksPopover() {
                                         >
                                             <Circle className="w-4 h-4" />
                                         </button>
-                                        <span className="text-sm text-zinc-700 dark:text-zinc-300 leading-tight">
-                                            {task.content}
-                                        </span>
+                                        <input type="text" value={task.content} onChange={(e) => handleUpdateTaskContent(task.id, e.target.value)} className="text-sm text-zinc-700 dark:text-zinc-300 leading-tight flex-1 bg-transparent border-none outline-none" />
                                     </div>
                                 ))}
                             </div>
