@@ -209,6 +209,13 @@ export function TabContent() {
     const [playedSoundTimestamp, setPlayedSoundTimestamp] = useState<number | null>(null);
     const [isHighlighting, setIsHighlighting] = useState(false);
 
+    // Listen to custom event to open assistant programmatically
+    useEffect(() => {
+        const handleOpen = () => setIsOpenChatbot(true);
+        window.addEventListener('open-toolich-assistant', handleOpen);
+        return () => window.removeEventListener('open-toolich-assistant', handleOpen);
+    }, []);
+
     // Get the active tab to track its changes
     const activeTab = tabs.find((t) => t.id === activeTabId);
 
