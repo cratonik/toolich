@@ -9,6 +9,7 @@ import { ToastProvider } from "@/components/Toast";
 import Script from "next/script";
 import { HomeStructuredData } from "@/components/StructuredData";
 import { AdSense } from "@/components/AdSense";
+import ContextMenu from "@/components/ContextMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -139,6 +140,7 @@ export default function RootLayout({
           <TabProvider>
             <SearchProvider>
               <ToastProvider>
+                <ContextMenu />
                 <Header />
                 {children}
               </ToastProvider>

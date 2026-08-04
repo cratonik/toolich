@@ -59,6 +59,13 @@ export function StaticFloatingDock() {
     const [hasNewBroadcast, setHasNewBroadcast] = useState(false);
     const [playedSoundTimestamp, setPlayedSoundTimestamp] = useState<number | null>(null);
 
+    // Listen to custom event to open assistant programmatically
+    useEffect(() => {
+        const handleOpen = () => setIsOpenChatbot(true);
+        window.addEventListener('open-toolich-assistant', handleOpen);
+        return () => window.removeEventListener('open-toolich-assistant', handleOpen);
+    }, []);
+
     // Play chime when new broadcast is loaded
     useEffect(() => {
         if (hasNewBroadcast && activeBroadcast && playedSoundTimestamp !== activeBroadcast.timestamp) {
