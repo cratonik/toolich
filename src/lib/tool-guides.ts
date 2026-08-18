@@ -230,6 +230,37 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
         ],
         securityInfo: "Passwords are generated locally using the browser's cryptographically secure random values API. No passwords are ever stored, transmitted, or logged."
     },
+    "ssl-decoder": {
+        title: "SSL Certificate Decoder Guide",
+        introduction: "An SSL/TLS certificate is a digital document that binds a public key to an entity's identity (like a website domain). These certificates are typically formatted in Base64-encoded ASCII blocks known as PEM format. The SSL Certificate Decoder helps you parse these opaque blocks into human-readable information to verify expiration dates, identify issuers, and ensure correct domains are covered.",
+        features: [
+            "Instantly decodes PEM encoded X.509 certificates.",
+            "Displays critical information including Subject, Issuer, and Validity periods.",
+            "Alerts you automatically if a certificate is expired or expiring soon.",
+            "Extracts and lists Subject Alternative Names (SANs) and Key Usages."
+        ],
+        howToUse: [
+            "Paste your PEM encoded certificate into the input area.",
+            "Alternatively, drag and drop a .pem or .crt file, or use the Upload button.",
+            "Review the decoded details in the output panel.",
+            "Use the 'Copy Summary' button to quickly grab the most important details for reports."
+        ],
+        faq: [
+            {
+                question: "What is a PEM certificate?",
+                answer: "PEM (Privacy Enhanced Mail) is the most common format for X.509 certificates, CSRs, and cryptographic keys. A PEM file is essentially a Base64-encoded block of data enclosed between '-----BEGIN CERTIFICATE-----' and '-----END CERTIFICATE-----' headers."
+            },
+            {
+                question: "What are Subject Alternative Names (SANs)?",
+                answer: "The SAN extension allows multiple domain names to be protected by a single SSL certificate. This is the modern standard for identifying which hostnames a certificate is valid for, superseding the Common Name (CN) field."
+            },
+            {
+                question: "Is my certificate sent to a server for decoding?",
+                answer: "No. All parsing and decoding is performed locally in your browser. Your public certificate data never leaves your device."
+            }
+        ],
+        securityInfo: "All certificate decoding happens purely client-side using JavaScript. No certificate contents or metadata are transmitted over the network."
+    },
     "cron-parser": {
         title: "Interactive Cron Expression Parser Guide",
         introduction: "A cron expression is a string of five or six fields representing a schedule for running automated scripts or tasks (cron jobs). Because standard cron syntax (`*/15 9-17 * * 1-5`) can be cryptic and error-prone, developers often struggle to write them correctly. The Cron Parser translates cron expressions into clear, human-readable sentences and calculates the upcoming execution dates so you can verify your schedules.",

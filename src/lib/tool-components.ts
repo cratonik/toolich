@@ -20,6 +20,7 @@ import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
 import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
 import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
+import SslDecoder from "@/tools/security/ssl-decoder/SslDecoder";
 
 /**
  * Registry of tool components.
@@ -38,6 +39,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "security/hash-generator": HashGenerator,
     "security/password-generator": PasswordGenerator,
     "security/jwt-decoder": JwtDecoder,
+    "security/ssl-decoder": SslDecoder,
     "devops/cron-parser": CronParser,
     "devops/env-editor": EnvEditor,
     "devops/regex-tester": RegexTester,
