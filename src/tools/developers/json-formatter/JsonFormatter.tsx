@@ -852,7 +852,7 @@ export default function JsonFormatter() {
     const [fontSize, setFontSize] = useSessionState<"text-sm" | "text-base" | "text-lg" | "text-xl">("json-formatter:size", "text-sm");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const highlightRef = useRef<HTMLPreElement>(null);
+    const highlightRef = useRef<HTMLDivElement>(null);
     const gutterRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const isPasteRef = useRef(false);
