@@ -559,29 +559,32 @@ export default function MarkdownEditor() {
         }, 150);
     }, []);
 
+    const editorScrollFrame = useRef<number | null>(null);
+    const previewScrollFrame = useRef<number | null>(null);
+
     // Synchronize scroll with the preview pane
     const handleEditorScroll = useCallback(() => {
         if (!syncScroll || viewMode !== "split") return;
         if (isScrollingRef.current === "preview") return;
 
         isScrollingRef.current = "editor";
-        if (scrollContainerRef.current && previewContainerRef.current) {
-            const editorEl = scrollContainerRef.current;
-            const previewEl = previewContainerRef.current;
-            
-            // 1. Calculate which logical line is currently at the top of the editor viewport
-            let currentLine = 1;
-            const scrollTop = editorEl.scrollTop;
-            
-            // For padding top
-            const paddingTop = 16; 
-            
-            if (!wordWrap) {
-                // leading-relaxed on 13px font = ~21.125px line height
-                const lineHeight = 21.125;
-                currentLine = Math.max(1, Math.floor((scrollTop - paddingTop) / lineHeight) + 1);
-            } else {
-                if (highlightRef.current) {
+        
+        if (editorScrollFrame.current) cancelAnimationFrame(editorScrollFrame.current);
+        
+        editorScrollFrame.current = requestAnimationFrame(() => {
+            if (scrollContainerRef.current && previewContainerRef.current) {
+                const editorEl = scrollContainerRef.current;
+                const previewEl = previewContainerRef.current;
+                
+                // 1. Calculate which logical line is currently at the top of the editor viewport
+                let currentLine = 1;
+                const scrollTop = editorEl.scrollTop;
+                const paddingTop = 16; 
+                
+                if (!wordWrap) {
+                    const lineHeight = 21.125;
+                    currentLine = Math.max(1, Math.floor((scrollTop - paddingTop) / lineHeight) + 1);
+                } else if (highlightRef.current) {
                     const spans = highlightRef.current.querySelectorAll('span.absolute');
                     for (let i = 0; i < spans.length; i++) {
                         const span = spans[i] as HTMLElement;
@@ -591,34 +594,32 @@ export default function MarkdownEditor() {
                         }
                     }
                 }
-            }
-            
-            // 2. Find the corresponding element in the preview with data-line <= currentLine
-            const elements = Array.from(previewEl.querySelectorAll('[data-line]'));
-            let closestElement = null;
-            let maxLine = -1;
-            
-            for (const el of elements) {
-                const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
-                if (elLine <= currentLine && elLine > maxLine) {
-                    maxLine = elLine;
-                    closestElement = el;
+                
+                // 2. Find the corresponding element in the preview with data-line <= currentLine
+                const elements = previewEl.querySelectorAll('[data-line]');
+                let closestElement = null;
+                let maxLine = -1;
+                
+                for (let i = 0; i < elements.length; i++) {
+                    const el = elements[i];
+                    const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
+                    if (elLine <= currentLine && elLine > maxLine) {
+                        maxLine = elLine;
+                        closestElement = el;
+                    }
+                }
+                
+                if (closestElement) {
+                    const target = closestElement as HTMLElement;
+                    previewEl.scrollTop = target.offsetTop - 24; // 24px padding margin
+                } else if (scrollTop === 0) {
+                    previewEl.scrollTop = 0;
+                } else if (scrollTop >= editorEl.scrollHeight - editorEl.clientHeight - 10) {
+                    previewEl.scrollTop = previewEl.scrollHeight;
                 }
             }
-            
-            if (closestElement) {
-                const target = closestElement as HTMLElement;
-                // Calculate position relative to the scroll container
-                const targetTop = target.getBoundingClientRect().top;
-                const containerTop = previewEl.getBoundingClientRect().top;
-                previewEl.scrollTop = previewEl.scrollTop + (targetTop - containerTop) - 24; // 24px padding margin
-            } else if (scrollTop === 0) {
-                previewEl.scrollTop = 0;
-            } else if (scrollTop >= editorEl.scrollHeight - editorEl.clientHeight - 10) {
-                previewEl.scrollTop = previewEl.scrollHeight;
-            }
-        }
-        clearScrollLock();
+            clearScrollLock();
+        });
     }, [syncScroll, viewMode, wordWrap, clearScrollLock]);
 
     const handlePreviewScroll = useCallback(() => {
@@ -626,51 +627,52 @@ export default function MarkdownEditor() {
         if (isScrollingRef.current === "editor") return;
 
         isScrollingRef.current = "preview";
-        if (scrollContainerRef.current && previewContainerRef.current) {
-            const editorEl = scrollContainerRef.current;
-            const previewEl = previewContainerRef.current;
-
-            const scrollTop = previewEl.scrollTop;
-            
-            // 1. Find the preview element that is currently near the top of the viewport
-            const elements = Array.from(previewEl.querySelectorAll('[data-line]'));
-            let topElement = null;
-            let minDistance = Infinity;
-            
-            for (const el of elements) {
-                const rect = el.getBoundingClientRect();
-                const containerRect = previewEl.getBoundingClientRect();
-                // We want the element that is closest to the top of the container
-                const relativeTop = rect.top - containerRect.top;
+        
+        if (previewScrollFrame.current) cancelAnimationFrame(previewScrollFrame.current);
+        
+        previewScrollFrame.current = requestAnimationFrame(() => {
+            if (scrollContainerRef.current && previewContainerRef.current) {
+                const editorEl = scrollContainerRef.current;
+                const previewEl = previewContainerRef.current;
+                const scrollTop = previewEl.scrollTop;
                 
-                // Allow elements slightly above the fold to count if they are the closest
-                if (relativeTop > -100 && relativeTop < minDistance) {
-                    minDistance = relativeTop;
-                    topElement = el;
-                }
-            }
-            
-            if (topElement) {
-                const line = parseInt(topElement.getAttribute('data-line') || "1", 10);
-                const paddingTop = 16;
+                // 1. Find the preview element that is currently near the top of the viewport
+                const elements = previewEl.querySelectorAll('[data-line]');
+                let topElement = null;
+                let minDistance = Infinity;
                 
-                if (!wordWrap) {
-                    const lineHeight = 21.125;
-                    editorEl.scrollTop = Math.max(0, (line - 1) * lineHeight + paddingTop);
-                } else if (highlightRef.current) {
-                    const spans = highlightRef.current.querySelectorAll('span.absolute');
-                    const span = spans[line - 1] as HTMLElement;
-                    if (span) {
-                        editorEl.scrollTop = Math.max(0, span.offsetTop - paddingTop);
+                for (let i = 0; i < elements.length; i++) {
+                    const el = elements[i] as HTMLElement;
+                    const relativeTop = el.offsetTop - scrollTop;
+                    
+                    if (relativeTop > -100 && relativeTop < minDistance) {
+                        minDistance = relativeTop;
+                        topElement = el;
                     }
                 }
-            } else if (scrollTop === 0) {
-                editorEl.scrollTop = 0;
-            } else if (scrollTop >= previewEl.scrollHeight - previewEl.clientHeight - 10) {
-                editorEl.scrollTop = editorEl.scrollHeight;
+                
+                if (topElement) {
+                    const line = parseInt(topElement.getAttribute('data-line') || "1", 10);
+                    const paddingTop = 16;
+                    
+                    if (!wordWrap) {
+                        const lineHeight = 21.125;
+                        editorEl.scrollTop = Math.max(0, (line - 1) * lineHeight + paddingTop);
+                    } else if (highlightRef.current) {
+                        const spans = highlightRef.current.querySelectorAll('span.absolute');
+                        const span = spans[line - 1] as HTMLElement;
+                        if (span) {
+                            editorEl.scrollTop = Math.max(0, span.offsetTop - paddingTop);
+                        }
+                    }
+                } else if (scrollTop === 0) {
+                    editorEl.scrollTop = 0;
+                } else if (scrollTop >= previewEl.scrollHeight - previewEl.clientHeight - 10) {
+                    editorEl.scrollTop = editorEl.scrollHeight;
+                }
             }
-        }
-        clearScrollLock();
+            clearScrollLock();
+        });
     }, [syncScroll, viewMode, wordWrap, clearScrollLock]);
 
     // Sync line count inside editor gutter
