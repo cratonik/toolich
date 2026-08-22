@@ -6,7 +6,7 @@ import { useTabContext, getTabDisplayTitle } from "@/lib/tab-context";
 import { useToast } from "@/components/Toast";
 
 export function TabBar() {
-    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs, isWide } = useTabContext();
+    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs, isWide, openTab } = useTabContext();
     const { showToast } = useToast();
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const dragSourceIndex = useRef<number | null>(null);
@@ -48,6 +48,20 @@ export function TabBar() {
                     unsplit();
                 } else {
                     splitTab(activeTabId);
+                }
+                return;
+            }
+
+            // Alt + A → open current active tool again in a new tab
+            if (e.code === "KeyA") {
+                e.preventDefault();
+                const activeTab = tabs.find((t) => t.id === activeTabId);
+                if (activeTab && activeTab.toolSlug && activeTab.category) {
+                    openTab({
+                        name: activeTab.title,
+                        slug: activeTab.toolSlug,
+                        category: activeTab.category,
+                    });
                 }
                 return;
             }

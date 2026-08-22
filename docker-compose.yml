@@ -1,0 +1,19 @@
+services:
+  toolich-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: toolich_app
+    restart: unless-stopped
+    networks:
+      - proxy-network
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - TOOLICH_STORAGE_REDIS_URL=${TOOLICH_STORAGE_REDIS_URL}
+      - REDIS_URL=${REDIS_URL}
+
+networks:
+  proxy-network:
+    external: true

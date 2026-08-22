@@ -13,10 +13,14 @@ import EnvEditor from "@/tools/devops/env-editor/EnvEditor";
 import RegexTester from "@/tools/devops/regex-tester/RegexTester";
 import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
 import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
+import Notepad from "@/tools/managers/notepad/Notepad";
+import Notebook from "@/tools/managers/notebook/Notebook";
 import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
 import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
+import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
+import SslDecoder from "@/tools/security/ssl-decoder/SslDecoder";
 
 /**
  * Registry of tool components.
@@ -31,15 +35,19 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "developers/uuid-generator": UuidGenerator,
     "developers/json-to-schema": JsonToSchema,
     "developers/json-to-types": JsonToTypes,
+    "developers/python-compiler": PythonCompiler,
     "security/hash-generator": HashGenerator,
     "security/password-generator": PasswordGenerator,
     "security/jwt-decoder": JwtDecoder,
+    "security/ssl-decoder": SslDecoder,
     "devops/cron-parser": CronParser,
     "devops/env-editor": EnvEditor,
     "devops/regex-tester": RegexTester,
     "networking/subnet-calculator": SubnetCalculator,
     "networking/dns-lookup": DnsLookup,
     "managers/diff-checker": DiffChecker,
+    "managers/notepad": Notepad,
+    "managers/notebook": Notebook,
     "managers/markdown-editor": MarkdownEditor,
     "manager/markdown-editor": MarkdownEditor,
 };

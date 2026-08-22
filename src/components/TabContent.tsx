@@ -13,6 +13,7 @@ import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import Footer from "@/components/Footer";
 import { renderSlackText } from "@/lib/slack-format";
+import { TOOL_GUIDES } from "@/lib/tool-guides";
 
 function playNotificationSound() {
     try {
@@ -71,6 +72,13 @@ function ToolLoadingFallback() {
 function TabPanel({ tab }: { tab: Tab }) {
     const { tabs } = useTabContext();
 
+    useEffect(() => {
+        const container = document.getElementById(`tab-scroll-${tab.id}`);
+        if (container) {
+            container.scrollTop = 0;
+        }
+    }, [tab.toolSlug, tab.id]);
+
     // Home tab
     if (tab.toolSlug === null) {
         return <HomePanel />;
@@ -94,19 +102,99 @@ function TabPanel({ tab }: { tab: Tab }) {
         );
     }
 
+    const guide = tab.toolSlug ? TOOL_GUIDES[tab.toolSlug] : null;
+
     return (
-        <div>
-            {meta && (
-                <ToolPageHeader
-                    toolName={getTabDisplayTitle(tab, tabs)}
-                    description={meta.description}
-                    category={meta.category}
-                    slug={meta.slug}
-                />
+        <div className="space-y-12">
+            <div>
+                {meta && (
+                    <ToolPageHeader
+                        toolName={getTabDisplayTitle(tab, tabs)}
+                        description={meta.description}
+                        category={meta.category}
+                        slug={meta.slug}
+                    />
+                )}
+                <Suspense fallback={<ToolLoadingFallback />}>
+                    {createElement(Component)}
+                </Suspense>
+            </div>
+
+            {/* Educational Documentation Guide Section for AdSense and SEO */}
+            {guide && (
+                <article className="mt-16 pt-10 border-t border-zinc-200 dark:border-zinc-800 space-y-8 select-text">
+                    <div className="space-y-6">
+                        {/* Guide Header */}
+                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                            <span className="font-semibold text-xs uppercase tracking-wider">Documentation & User Guide</span>
+                        </div>
+                        
+                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                            {guide.title}
+                        </h2>
+
+                        {/* Introduction */}
+                        <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed text-sm">
+                            {guide.introduction}
+                        </p>
+
+                        {/* Features & How To Use Split Columns */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-5 dark:border-zinc-800/80 dark:bg-zinc-900/30">
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm mb-3 flex items-center gap-2">
+                                    <span>⚙️</span> Key Features
+                                </h3>
+                                <ul className="list-disc pl-5 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
+                                    {guide.features.map((feature, i) => (
+                                        <li key={i}>{feature}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                            
+                            <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-5 dark:border-zinc-800/80 dark:bg-zinc-900/30">
+                                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm mb-3 flex items-center gap-2">
+                                    <span>📖</span> How to Use
+                                </h3>
+                                <ol className="list-decimal pl-5 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
+                                    {guide.howToUse.map((step, i) => (
+                                        <li key={i}>{step}</li>
+                                    ))}
+                                </ol>
+                            </div>
+                        </div>
+
+                        {/* Security & Privacy Callout */}
+                        <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/30 p-4 dark:border-emerald-900/20 dark:bg-emerald-950/5 text-emerald-800 dark:text-emerald-300 text-xs flex items-start gap-2.5">
+                            <span className="mt-0.5 text-[14px]">🔒</span>
+                            <div className="space-y-0.5">
+                                <span className="font-semibold text-emerald-900 dark:text-emerald-400">Privacy & Security:</span>
+                                <p className="text-emerald-700/90 dark:text-emerald-400/80 leading-relaxed">{guide.securityInfo}</p>
+                            </div>
+                        </div>
+
+                        {/* FAQ Section */}
+                        {guide.faq.length > 0 && (
+                            <div className="space-y-4 pt-4">
+                                <h3 className="font-semibold text-base text-zinc-900 dark:text-zinc-100">
+                                    Frequently Asked Questions (FAQ)
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {guide.faq.map((item, i) => (
+                                        <div key={i} className="space-y-1.5 p-4 rounded-xl border border-zinc-200/60 bg-white dark:border-zinc-800/60 dark:bg-zinc-900/20">
+                                            <h4 className="font-medium text-xs text-zinc-900 dark:text-zinc-200">
+                                                {item.question}
+                                            </h4>
+                                            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                                                {item.answer}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </article>
             )}
-            <Suspense fallback={<ToolLoadingFallback />}>
-                {createElement(Component)}
-            </Suspense>
         </div>
     );
 }
@@ -120,6 +208,27 @@ export function TabContent() {
     const [hasNewBroadcast, setHasNewBroadcast] = useState(false);
     const [playedSoundTimestamp, setPlayedSoundTimestamp] = useState<number | null>(null);
     const [isHighlighting, setIsHighlighting] = useState(false);
+
+    // Listen to custom event to open assistant programmatically
+    useEffect(() => {
+        const handleOpen = () => setIsOpenChatbot(true);
+        window.addEventListener('open-toolich-assistant', handleOpen);
+        return () => window.removeEventListener('open-toolich-assistant', handleOpen);
+    }, []);
+
+    // Get the active tab to track its changes
+    const activeTab = tabs.find((t) => t.id === activeTabId);
+
+    // Scroll to top when active tab changes or its content changes
+    useEffect(() => {
+        if (activeTab) {
+            window.scrollTo({ top: 0, behavior: "auto" });
+            const container = document.getElementById(`tab-scroll-${activeTab.id}`);
+            if (container) {
+                container.scrollTop = 0;
+            }
+        }
+    }, [activeTabId, activeTab?.toolSlug, activeTab?.category]);
 
     // Play chime when new broadcast is loaded
     useEffect(() => {
@@ -368,6 +477,7 @@ export function TabContent() {
                     return (
                         <div
                             key={tab.id}
+                            id={`tab-scroll-${tab.id}`}
                             style={{
                                 width: widthStyle,
                                 order: orderStyle,

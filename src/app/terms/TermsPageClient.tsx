@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { useTabContext } from "@/lib/tab-context";
 import Footer from "@/components/Footer";
+import { StaticFloatingDock } from "@/components/StaticFloatingDock";
 
 export default function TermsPageClient() {
     const { goHome } = useTabContext();
@@ -95,6 +96,7 @@ export default function TermsPageClient() {
                 </div>
             </div>
             <Footer />
+            <StaticFloatingDock />
         </div>
     );
 }

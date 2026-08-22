@@ -70,6 +70,13 @@ const TOOLS: ToolMeta[] = [
         keywords: ["json", "format", "prettify", "minify", "validate", "beautify"],
     },
     {
+        name: "Python Compiler",
+        slug: "python-compiler",
+        description: "Write and execute Python 3 code entirely in your browser using Pyodide.",
+        category: "developers",
+        keywords: ["python", "compiler", "runner", "interpreter", "pyodide", "wasm", "webassembly", "code", "execute", "repl"],
+    },
+    {
         name: "UUID Generator",
         slug: "uuid-generator",
         description: "Generate universally unique identifiers (UUIDs) with support for v1, v4, and v7.",
@@ -107,6 +114,16 @@ const TOOLS: ToolMeta[] = [
         keywords: [
             "cron", "crontab", "schedule", "cron expression", "cron parser",
             "cron builder", "cron job", "timer", "periodic", "scheduler",
+        ],
+    },
+    {
+        name: "SSL Certificate Decoder",
+        slug: "ssl-decoder",
+        description: "Decode PEM formatted X.509 SSL/TLS certificates to view details like subject, issuer, validity, and extensions.",
+        category: "security",
+        keywords: [
+            "ssl", "tls", "certificate", "decode", "x509", "pem", "crt", "cer", "cert",
+            "subject", "issuer", "validity", "san", "public key"
         ],
     },
     {
@@ -151,6 +168,24 @@ const TOOLS: ToolMeta[] = [
         keywords: [
             "diff", "compare", "text", "difference", "merge",
             "side-by-side", "unified", "patch", "changes",
+        ],
+    },
+    {
+        name: "Notepad",
+        slug: "notepad",
+        description: "A simple, persistent notepad with word and character count.",
+        category: "managers",
+        keywords: [
+            "notepad", "notes", "text editor", "scratchpad", "draft", "write"
+        ],
+    },
+    {
+        name: "Notebook",
+        slug: "notebook",
+        description: "A structured, long-term personal knowledge base with Markdown support and persistent local storage.",
+        category: "managers",
+        keywords: [
+            "notebook", "notes", "markdown", "knowledge base", "journal", "organizer", "persistent notes"
         ],
     },
     {

@@ -1,0 +1,42 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          TOOLICH_STORAGE_REDIS_URL: ${{ secrets.TOOLICH_STORAGE_REDIS_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          BROADCAST_TOKEN: ${{ secrets.BROADCAST_TOKEN }}
+          FORWARD_BROADCAST_URL: ${{ secrets.FORWARD_BROADCAST_URL }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: TOOLICH_STORAGE_REDIS_URL,REDIS_URL,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,SLACK_WEBHOOK_URL,BROADCAST_TOKEN,FORWARD_BROADCAST_URL
+          script: |
+            cd /data/toolich
+            git fetch origin prod
+            git reset --hard origin/prod
+
+            # Create or overwrite the .env file directly on the VPS securely using printf (avoids special character corruption)
+            printf 'TOOLICH_STORAGE_REDIS_URL=%s\n' "$TOOLICH_STORAGE_REDIS_URL" > .env
+            printf 'REDIS_URL=%s\n' "$REDIS_URL" >> .env
+            printf 'TELEGRAM_BOT_TOKEN=%s\n' "$TELEGRAM_BOT_TOKEN" >> .env
+            printf 'TELEGRAM_CHAT_ID=%s\n' "$TELEGRAM_CHAT_ID" >> .env
+            printf 'SLACK_WEBHOOK_URL=%s\n' "$SLACK_WEBHOOK_URL" >> .env
+            printf 'BROADCAST_TOKEN=%s\n' "$BROADCAST_TOKEN" >> .env
+            printf 'FORWARD_BROADCAST_URL=%s\n' "$FORWARD_BROADCAST_URL" >> .env
+
+            docker compose up -d --build
+            docker image prune -f

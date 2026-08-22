@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SearchTrigger, SearchModal } from "./SpotlightSearch";
 import { ThemeToggle } from "./ThemeToggle";
+import { GlobalTasksPopover } from "./GlobalTasksPopover";
 import { useTabContext } from "@/lib/tab-context";
 import { ShieldCheck } from "lucide-react";
 
@@ -15,6 +17,7 @@ export default function Header({
   githubUrl = "https://github.com/cratonik/toolich",
 }: HeaderProps) {
   const { isWide, goHome } = useTabContext();
+  const pathname = usePathname();
 
   return (
     <>
@@ -23,8 +26,10 @@ export default function Header({
           <Link
             href="/"
             onClick={(e) => {
-              e.preventDefault();
-              goHome();
+              if (pathname === "/") {
+                e.preventDefault();
+                goHome();
+              }
             }}
             className="flex items-center gap-2.5 text-zinc-900 no-underline transition-opacity hover:opacity-80 dark:text-zinc-50"
             aria-label="Toolich – Home"
@@ -45,6 +50,9 @@ export default function Header({
           </Link>
 
           <div className="flex items-center gap-3">
+            {/* Tasks Popover */}
+            <GlobalTasksPopover />
+
             {/* Privacy indicator */}
             <div className="relative group flex items-center justify-center">
               <div

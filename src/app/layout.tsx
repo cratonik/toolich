@@ -6,9 +6,10 @@ import { SearchProvider } from "@/components/SpotlightSearch";
 import { TabProvider } from "@/lib/tab-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/components/Toast";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
 import { HomeStructuredData } from "@/components/StructuredData";
+import { AdSense } from "@/components/AdSense";
+import ContextMenu from "@/components/ContextMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -102,23 +103,19 @@ export default function RootLayout({
             gtag('config', 'G-Q4GXZK2JXF');
           `}
         </Script>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5052542306758700"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
+        <AdSense />
         {/* Theme script needs to remain synchronous in head to prevent layout theme flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#6366f1" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />
         <meta name="google-adsense-account" content="ca-pub-5052542306758700" />
         <Script id="pwa-service-worker" strategy="afterInteractive">
           {`
-            if('serviceWorker' in navigator){
+            if('serviceWorker' in navigator && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'){
               window.addEventListener('load',function(){
                 navigator.serviceWorker.register('/sw.js')
               })
@@ -143,9 +140,9 @@ export default function RootLayout({
           <TabProvider>
             <SearchProvider>
               <ToastProvider>
+                <ContextMenu />
                 <Header />
                 {children}
-                <SpeedInsights />
               </ToastProvider>
             </SearchProvider>
           </TabProvider>

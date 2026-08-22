@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronRight, Star, Plus } from "lucide-react";
 import { ROUTES, categoryPath } from "@/lib/routes";
@@ -26,6 +27,10 @@ export function ToolPageHeader({
     slug,
 }: ToolPageHeaderProps) {
     const { isFavorite, toggleFavorite, openTab, openCategoryInCurrentTab, goHome } = useTabContext();
+    const [isMac, setIsMac] = useState(false);
+    useEffect(() => {
+        setIsMac(navigator.userAgent.toLowerCase().includes("mac"));
+    }, []);
     
     // Automatically derive the slug from the URL if not provided directly (e.g. on direct page access)
     let activeSlug = slug;
@@ -109,16 +114,23 @@ export function ToolPageHeader({
                                 }`}
                             />
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => openTab({ name: originalName, slug: activeSlug!, category })}
-                            className="flex h-8 px-2.5 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-600 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:text-zinc-900 hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100"
-                            aria-label="Open tool again in a new tab"
-                            title="Open same tool in a new tab"
-                        >
-                            <Plus className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
-                            <span>Open Again</span>
-                        </button>
+                        <div className="relative group">
+                            <button
+                                type="button"
+                                onClick={() => openTab({ name: originalName, slug: activeSlug!, category })}
+                                className="flex h-8 px-2.5 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-600 shadow-sm transition-all duration-200 hover:border-zinc-300 hover:text-zinc-900 hover:scale-105 active:scale-95 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100"
+                                aria-label="Open tool again in a new tab"
+                            >
+                                <Plus className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+                                <span>Open Again</span>
+                            </button>
+                            {/* Instant CSS Tooltip */}
+                            <div className="absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 scale-90 opacity-0 transition-all duration-150 group-hover:scale-100 group-hover:opacity-100 pointer-events-none">
+                                <div className="rounded bg-zinc-900 px-2.5 py-1 text-[10px] font-semibold text-white shadow-md dark:bg-zinc-800 dark:text-zinc-100 border border-zinc-800 dark:border-zinc-700 whitespace-nowrap">
+                                    New Tab ({isMac ? "⌥A" : "Alt+A"})
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

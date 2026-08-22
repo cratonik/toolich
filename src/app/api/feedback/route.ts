@@ -1,8 +1,32 @@
 import { NextResponse } from "next/server";
 import { getRedis } from "@/lib/redis";
 
+function escapeTelegramMarkdown(text: string): string {
+    return text.replace(/([*_`\[])/g, "\\$1");
+}
+
 export async function POST(request: Request) {
     try {
+        // Rate limiting check using client IP and Redis
+        const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "anonymous";
+        const rateLimitKey = `rate_limit:feedback:${ip}`;
+        
+        try {
+            const redis = await getRedis();
+            const currentRequests = await redis.incr(rateLimitKey);
+            if (currentRequests === 1) {
+                await redis.expire(rateLimitKey, 60);
+            }
+            if (currentRequests > 5) {
+                return NextResponse.json(
+                    { error: "Too many feedback requests. Please try again in a minute." },
+                    { status: 429 }
+                );
+            }
+        } catch (err) {
+            console.error("Redis rate limit error:", err);
+        }
+
         const body = await request.json();
         const { category, message, email, timestamp } = body;
 
@@ -13,10 +37,14 @@ export async function POST(request: Request) {
             );
         }
 
+        const escapedCategory = escapeTelegramMarkdown(category);
+        const escapedMessage = escapeTelegramMarkdown(message);
+        const escapedEmail = escapeTelegramMarkdown(email || "");
+
         const formattedText = `*New Toolich Feedback Received* 🚀\n` +
-            `*Category:* ${category}\n` +
-            `*Message:* ${message}\n` +
-            `*Email:* ${email || "Not provided"}\n` +
+            `*Category:* ${escapedCategory}\n` +
+            `*Message:* ${escapedMessage}\n` +
+            `*Email:* ${escapedEmail || "Not provided"}\n` +
             `*Time:* ${new Date(timestamp || Date.now()).toLocaleString()}`;
 
         let sent = false;
