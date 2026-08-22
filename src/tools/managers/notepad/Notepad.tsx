@@ -69,10 +69,18 @@ export default function Notepad() {
     useEffect(() => {
         updateLineCount();
         
-        // Observe window resize as it affects word wrapping
-        window.addEventListener('resize', updateLineCount);
+        const ta = textareaRef.current;
+        if (!ta) return;
+
+        // ResizeObserver catches both window resizes and when the component 
+        // becomes visible after being hidden (e.g. switching tabs).
+        const observer = new ResizeObserver(() => {
+            updateLineCount();
+        });
         
-        return () => window.removeEventListener('resize', updateLineCount);
+        observer.observe(ta);
+        
+        return () => observer.disconnect();
     }, [text, fontSize, fontFamily, wordWrap, isWide, isFullscreen, updateLineCount]);
 
     // Actions
