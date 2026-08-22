@@ -345,13 +345,14 @@ export default function MarkdownEditor() {
     const [content, setContent] = useSessionState("markdown-editor:content", DEFAULT_MARKDOWN);
     const [viewMode, setViewMode] = useSessionState<"split" | "editor" | "preview">("markdown-editor:viewmode", "split");
     const [syncScroll, setSyncScroll] = useSessionState("markdown-editor:syncscroll", true);
+    const [wordWrap, setWordWrap] = useSessionState("markdown-editor:wrap", true);
     const [copiedRaw, setCopiedRaw] = useState(false);
     const [copiedHtml, setCopiedHtml] = useState(false);
     const [mermaidInstance, setMermaidInstance] = useState<any>(null);
     const [themeTick, setThemeTick] = useState(0); // Forces mermaid redraw on theme toggle
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const highlightRef = useRef<HTMLPreElement>(null);
+    const highlightRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -769,8 +770,15 @@ export default function MarkdownEditor() {
     const highlightedHtml = useMemo(() => {
         const highlighted = highlightMarkdown(content);
         // If content ends with a newline, append a space so the browser doesn't collapse the trailing blank line in <pre>
-        return content.endsWith("\n") ? highlighted + " " : highlighted;
-    }, [content]);
+        const html = content.endsWith("\n") ? highlighted + " " : highlighted;
+        
+        if (!wordWrap) return html;
+        
+        // Inject absolute line numbers into the syntax highlighting layer when word wrap is enabled
+        return html.split('\n').map((line, i) => {
+            return `<span class="absolute left-0 w-[3.5rem] pr-2 text-right text-zinc-400 dark:text-zinc-600 select-none">${i + 1}</span>${line}`;
+        }).join('\n');
+    }, [content, wordWrap]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -834,6 +842,19 @@ export default function MarkdownEditor() {
                             <span>Sync Scroll: {syncScroll ? "ON" : "OFF"}</span>
                         </button>
                     )}
+
+                    <button
+                        type="button"
+                        onClick={() => setWordWrap(!wordWrap)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all shadow-sm ${
+                            wordWrap
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900 dark:text-indigo-400"
+                                : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        }`}
+                        title="Toggle word wrap in editor"
+                    >
+                        <span>Wrap: {wordWrap ? "ON" : "OFF"}</span>
+                    </button>
                 </div>
 
                 {/* Right side: Global Actions (Copy, Export, Clear) */}
@@ -1054,25 +1075,27 @@ export default function MarkdownEditor() {
                     <div
                         ref={scrollContainerRef}
                         onScroll={handleEditorScroll}
-                        className="flex flex-1 min-h-[450px] max-h-[70vh] overflow-auto bg-white dark:bg-zinc-900"
+                        className="flex flex-1 min-h-[450px] max-h-[70vh] overflow-auto bg-white dark:bg-zinc-900 relative w-full"
                     >
-                        {/* Line number gutter */}
-                        <div
-                            className="shrink-0 self-start select-none border-r border-zinc-200 bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
-                            aria-hidden="true"
-                        >
-                            {Array.from({ length: lineCount }, (_, i) => (
-                                <div key={i}>{i + 1}</div>
-                            ))}
-                        </div>
+                        {/* Line number gutter (only when Word Wrap is OFF) */}
+                        {!wordWrap && (
+                            <div
+                                className="shrink-0 sticky left-0 z-20 self-start select-none border-r border-zinc-200 bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
+                                aria-hidden="true"
+                            >
+                                {Array.from({ length: lineCount }, (_, i) => (
+                                    <div key={i}>{i + 1}</div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Editor overlay container */}
-                        <div className="flex-1 self-start">
+                        <div className={`flex-1 self-start ${wordWrap ? "min-w-0 w-full" : "min-w-max"}`}>
                             <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
                                 {/* Highlight Layer (rendered behind transparent textarea) */}
-                                <pre
+                                <div
                                     ref={highlightRef}
-                                    className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
+                                    className={`pointer-events-none font-mono text-[13px] leading-relaxed ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"}`}
                                     aria-hidden="true"
                                     dangerouslySetInnerHTML={{
                                         __html: highlightedHtml || "&nbsp;",
@@ -1086,8 +1109,8 @@ export default function MarkdownEditor() {
                                     onChange={(e) => setContent(e.target.value)}
                                     placeholder="Start writing markdown, or click a toolbar button to insert templates..."
                                     spellCheck={false}
-                                    wrap="off"
-                                    className={`relative z-10 block w-full min-h-[450px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${
+                                    wrap={wordWrap ? "soft" : "off"}
+                                    className={`relative z-10 block w-full min-h-[450px] resize-none bg-transparent font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${
                                         content
                                             ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                             : "text-zinc-900 dark:text-zinc-100"
