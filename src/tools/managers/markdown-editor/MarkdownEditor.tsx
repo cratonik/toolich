@@ -596,14 +596,15 @@ export default function MarkdownEditor() {
                 }
                 
                 // 2. Find the corresponding element in the preview with data-line <= currentLine
-                const elements = previewEl.querySelectorAll('[data-line]');
+                const root = previewEl.firstElementChild;
+                const elements = root ? root.children : [];
                 let closestElement = null;
                 let maxLine = -1;
                 
                 for (let i = 0; i < elements.length; i++) {
                     const el = elements[i];
                     const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
-                    if (elLine <= currentLine && elLine > maxLine) {
+                    if (elLine > 0 && elLine <= currentLine && elLine > maxLine) {
                         maxLine = elLine;
                         closestElement = el;
                     }
@@ -637,12 +638,16 @@ export default function MarkdownEditor() {
                 const scrollTop = previewEl.scrollTop;
                 
                 // 1. Find the preview element that is currently near the top of the viewport
-                const elements = previewEl.querySelectorAll('[data-line]');
+                const root = previewEl.firstElementChild;
+                const elements = root ? root.children : [];
                 let topElement = null;
                 let minDistance = Infinity;
                 
                 for (let i = 0; i < elements.length; i++) {
                     const el = elements[i] as HTMLElement;
+                    const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
+                    if (elLine === 0) continue;
+
                     const relativeTop = el.offsetTop - scrollTop;
                     
                     if (relativeTop > -100 && relativeTop < minDistance) {
@@ -1225,7 +1230,7 @@ export default function MarkdownEditor() {
                     <div
                         ref={previewContainerRef}
                         onScroll={handlePreviewScroll}
-                        className="flex-1 min-h-[450px] max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-zinc-900"
+                        className="flex-1 min-h-[450px] max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-zinc-900 relative"
                     >
                         <div
                             id="markdown-preview-root"
