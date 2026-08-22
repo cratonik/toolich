@@ -521,9 +521,11 @@ type JsonTreeNodeProps = {
     value: JsonValue;
     depth: number;
     path: string;
+    pathArray: (string | number)[];
     isLast?: boolean;
     expandTrigger: number;
     collapseTrigger: number;
+    onDelete?: (pathArray: (string | number)[]) => void;
 };
 
 function JsonTreeNode({
@@ -532,11 +534,14 @@ function JsonTreeNode({
     value,
     depth,
     path,
+    pathArray,
     isLast = true,
     expandTrigger,
     collapseTrigger,
+    onDelete,
 }: JsonTreeNodeProps) {
     const [collapsed, setCollapsed] = useState(depth > 0);
+    const [isHovered, setIsHovered] = useState(false);
     const isCollapsible = isObject(value) || isArray(value);
 
     useEffect(() => {
@@ -581,7 +586,12 @@ function JsonTreeNode({
         const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Object</span> : null;
         return (
             <div className="select-text">
-                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                <div 
+                    className={rowClass} 
+                    style={{ marginLeft: indentPx }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
                     <Toggle />
                     {name != null && (
                         <>
@@ -611,6 +621,16 @@ function JsonTreeNode({
                         </span>
                     )}
                     {collapsed && comma}
+                    {isHovered && depth > 0 && onDelete && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(pathArray); }}
+                            className="ml-2 text-zinc-400 hover:text-red-500 transition-colors"
+                            title="Delete this object"
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </button>
+                    )}
                 </div>
                 {!collapsed && entries.length > 0 && (
                     <>
@@ -621,9 +641,11 @@ function JsonTreeNode({
                                 value={child}
                                 depth={depth + 1}
                                 path={path ? `${path}.${key}` : key}
+                                pathArray={[...pathArray, key]}
                                 isLast={i === entries.length - 1}
                                 expandTrigger={expandTrigger}
                                 collapseTrigger={collapseTrigger}
+                                onDelete={onDelete}
                             />
                         ))}
                         <div className={rowClass} style={{ marginLeft: indentPx }}>
@@ -642,7 +664,12 @@ function JsonTreeNode({
         const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Array</span> : null;
         return (
             <div className="select-text">
-                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                <div 
+                    className={rowClass} 
+                    style={{ marginLeft: indentPx }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
                     <Toggle />
                     {index !== undefined && (
                         <>
@@ -680,6 +707,16 @@ function JsonTreeNode({
                         </span>
                     )}
                     {collapsed && comma}
+                    {isHovered && depth > 0 && onDelete && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(pathArray); }}
+                            className="ml-2 text-zinc-400 hover:text-red-500 transition-colors"
+                            title="Delete this array"
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </button>
+                    )}
                 </div>
                 {!collapsed && len > 0 && (
                     <>
@@ -690,9 +727,11 @@ function JsonTreeNode({
                                 value={child}
                                 depth={depth + 1}
                                 path={`${path}[${i}]`}
+                                pathArray={[...pathArray, i]}
                                 isLast={i === len - 1}
                                 expandTrigger={expandTrigger}
                                 collapseTrigger={collapseTrigger}
+                                onDelete={onDelete}
                             />
                         ))}
                         <div className={rowClass} style={{ marginLeft: indentPx }}>
@@ -727,7 +766,12 @@ function JsonTreeNode({
     }
 
     return (
-        <div className={rowClass} style={{ marginLeft: indentPx }}>
+        <div 
+            className={rowClass} 
+            style={{ marginLeft: indentPx }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <Toggle />
             {index !== undefined && (
                 <>
@@ -749,6 +793,16 @@ function JsonTreeNode({
                 <span className={primitiveClass}>{primitiveDisplay}</span>
             </TooltipTrigger>
             {comma}
+            {isHovered && depth > 0 && onDelete && (
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(pathArray); }}
+                    className="ml-2 text-zinc-400 hover:text-red-500 transition-colors"
+                    title="Delete this value"
+                >
+                    <Trash2 className="h-3 w-3" />
+                </button>
+            )}
         </div>
     );
 }
@@ -758,11 +812,13 @@ function JsonTree({
     expandTrigger,
     collapseTrigger,
     fontSizeClass,
+    onDelete,
 }: {
     value: JsonValue;
     expandTrigger: number;
     collapseTrigger: number;
     fontSizeClass?: string;
+    onDelete?: (pathArray: (string | number)[]) => void;
 }) {
     return (
         <div className={`font-mono leading-snug text-zinc-800 dark:text-zinc-100 py-1 ${fontSizeClass || "text-[13px]"}`}>
@@ -770,8 +826,10 @@ function JsonTree({
                 value={value}
                 depth={0}
                 path=""
+                pathArray={[]}
                 expandTrigger={expandTrigger}
                 collapseTrigger={collapseTrigger}
+                onDelete={onDelete}
             />
         </div>
     );
@@ -911,6 +969,32 @@ export default function JsonFormatter() {
         const currentIndex = sizes.indexOf(fontSize);
         setFontSize(sizes[(currentIndex + 1) % sizes.length]);
     };
+
+    const handleDeleteNode = useCallback((pathArray: (string | number)[]) => {
+        if (!parsedJson) return;
+        if (pathArray.length === 0) {
+            undoContentRef.current = content;
+            setContent("");
+            return;
+        }
+
+        // Deep clone to avoid mutating state
+        const newJson = JSON.parse(JSON.stringify(parsedJson));
+        let current: any = newJson;
+        for (let i = 0; i < pathArray.length - 1; i++) {
+            current = current[pathArray[i]];
+        }
+        
+        const lastKey = pathArray[pathArray.length - 1];
+        if (Array.isArray(current)) {
+            current.splice(Number(lastKey), 1);
+        } else {
+            delete current[String(lastKey)];
+        }
+        
+        undoContentRef.current = content;
+        setContent(prettify(JSON.stringify(newJson), indent));
+    }, [parsedJson, indent, prettify, content]);
 
     const handleMinify = () => {
         if (!content.trim()) return;
@@ -1182,6 +1266,7 @@ export default function JsonFormatter() {
                             expandTrigger={expandTrigger}
                             collapseTrigger={collapseTrigger}
                             fontSizeClass={fontSize}
+                            onDelete={handleDeleteNode}
                         />
                     </div>
                 ) : (
