@@ -790,13 +790,17 @@ export default function JsonFormatter() {
     const [showTree, setShowTree] = useState(false);
     const [expandTrigger, setExpandTrigger] = useState(0);
     const [collapseTrigger, setCollapseTrigger] = useState(0);
+    const [wordWrap, setWordWrap] = useSessionState<boolean>("json-formatter:wrap", false);
     const [fontSize, setFontSize] = useSessionState<"text-sm" | "text-base" | "text-lg" | "text-xl">("json-formatter:size", "text-sm");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLPreElement>(null);
+    const gutterRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const isPasteRef = useRef(false);
     const undoContentRef = useRef<string | null>(null);
+
+
 
     // Parse JSON (strict first, then relaxed so template vars like {{VAR}} work)
     const tryParseJson = useCallback((text: string): { parsed: JsonValue | null; normalized: string | null } => {
@@ -821,27 +825,29 @@ export default function JsonFormatter() {
         return content.split("\n").length;
     }, [content]);
 
-    // Syntax highlight tokens
     const highlightedHtml = useMemo(() => {
         if (!content) return "";
         try {
-            const tokens = colorizeJson(content);
-            return tokens
-                .map((t) => {
-                    const escaped = t.text
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;");
-                    return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
-                })
-                .join("");
+            return content.split('\n').map((line, i) => {
+                const tokens = colorizeJson(line);
+                const lineHtml = tokens
+                    .map((t) => {
+                        const escaped = t.text
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;");
+                        return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
+                    })
+                    .join("");
+                return wordWrap ? `<span class="absolute left-0 w-[3.5rem] pr-2 text-right text-zinc-400 dark:text-zinc-600 select-none">${i + 1}</span>${lineHtml}` : lineHtml;
+            }).join('\n');
         } catch {
-            return content
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
+            return content.split('\n').map((line, i) => {
+                const escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                return wordWrap ? `<span class="absolute left-0 w-[3.5rem] pr-2 text-right text-zinc-400 dark:text-zinc-600 select-none">${i + 1}</span>${escaped}` : escaped;
+            }).join('\n');
         }
-    }, [content]);
+    }, [content, wordWrap]);
 
     const prettify = useCallback(
         (text: string, spaces: IndentSize): string => {
@@ -1101,6 +1107,21 @@ export default function JsonFormatter() {
                     Auto-copy {autoCopy ? "ON" : "OFF"}
                 </button>
 
+                {/* Word Wrap */}
+                <button
+                    type="button"
+                    onClick={() => setWordWrap(!wordWrap)}
+                    disabled={treeMode}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${wordWrap
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-600/50 dark:bg-indigo-500/10 dark:text-indigo-400"
+                        : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                        } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
+                    title={wordWrap ? "Word Wrap is ON" : "Word Wrap is OFF"}
+                >
+                    <WrapText className="h-3.5 w-3.5" />
+                    Wrap
+                </button>
+
                 {/* Font Size */}
                 <button
                     type="button"
@@ -1171,32 +1192,36 @@ export default function JsonFormatter() {
                                 : "border-zinc-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-700 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
                                 }`}
                         >
-                            {/* Single scroll container for gutter + editor */}
+                            {/* Single scroll container */}
                             <div
                                 ref={scrollContainerRef}
-                                className={`flex min-h-[300px] max-h-[70vh] overflow-auto ${error
+                                className={`overflow-auto min-h-[300px] max-h-[70vh] rounded-b-xl ${error
                                     ? "bg-red-50/50 dark:bg-red-500/5"
                                     : "bg-white dark:bg-zinc-900"
                                     }`}
                             >
-                                {/* Line numbers gutter */}
-                                <div
-                                    className="shrink-0 self-start select-none border-r border-zinc-100 bg-zinc-100 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
-                                    aria-hidden="true"
-                                >
-                                    {Array.from({ length: lineCount }, (_, i) => (
-                                        <div key={i}>{i + 1}</div>
-                                    ))}
-                                </div>
+                                <div className={`flex min-h-max relative ${wordWrap ? "w-full" : "min-w-max"}`}>
+                                    {/* Line numbers gutter (only when Word Wrap is OFF so it sticks horizontally) */}
+                                    {!wordWrap && (
+                                        <div
+                                            ref={gutterRef}
+                                            className={`shrink-0 sticky left-0 z-20 select-none border-r border-zinc-100 bg-zinc-100 py-4 pr-3 pl-3 text-right font-mono leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600 ${fontSize}`}
+                                            aria-hidden="true"
+                                        >
+                                            {Array.from({ length: lineCount }, (_, i) => (
+                                                <div key={i}>{i + 1}</div>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                {/* Editor area (textarea + highlight overlay) */}
-                                <div className="flex-1 self-start">
-                                    {/* Grid overlay: pre + textarea share the same cell */}
-                                    <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                                    {/* Editor area (textarea + highlight overlay) */}
+                                    <div className={`flex-1 relative ${wordWrap ? "min-w-0 w-full" : "min-w-max"}`}>
+                                        {/* Grid overlay: pre + textarea share the same cell */}
+                                        <div className="grid [&>*]:col-start-1 [&>*]:row-start-1 h-max w-full">
                                         {/* Syntax highlight layer (behind textarea) */}
-                                        <pre
+                                        <div
                                             ref={highlightRef}
-                                            className={`pointer-events-none whitespace-pre p-4 font-mono leading-relaxed ${fontSize}`}
+                                            className={`pointer-events-none font-mono leading-relaxed ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${fontSize}`}
                                             aria-hidden="true"
                                             dangerouslySetInnerHTML={{
                                                 __html: highlightedHtml || "&nbsp;",
@@ -1229,9 +1254,9 @@ export default function JsonFormatter() {
                                                 }
                                             }}
                                             placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
-                                            wrap="off"
+                                            wrap={wordWrap ? "soft" : "off"}
                                             spellCheck={false}
-                                            className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
+                                            className={`relative z-10 block w-full min-h-[200px] resize-none bg-transparent font-mono leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${content
                                                 ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                                 : "text-zinc-900 dark:text-zinc-100"
                                                 } ${fontSize}`}
@@ -1239,6 +1264,7 @@ export default function JsonFormatter() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
                         </div>
 
                         {/* Error message */}
