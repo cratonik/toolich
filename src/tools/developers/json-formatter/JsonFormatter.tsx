@@ -521,12 +521,40 @@ type JsonTreeNodeProps = {
     value: JsonValue;
     depth: number;
     path: string;
+    pathArray: (string | number)[];
     isLast?: boolean;
+    expandTrigger: number;
+    collapseTrigger: number;
+    onDelete?: (pathArray: (string | number)[]) => void;
 };
 
-function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTreeNodeProps) {
+function JsonTreeNode({
+    name,
+    index,
+    value,
+    depth,
+    path,
+    pathArray,
+    isLast = true,
+    expandTrigger,
+    collapseTrigger,
+    onDelete,
+}: JsonTreeNodeProps) {
     const [collapsed, setCollapsed] = useState(depth > 0);
+    const [isHovered, setIsHovered] = useState(false);
     const isCollapsible = isObject(value) || isArray(value);
+
+    useEffect(() => {
+        if (expandTrigger > 0) {
+            setCollapsed(false);
+        }
+    }, [expandTrigger]);
+
+    useEffect(() => {
+        if (collapseTrigger > 0) {
+            setCollapsed(depth > 0);
+        }
+    }, [collapseTrigger, depth]);
 
     const toggle = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -558,19 +586,34 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
         const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Object</span> : null;
         return (
             <div className="select-text">
-                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                <div 
+                    className={rowClass} 
+                    style={{ marginLeft: indentPx }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
                     <Toggle />
                     {name != null && (
                         <>
                             <TooltipTrigger tooltipText={path}>
-                                <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                                <span
+                                    onClick={toggle}
+                                    className={`${TOKEN_COLORS.key} ${isCollapsible ? "cursor-pointer hover:underline" : ""}`}
+                                >
+                                    &quot;{name}&quot;
+                                </span>
                             </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
                     {depth === 0 && rootLabel}
                     {depth === 0 && rootLabel && "\u00A0"}
-                    <span className={TOKEN_COLORS.brace}>{"{"}</span>
+                    <span
+                        onClick={toggle}
+                        className={`${TOKEN_COLORS.brace} ${isCollapsible ? "cursor-pointer hover:scale-105" : ""}`}
+                    >
+                        {"{"}
+                    </span>
                     {collapsed && entries.length > 0 && (
                         <span className="text-zinc-400 dark:text-zinc-500 text-xs">
                             {" "}
@@ -578,6 +621,16 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                         </span>
                     )}
                     {collapsed && comma}
+                    {isHovered && depth > 0 && onDelete && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(pathArray); }}
+                            className="ml-2 text-zinc-400 hover:text-red-500 transition-colors"
+                            title="Delete this object"
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </button>
+                    )}
                 </div>
                 {!collapsed && entries.length > 0 && (
                     <>
@@ -588,7 +641,11 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                                 value={child}
                                 depth={depth + 1}
                                 path={path ? `${path}.${key}` : key}
+                                pathArray={[...pathArray, key]}
                                 isLast={i === entries.length - 1}
+                                expandTrigger={expandTrigger}
+                                collapseTrigger={collapseTrigger}
+                                onDelete={onDelete}
                             />
                         ))}
                         <div className={rowClass} style={{ marginLeft: indentPx }}>
@@ -607,7 +664,12 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
         const rootLabel = depth === 0 ? <span className="text-zinc-500 dark:text-zinc-400">Array</span> : null;
         return (
             <div className="select-text">
-                <div className={rowClass} style={{ marginLeft: indentPx }}>
+                <div 
+                    className={rowClass} 
+                    style={{ marginLeft: indentPx }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
                     <Toggle />
                     {index !== undefined && (
                         <>
@@ -620,14 +682,24 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                     {name != null && (
                         <>
                             <TooltipTrigger tooltipText={path}>
-                                <span className={TOKEN_COLORS.key}>&quot;{name}&quot;</span>
+                                <span
+                                    onClick={toggle}
+                                    className={`${TOKEN_COLORS.key} ${isCollapsible ? "cursor-pointer hover:underline" : ""}`}
+                                >
+                                    &quot;{name}&quot;
+                                </span>
                             </TooltipTrigger>
                             <span className={TOKEN_COLORS.plain}>: </span>
                         </>
                     )}
                     {depth === 0 && rootLabel}
                     {depth === 0 && rootLabel && "\u00A0"}
-                    <span className={TOKEN_COLORS.brace}>{"["}</span>
+                    <span
+                        onClick={toggle}
+                        className={`${TOKEN_COLORS.brace} ${isCollapsible ? "cursor-pointer hover:scale-105" : ""}`}
+                    >
+                        {"["}
+                    </span>
                     {collapsed && len > 0 && (
                         <span className="text-zinc-400 dark:text-zinc-500 text-xs">
                             {" "}
@@ -635,6 +707,16 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                         </span>
                     )}
                     {collapsed && comma}
+                    {isHovered && depth > 0 && onDelete && (
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(pathArray); }}
+                            className="ml-2 text-zinc-400 hover:text-red-500 transition-colors"
+                            title="Delete this array"
+                        >
+                            <Trash2 className="h-3 w-3" />
+                        </button>
+                    )}
                 </div>
                 {!collapsed && len > 0 && (
                     <>
@@ -645,7 +727,11 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                                 value={child}
                                 depth={depth + 1}
                                 path={`${path}[${i}]`}
+                                pathArray={[...pathArray, i]}
                                 isLast={i === len - 1}
+                                expandTrigger={expandTrigger}
+                                collapseTrigger={collapseTrigger}
+                                onDelete={onDelete}
                             />
                         ))}
                         <div className={rowClass} style={{ marginLeft: indentPx }}>
@@ -680,7 +766,12 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
     }
 
     return (
-        <div className={rowClass} style={{ marginLeft: indentPx }}>
+        <div 
+            className={rowClass} 
+            style={{ marginLeft: indentPx }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <Toggle />
             {index !== undefined && (
                 <>
@@ -702,14 +793,44 @@ function JsonTreeNode({ name, index, value, depth, path, isLast = true }: JsonTr
                 <span className={primitiveClass}>{primitiveDisplay}</span>
             </TooltipTrigger>
             {comma}
+            {isHovered && depth > 0 && onDelete && (
+                <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(pathArray); }}
+                    className="ml-2 text-zinc-400 hover:text-red-500 transition-colors"
+                    title="Delete this value"
+                >
+                    <Trash2 className="h-3 w-3" />
+                </button>
+            )}
         </div>
     );
 }
 
-function JsonTree({ value, fontSizeClass }: { value: JsonValue, fontSizeClass?: string }) {
+function JsonTree({
+    value,
+    expandTrigger,
+    collapseTrigger,
+    fontSizeClass,
+    onDelete,
+}: {
+    value: JsonValue;
+    expandTrigger: number;
+    collapseTrigger: number;
+    fontSizeClass?: string;
+    onDelete?: (pathArray: (string | number)[]) => void;
+}) {
     return (
         <div className={`font-mono leading-snug text-zinc-800 dark:text-zinc-100 py-1 ${fontSizeClass || "text-[13px]"}`}>
-            <JsonTreeNode value={value} depth={0} path="" />
+            <JsonTreeNode
+                value={value}
+                depth={0}
+                path=""
+                pathArray={[]}
+                expandTrigger={expandTrigger}
+                collapseTrigger={collapseTrigger}
+                onDelete={onDelete}
+            />
         </div>
     );
 }
@@ -725,13 +846,19 @@ export default function JsonFormatter() {
     const [dragActive, setDragActive] = useState(false);
     const [fileName, setFileName] = useState<string | null>(null);
     const [showTree, setShowTree] = useState(false);
+    const [expandTrigger, setExpandTrigger] = useState(0);
+    const [collapseTrigger, setCollapseTrigger] = useState(0);
+    const [wordWrap, setWordWrap] = useSessionState<boolean>("json-formatter:wrap", false);
     const [fontSize, setFontSize] = useSessionState<"text-sm" | "text-base" | "text-lg" | "text-xl">("json-formatter:size", "text-sm");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const highlightRef = useRef<HTMLPreElement>(null);
+    const highlightRef = useRef<HTMLDivElement>(null);
+    const gutterRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const isPasteRef = useRef(false);
     const undoContentRef = useRef<string | null>(null);
+
+
 
     // Parse JSON (strict first, then relaxed so template vars like {{VAR}} work)
     const tryParseJson = useCallback((text: string): { parsed: JsonValue | null; normalized: string | null } => {
@@ -756,27 +883,29 @@ export default function JsonFormatter() {
         return content.split("\n").length;
     }, [content]);
 
-    // Syntax highlight tokens
     const highlightedHtml = useMemo(() => {
         if (!content) return "";
         try {
-            const tokens = colorizeJson(content);
-            return tokens
-                .map((t) => {
-                    const escaped = t.text
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;");
-                    return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
-                })
-                .join("");
+            return content.split('\n').map((line, i) => {
+                const tokens = colorizeJson(line);
+                const lineHtml = tokens
+                    .map((t) => {
+                        const escaped = t.text
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;");
+                        return `<span class="${TOKEN_COLORS[t.type]}">${escaped}</span>`;
+                    })
+                    .join("");
+                return wordWrap ? `<span class="absolute left-0 w-[3.5rem] pr-2 text-right text-zinc-400 dark:text-zinc-600 select-none">${i + 1}</span>${lineHtml}` : lineHtml;
+            }).join('\n');
         } catch {
-            return content
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
+            return content.split('\n').map((line, i) => {
+                const escaped = line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                return wordWrap ? `<span class="absolute left-0 w-[3.5rem] pr-2 text-right text-zinc-400 dark:text-zinc-600 select-none">${i + 1}</span>${escaped}` : escaped;
+            }).join('\n');
         }
-    }, [content]);
+    }, [content, wordWrap]);
 
     const prettify = useCallback(
         (text: string, spaces: IndentSize): string => {
@@ -840,6 +969,32 @@ export default function JsonFormatter() {
         const currentIndex = sizes.indexOf(fontSize);
         setFontSize(sizes[(currentIndex + 1) % sizes.length]);
     };
+
+    const handleDeleteNode = useCallback((pathArray: (string | number)[]) => {
+        if (!parsedJson) return;
+        if (pathArray.length === 0) {
+            undoContentRef.current = content;
+            setContent("");
+            return;
+        }
+
+        // Deep clone to avoid mutating state
+        const newJson = JSON.parse(JSON.stringify(parsedJson));
+        let current: any = newJson;
+        for (let i = 0; i < pathArray.length - 1; i++) {
+            current = current[pathArray[i]];
+        }
+        
+        const lastKey = pathArray[pathArray.length - 1];
+        if (Array.isArray(current)) {
+            current.splice(Number(lastKey), 1);
+        } else {
+            delete current[String(lastKey)];
+        }
+        
+        undoContentRef.current = content;
+        setContent(prettify(JSON.stringify(newJson), indent));
+    }, [parsedJson, indent, prettify, content]);
 
     const handleMinify = () => {
         if (!content.trim()) return;
@@ -1036,6 +1191,21 @@ export default function JsonFormatter() {
                     Auto-copy {autoCopy ? "ON" : "OFF"}
                 </button>
 
+                {/* Word Wrap */}
+                <button
+                    type="button"
+                    onClick={() => setWordWrap(!wordWrap)}
+                    disabled={treeMode}
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${wordWrap
+                        ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-600/50 dark:bg-indigo-500/10 dark:text-indigo-400"
+                        : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600"
+                        } ${treeMode ? "cursor-not-allowed opacity-40 hover:bg-inherit dark:hover:bg-inherit" : ""}`}
+                    title={wordWrap ? "Word Wrap is ON" : "Word Wrap is OFF"}
+                >
+                    <WrapText className="h-3.5 w-3.5" />
+                    Wrap
+                </button>
+
                 {/* Font Size */}
                 <button
                     type="button"
@@ -1062,6 +1232,25 @@ export default function JsonFormatter() {
                     <ListTree className="h-3.5 w-3.5" />
                     {showTree ? "Hide tree view" : "Show tree view"}
                 </button>
+
+                {showTree && !!parsedJson && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setExpandTrigger((prev) => prev + 1)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 active:scale-[0.97] transition-all"
+                        >
+                            Expand all
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setCollapseTrigger((prev) => prev + 1)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 active:scale-[0.97] transition-all"
+                        >
+                            Collapse all
+                        </button>
+                    </>
+                )}
             </div>
 
             {/* Editor / tree area (single panel to avoid scrolling) */}
@@ -1072,7 +1261,13 @@ export default function JsonFormatter() {
 
                 {treeMode && parsedJson ? (
                     <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90">
-                        <JsonTree value={parsedJson} fontSizeClass={fontSize} />
+                        <JsonTree
+                            value={parsedJson}
+                            expandTrigger={expandTrigger}
+                            collapseTrigger={collapseTrigger}
+                            fontSizeClass={fontSize}
+                            onDelete={handleDeleteNode}
+                        />
                     </div>
                 ) : (
                     <>
@@ -1082,32 +1277,36 @@ export default function JsonFormatter() {
                                 : "border-zinc-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-700 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
                                 }`}
                         >
-                            {/* Single scroll container for gutter + editor */}
+                            {/* Single scroll container */}
                             <div
                                 ref={scrollContainerRef}
-                                className={`flex min-h-[300px] max-h-[70vh] overflow-auto ${error
+                                className={`overflow-auto min-h-[300px] max-h-[70vh] rounded-b-xl ${error
                                     ? "bg-red-50/50 dark:bg-red-500/5"
                                     : "bg-white dark:bg-zinc-900"
                                     }`}
                             >
-                                {/* Line numbers gutter */}
-                                <div
-                                    className="shrink-0 self-start select-none border-r border-zinc-100 bg-zinc-100 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
-                                    aria-hidden="true"
-                                >
-                                    {Array.from({ length: lineCount }, (_, i) => (
-                                        <div key={i}>{i + 1}</div>
-                                    ))}
-                                </div>
+                                <div className={`flex min-h-max relative ${wordWrap ? "w-full" : "min-w-max"}`}>
+                                    {/* Line numbers gutter (only when Word Wrap is OFF so it sticks horizontally) */}
+                                    {!wordWrap && (
+                                        <div
+                                            ref={gutterRef}
+                                            className={`shrink-0 sticky left-0 z-20 select-none border-r border-zinc-100 bg-zinc-100 py-4 pr-3 pl-3 text-right font-mono leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600 ${fontSize}`}
+                                            aria-hidden="true"
+                                        >
+                                            {Array.from({ length: lineCount }, (_, i) => (
+                                                <div key={i}>{i + 1}</div>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                {/* Editor area (textarea + highlight overlay) */}
-                                <div className="flex-1 self-start">
-                                    {/* Grid overlay: pre + textarea share the same cell */}
-                                    <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
+                                    {/* Editor area (textarea + highlight overlay) */}
+                                    <div className={`flex-1 relative ${wordWrap ? "min-w-0 w-full" : "min-w-max"}`}>
+                                        {/* Grid overlay: pre + textarea share the same cell */}
+                                        <div className="grid [&>*]:col-start-1 [&>*]:row-start-1 h-max w-full">
                                         {/* Syntax highlight layer (behind textarea) */}
-                                        <pre
+                                        <div
                                             ref={highlightRef}
-                                            className={`pointer-events-none whitespace-pre p-4 font-mono leading-relaxed ${fontSize}`}
+                                            className={`pointer-events-none font-mono leading-relaxed ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${fontSize}`}
                                             aria-hidden="true"
                                             dangerouslySetInnerHTML={{
                                                 __html: highlightedHtml || "&nbsp;",
@@ -1140,9 +1339,9 @@ export default function JsonFormatter() {
                                                 }
                                             }}
                                             placeholder='Paste JSON to auto-format, or type and hit "Prettify"…'
-                                            wrap="off"
+                                            wrap={wordWrap ? "soft" : "off"}
                                             spellCheck={false}
-                                            className={`relative z-10 block w-full min-h-[200px] resize-none whitespace-pre bg-transparent p-4 font-mono leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${content
+                                            className={`relative z-10 block w-full min-h-[200px] resize-none bg-transparent font-mono leading-relaxed outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${content
                                                 ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                                 : "text-zinc-900 dark:text-zinc-100"
                                                 } ${fontSize}`}
@@ -1150,6 +1349,7 @@ export default function JsonFormatter() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
                         </div>
 
                         {/* Error message */}
