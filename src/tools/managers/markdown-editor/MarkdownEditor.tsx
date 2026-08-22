@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSessionState } from "@/lib/use-session-state";
-import { marked } from "marked";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
+import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
 import { 
     Bold, Italic, Heading, Link, Image, Code, List, ListOrdered, CheckSquare, 
     FileText, Copy, Trash2, Eye, Edit3, Columns, ArrowDownToLine, Check, HelpCircle,
@@ -408,42 +413,38 @@ export default function MarkdownEditor() {
         return () => observer.disconnect();
     }, [mermaidInstance]);
 
-    // Setup custom Marked parser renderer for code blocks
-    const customRenderer = useMemo(() => {
-        return {
-            code(this: any, ...args: any[]) {
-                let text = "";
-                let lang = "";
-                if (typeof args[0] === "object" && args[0] !== null) {
-                    text = args[0].text || "";
-                    lang = args[0].lang || "";
-                } else {
-                    text = args[0] || "";
-                    lang = args[1] || "";
-                }
-
-                if (lang === "mermaid") {
-                    const encoded = encodeURIComponent(text);
-                    const cachedSvg = mermaidCache.get(encoded);
-                    if (cachedSvg) {
-                        return `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-processed="true">${cachedSvg}</div>`;
+    // Unified AST plugin for adding source line numbers and transforming code blocks
+    const remarkSourceLineAndMermaid = useCallback(() => {
+        return (tree: any) => {
+            visit(tree, (node: any) => {
+                if (node.position && node.position.start) {
+                    if (['heading', 'paragraph', 'list', 'listItem', 'table', 'blockquote', 'html', 'code'].includes(node.type)) {
+                        if (!node.data) node.data = {};
+                        if (!node.data.hProperties) node.data.hProperties = {};
+                        node.data.hProperties['data-line'] = node.position.start.line;
                     }
-                    return `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}"></div>`;
                 }
 
-                const escapedText = text
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
-                return `<pre class="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="language-${lang}">${escapedText}</code></pre>`;
-            }
+                if (node.type === 'code' && node.lang === 'mermaid') {
+                    const encoded = encodeURIComponent(node.value || "");
+                    const cachedSvg = mermaidCache.get(encoded);
+                    node.type = 'html';
+                    if (cachedSvg) {
+                        node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-processed="true" data-line="${node.position?.start?.line || ''}">${cachedSvg}</div>`;
+                    } else {
+                        node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-line="${node.position?.start?.line || ''}"></div>`;
+                    }
+                } else if (node.type === 'code') {
+                    const escapedText = (node.value || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    node.type = 'html';
+                    node.value = `<pre class="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 my-4 overflow-x-auto" data-line="${node.position?.start?.line || ''}"><code class="language-${node.lang || ''}">${escapedText}</code></pre>`;
+                }
+            });
         };
     }, [themeTick]);
-
-    // Apply custom renderer configuration to marked
-    useEffect(() => {
-        marked.use({ renderer: customRenderer });
-    }, [customRenderer]);
 
     // Pre-process markdown to auto-split unclosed code blocks if user omitted the newline before closing fence
     const processedContent = useMemo(() => {
@@ -468,16 +469,23 @@ export default function MarkdownEditor() {
         return processedLines.join("\n");
     }, [content]);
 
-    // Compile Markdown to HTML
+    // Compile Markdown to HTML using unified AST
     const previewHtml = useMemo(() => {
         try {
-            const parsed = marked.parse(processedContent);
-            return typeof parsed === "string" ? parsed : "";
+            const processor = unified()
+                .use(remarkParse)
+                .use(remarkGfm)
+                .use(remarkSourceLineAndMermaid)
+                .use(remarkRehype, { allowDangerousHtml: true })
+                .use(rehypeStringify, { allowDangerousHtml: true });
+                
+            const file = processor.processSync(processedContent);
+            return String(file);
         } catch (err) {
-            console.error("Marked parse error", err);
+            console.error("Unified parse error", err);
             return `<div class="text-red-500 font-semibold p-4">Error parsing markdown content.</div>`;
         }
-    }, [processedContent, customRenderer]);
+    }, [processedContent, remarkSourceLineAndMermaid]);
 
     // Render Mermaid diagrams in HTML preview
     useEffect(() => {
@@ -561,15 +569,57 @@ export default function MarkdownEditor() {
             const editorEl = scrollContainerRef.current;
             const previewEl = previewContainerRef.current;
             
-            const editorScrollableHeight = editorEl.scrollHeight - editorEl.clientHeight;
-            if (editorScrollableHeight > 0) {
-                const percentage = editorEl.scrollTop / editorScrollableHeight;
-                const previewScrollableHeight = previewEl.scrollHeight - previewEl.clientHeight;
-                previewEl.scrollTop = percentage * previewScrollableHeight;
+            // 1. Calculate which logical line is currently at the top of the editor viewport
+            let currentLine = 1;
+            const scrollTop = editorEl.scrollTop;
+            
+            // For padding top
+            const paddingTop = 16; 
+            
+            if (!wordWrap) {
+                // leading-relaxed on 13px font = ~21.125px line height
+                const lineHeight = 21.125;
+                currentLine = Math.max(1, Math.floor((scrollTop - paddingTop) / lineHeight) + 1);
+            } else {
+                if (highlightRef.current) {
+                    const spans = highlightRef.current.querySelectorAll('span.absolute');
+                    for (let i = 0; i < spans.length; i++) {
+                        const span = spans[i] as HTMLElement;
+                        if (span.offsetTop >= scrollTop) {
+                            currentLine = i + 1;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 2. Find the corresponding element in the preview with data-line <= currentLine
+            const elements = Array.from(previewEl.querySelectorAll('[data-line]'));
+            let closestElement = null;
+            let maxLine = -1;
+            
+            for (const el of elements) {
+                const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
+                if (elLine <= currentLine && elLine > maxLine) {
+                    maxLine = elLine;
+                    closestElement = el;
+                }
+            }
+            
+            if (closestElement) {
+                const target = closestElement as HTMLElement;
+                // Calculate position relative to the scroll container
+                const targetTop = target.getBoundingClientRect().top;
+                const containerTop = previewEl.getBoundingClientRect().top;
+                previewEl.scrollTop = previewEl.scrollTop + (targetTop - containerTop) - 24; // 24px padding margin
+            } else if (scrollTop === 0) {
+                previewEl.scrollTop = 0;
+            } else if (scrollTop >= editorEl.scrollHeight - editorEl.clientHeight - 10) {
+                previewEl.scrollTop = previewEl.scrollHeight;
             }
         }
         clearScrollLock();
-    }, [syncScroll, viewMode, clearScrollLock]);
+    }, [syncScroll, viewMode, wordWrap, clearScrollLock]);
 
     const handlePreviewScroll = useCallback(() => {
         if (!syncScroll || viewMode !== "split") return;
@@ -580,15 +630,48 @@ export default function MarkdownEditor() {
             const editorEl = scrollContainerRef.current;
             const previewEl = previewContainerRef.current;
 
-            const previewScrollableHeight = previewEl.scrollHeight - previewEl.clientHeight;
-            if (previewScrollableHeight > 0) {
-                const percentage = previewEl.scrollTop / previewScrollableHeight;
-                const editorScrollableHeight = editorEl.scrollHeight - editorEl.clientHeight;
-                editorEl.scrollTop = percentage * editorScrollableHeight;
+            const scrollTop = previewEl.scrollTop;
+            
+            // 1. Find the preview element that is currently near the top of the viewport
+            const elements = Array.from(previewEl.querySelectorAll('[data-line]'));
+            let topElement = null;
+            let minDistance = Infinity;
+            
+            for (const el of elements) {
+                const rect = el.getBoundingClientRect();
+                const containerRect = previewEl.getBoundingClientRect();
+                // We want the element that is closest to the top of the container
+                const relativeTop = rect.top - containerRect.top;
+                
+                // Allow elements slightly above the fold to count if they are the closest
+                if (relativeTop > -100 && relativeTop < minDistance) {
+                    minDistance = relativeTop;
+                    topElement = el;
+                }
+            }
+            
+            if (topElement) {
+                const line = parseInt(topElement.getAttribute('data-line') || "1", 10);
+                const paddingTop = 16;
+                
+                if (!wordWrap) {
+                    const lineHeight = 21.125;
+                    editorEl.scrollTop = Math.max(0, (line - 1) * lineHeight + paddingTop);
+                } else if (highlightRef.current) {
+                    const spans = highlightRef.current.querySelectorAll('span.absolute');
+                    const span = spans[line - 1] as HTMLElement;
+                    if (span) {
+                        editorEl.scrollTop = Math.max(0, span.offsetTop - paddingTop);
+                    }
+                }
+            } else if (scrollTop === 0) {
+                editorEl.scrollTop = 0;
+            } else if (scrollTop >= previewEl.scrollHeight - previewEl.clientHeight - 10) {
+                editorEl.scrollTop = editorEl.scrollHeight;
             }
         }
         clearScrollLock();
-    }, [syncScroll, viewMode, clearScrollLock]);
+    }, [syncScroll, viewMode, wordWrap, clearScrollLock]);
 
     // Sync line count inside editor gutter
     const lineCount = useMemo(() => {
