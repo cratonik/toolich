@@ -588,7 +588,7 @@ export default function MarkdownEditor() {
                     const spans = highlightRef.current.querySelectorAll('span.absolute');
                     for (let i = 0; i < spans.length; i++) {
                         const span = spans[i] as HTMLElement;
-                        if (span.offsetTop >= scrollTop) {
+                        if (span.getBoundingClientRect().top - highlightRef.current.getBoundingClientRect().top >= scrollTop) {
                             currentLine = i + 1;
                             break;
                         }
@@ -612,7 +612,10 @@ export default function MarkdownEditor() {
                 
                 if (closestElement) {
                     const target = closestElement as HTMLElement;
-                    previewEl.scrollTop = target.offsetTop - 24; // 24px padding margin
+                    // Use getBoundingClientRect for bulletproof distance calculation (immune to offsetParent CSS quirks)
+                    const targetTop = target.getBoundingClientRect().top;
+                    const containerTop = previewEl.getBoundingClientRect().top;
+                    previewEl.scrollTop = previewEl.scrollTop + (targetTop - containerTop) - 24; // 24px padding margin
                 } else if (scrollTop === 0) {
                     previewEl.scrollTop = 0;
                 } else if (scrollTop >= editorEl.scrollHeight - editorEl.clientHeight - 10) {
@@ -643,12 +646,15 @@ export default function MarkdownEditor() {
                 let topElement = null;
                 let minDistance = Infinity;
                 
+                const containerRect = previewEl.getBoundingClientRect();
+                
                 for (let i = 0; i < elements.length; i++) {
                     const el = elements[i] as HTMLElement;
                     const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
                     if (elLine === 0) continue;
 
-                    const relativeTop = el.offsetTop - scrollTop;
+                    const rect = el.getBoundingClientRect();
+                    const relativeTop = rect.top - containerRect.top;
                     
                     if (relativeTop > -100 && relativeTop < minDistance) {
                         minDistance = relativeTop;
