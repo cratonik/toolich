@@ -518,32 +518,45 @@ export default function MarkdownEditor() {
 
                     if (syntaxError) {
                         // Display clean inline warning & fallback plain text editor content
-                        block.innerHTML = `
-                            <div class="my-2 border border-red-200 dark:border-red-950/40 rounded-lg overflow-hidden w-full text-left">
-                                <div class="bg-red-50 dark:bg-red-950/30 px-3 py-1.5 border-b border-red-200 dark:border-red-950/40 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                                    <span>⚠ Mermaid Graph Syntax Error</span>
+                        const liveBlock = document.querySelector(`.mermaid-block[data-mermaid="${encoded}"]`);
+                        if (liveBlock) {
+                            liveBlock.innerHTML = `
+                                <div class="my-2 border border-red-200 dark:border-red-950/40 rounded-lg overflow-hidden w-full text-left">
+                                    <div class="bg-red-50 dark:bg-red-950/30 px-3 py-1.5 border-b border-red-200 dark:border-red-950/40 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                                        <span>⚠ Mermaid Graph Syntax Error</span>
+                                    </div>
+                                    <pre class="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 font-mono text-[11px] text-zinc-500 overflow-x-auto whitespace-pre border-b border-zinc-100 dark:border-zinc-850/50"><code>${cleanCode}</code></pre>
+                                    <div class="p-3 bg-white dark:bg-zinc-900 text-red-500 dark:text-red-400 text-[11px] font-mono whitespace-pre-wrap">${syntaxError.message || String(syntaxError)}</div>
                                 </div>
-                                <pre class="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 font-mono text-[11px] text-zinc-500 overflow-x-auto whitespace-pre border-b border-zinc-100 dark:border-zinc-850/50"><code>${cleanCode}</code></pre>
-                                <div class="p-3 bg-white dark:bg-zinc-900 text-red-500 dark:text-red-400 text-[11px] font-mono whitespace-pre-wrap">${syntaxError.message || String(syntaxError)}</div>
-                            </div>
-                        `;
-                        block.setAttribute("data-processed", "true");
+                            `;
+                            liveBlock.setAttribute("data-processed", "true");
+                        }
                         continue;
                     }
 
                     const { svg } = await mermaidInstance.render(id, cleanCode);
-                    block.innerHTML = svg;
-                    block.setAttribute("data-processed", "true");
                     mermaidCache.set(encoded, svg);
+                    
+                    // Re-query the block to ensure we update the live DOM node, 
+                    // in case React re-rendered and replaced it while we were awaiting render()
+                    const liveBlock = document.querySelector(`.mermaid-block[data-mermaid="${encoded}"]`);
+                    if (liveBlock) {
+                        liveBlock.innerHTML = svg;
+                        liveBlock.setAttribute("data-processed", "true");
+                    }
                 } catch (err: any) {
                     console.error("Mermaid error:", err);
-                    block.innerHTML = `
-                        <div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-200 dark:border-red-900 w-full text-left font-mono">
-                            <div class="font-bold mb-1">⚠ Mermaid Rendering Error</div>
-                            <div class="whitespace-pre-wrap">${err.message || String(err)}</div>
-                        </div>
-                    `;
-                    block.setAttribute("data-processed", "true");
+                    
+                    const liveBlock = document.querySelector(`.mermaid-block[data-mermaid="${encoded}"]`);
+                    if (liveBlock) {
+                        liveBlock.innerHTML = `
+                            <div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-200 dark:border-red-900 w-full text-left font-mono">
+                                <div class="font-bold mb-1">⚠ Mermaid Rendering Error</div>
+                                <div class="whitespace-pre-wrap">${err.message || String(err)}</div>
+                            </div>
+                        `;
+                        liveBlock.setAttribute("data-processed", "true");
+                    }
                 }
             }
         };
