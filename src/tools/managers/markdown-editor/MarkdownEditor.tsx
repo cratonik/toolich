@@ -413,6 +413,9 @@ export default function MarkdownEditor() {
         return () => observer.disconnect();
     }, [mermaidInstance]);
 
+    // Add mermaidTick to trigger React re-renders when mermaid Cache is updated
+    const [mermaidTick, setMermaidTick] = useState(0);
+
     // Unified AST plugin for adding source line numbers and transforming code blocks
     const remarkSourceLineAndMermaid = useCallback(() => {
         return (tree: any) => {
@@ -482,17 +485,22 @@ export default function MarkdownEditor() {
             const file = processor.processSync(processedContent);
             return String(file);
         } catch (err) {
-            console.error("Unified parse error", err);
-            return `<div class="text-red-500 font-semibold p-4">Error parsing markdown content.</div>`;
+            console.error("Markdown parsing error:", err);
+            return `<div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-lg">
+                <p class="font-bold">Error parsing markdown:</p>
+                <p class="font-mono text-sm mt-2 whitespace-pre-wrap">${String(err)}</p>
+            </div>`;
         }
-    }, [processedContent, remarkSourceLineAndMermaid]);
+    }, [processedContent, remarkSourceLineAndMermaid, mermaidTick]);
 
     // Render Mermaid diagrams in HTML preview
     useEffect(() => {
+        console.log("[useEffect renderMermaid] Start! mermaidInstance =", !!mermaidInstance);
         if (!mermaidInstance) return;
 
         const renderMermaid = async () => {
             const blocks = document.querySelectorAll(".mermaid-block");
+            console.log("[renderMermaid] Called! Blocks found:", blocks.length);
             for (let i = 0; i < blocks.length; i++) {
                 const block = blocks[i] as HTMLElement;
                 const isProcessed = block.getAttribute("data-processed") === "true";
@@ -517,52 +525,47 @@ export default function MarkdownEditor() {
                     }
 
                     if (syntaxError) {
-                        // Display clean inline warning & fallback plain text editor content
-                        const liveBlock = document.querySelector(`.mermaid-block[data-mermaid="${encoded}"]`);
-                        if (liveBlock) {
-                            liveBlock.innerHTML = `
-                                <div class="my-2 border border-red-200 dark:border-red-950/40 rounded-lg overflow-hidden w-full text-left">
-                                    <div class="bg-red-50 dark:bg-red-950/30 px-3 py-1.5 border-b border-red-200 dark:border-red-950/40 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                                        <span>⚠ Mermaid Graph Syntax Error</span>
-                                    </div>
-                                    <pre class="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 font-mono text-[11px] text-zinc-500 overflow-x-auto whitespace-pre border-b border-zinc-100 dark:border-zinc-850/50"><code>${cleanCode}</code></pre>
-                                    <div class="p-3 bg-white dark:bg-zinc-900 text-red-500 dark:text-red-400 text-[11px] font-mono whitespace-pre-wrap">${syntaxError.message || String(syntaxError)}</div>
+                        // Cache the error HTML directly as the "svg" so remarkSourceLineAndMermaid injects it
+                        const errorHtml = `
+                            <div class="my-2 border border-red-200 dark:border-red-950/40 rounded-lg overflow-hidden w-full text-left">
+                                <div class="bg-red-50 dark:bg-red-950/30 px-3 py-1.5 border-b border-red-200 dark:border-red-950/40 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                                    <span>⚠ Mermaid Graph Syntax Error</span>
                                 </div>
-                            `;
-                            liveBlock.setAttribute("data-processed", "true");
-                        }
+                                <pre class="bg-zinc-50/50 dark:bg-zinc-950/30 p-3 font-mono text-[11px] text-zinc-500 overflow-x-auto whitespace-pre border-b border-zinc-100 dark:border-zinc-850/50"><code>${cleanCode}</code></pre>
+                                <div class="p-3 bg-white dark:bg-zinc-900 text-red-500 dark:text-red-400 text-[11px] font-mono whitespace-pre-wrap">${syntaxError.message || String(syntaxError)}</div>
+                            </div>
+                        `;
+                        mermaidCache.set(encoded, errorHtml);
+                        setMermaidTick(t => t + 1);
                         continue;
                     }
 
                     const { svg } = await mermaidInstance.render(id, cleanCode);
                     mermaidCache.set(encoded, svg);
-                    
-                    // Re-query the block to ensure we update the live DOM node, 
-                    // in case React re-rendered and replaced it while we were awaiting render()
-                    const liveBlock = document.querySelector(`.mermaid-block[data-mermaid="${encoded}"]`);
-                    if (liveBlock) {
-                        liveBlock.innerHTML = svg;
-                        liveBlock.setAttribute("data-processed", "true");
-                    }
+                    setMermaidTick(t => t + 1);
                 } catch (err: any) {
                     console.error("Mermaid error:", err);
                     
-                    const liveBlock = document.querySelector(`.mermaid-block[data-mermaid="${encoded}"]`);
-                    if (liveBlock) {
-                        liveBlock.innerHTML = `
-                            <div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-200 dark:border-red-900 w-full text-left font-mono">
-                                <div class="font-bold mb-1">⚠ Mermaid Rendering Error</div>
-                                <div class="whitespace-pre-wrap">${err.message || String(err)}</div>
-                            </div>
-                        `;
-                        liveBlock.setAttribute("data-processed", "true");
-                    }
+                    const errorHtml = `
+                        <div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-200 dark:border-red-900 w-full text-left font-mono">
+                            <div class="font-bold mb-1">⚠ Mermaid Rendering Error</div>
+                            <div class="whitespace-pre-wrap">${err.message || String(err)}</div>
+                        </div>
+                    `;
+                    mermaidCache.set(encoded, errorHtml);
+                    setMermaidTick(t => t + 1);
                 }
             }
         };
 
-        const timer = setTimeout(renderMermaid, 50);
-        return () => clearTimeout(timer);
+        const timer = setTimeout(() => {
+            console.log("[useEffect renderMermaid] Timer fired!");
+            renderMermaid();
+        }, 50);
+        return () => {
+            console.log("[useEffect renderMermaid] Cleanup timer");
+            clearTimeout(timer);
+        };
     }, [previewHtml, mermaidInstance, themeTick]);
 
     const clearScrollLock = useCallback(() => {
