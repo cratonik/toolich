@@ -27,7 +27,7 @@ export function ToolCategoryCard({
   glowColor = "zinc",
   categorySlug,
 }: ToolCategoryCardProps) {
-  const { openCategoryInCurrentTab } = useTabContext();
+  const { openCategoryInCurrentTab, viewMode } = useTabContext();
   const { showToast } = useToast();
   const isAllTools = categorySlug === "__all__";
   const tools = isAllTools ? [] : getToolsByCategory(categorySlug);
@@ -77,9 +77,9 @@ export function ToolCategoryCard({
               </span>
             )}
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {description}
-          </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {description}
+            </p>
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

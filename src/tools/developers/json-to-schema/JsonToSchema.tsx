@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Copy, Check, Trash2, ArrowRight, AlertCircle } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 import { inferSchema } from "./schema-inferrer";
 
 const DEFAULT_SAMPLE = JSON.stringify(
@@ -18,6 +19,7 @@ const DEFAULT_SAMPLE = JSON.stringify(
 );
 
 export default function JsonToSchema() {
+    const { viewMode } = useTabContext();
     // ---- persisted state ----
     const [input, setInput] = useSessionState("j2s:input", DEFAULT_SAMPLE);
 
@@ -95,6 +97,7 @@ export default function JsonToSchema() {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder='{\n  "name": "example",\n  "value": 42\n}'
                         rows={20}
+                        style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}
                         spellCheck={false}
                         className="w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-indigo-500"
                     />
@@ -128,6 +131,7 @@ export default function JsonToSchema() {
                             readOnly
                             placeholder="Schema will appear here…"
                             rows={20}
+                            style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}
                             spellCheck={false}
                             className="w-full resize-y rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-sm leading-relaxed text-zinc-900 shadow-sm outline-none dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                         />

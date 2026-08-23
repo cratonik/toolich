@@ -15,6 +15,7 @@ import {
     Unlink,
 } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 
 // ── Diff algorithm ───────────────────────────────────────────────────────────
 
@@ -286,10 +287,12 @@ function TextareaWithLineNumbers({
     value,
     onChange,
     placeholder,
+    appViewMode,
 }: {
     value: string;
     onChange: (val: string) => void;
     placeholder: string;
+    appViewMode: "normal" | "minified";
 }) {
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const gutterRef = useRef<HTMLDivElement | null>(null);
@@ -311,7 +314,10 @@ function TextareaWithLineNumbers({
     }, [lines.length, handleScroll]);
 
     return (
-        <div className="flex w-full h-[250px] resize-y rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 shadow-sm overflow-hidden focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20">
+        <div 
+            className="flex w-full resize-y rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 shadow-sm overflow-hidden focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:focus-within:border-indigo-500 dark:focus-within:ring-indigo-500/20"
+            style={{ height: appViewMode === "minified" ? "calc(100vh - 11rem)" : "250px" }}
+        >
             {/* Line Numbers Gutter */}
             <div
                 ref={gutterRef}
@@ -347,6 +353,7 @@ function TextareaWithLineNumbers({
 type ViewMode = "side-by-side" | "unified";
 
 export default function DiffChecker() {
+    const { viewMode: appViewMode } = useTabContext();
     const [original, setOriginal] = useSessionState("diff-checker:original", "");
     const [modified, setModified] = useSessionState("diff-checker:modified", "");
     const [ignoreWhitespace, setIgnoreWhitespace] = useSessionState(
@@ -605,6 +612,7 @@ export default function DiffChecker() {
                     <TextareaWithLineNumbers
                         value={original}
                         onChange={setOriginal}
+                        appViewMode={appViewMode}
                         placeholder="Paste original text here…"
                     />
                 </div>
@@ -617,6 +625,7 @@ export default function DiffChecker() {
                     <TextareaWithLineNumbers
                         value={modified}
                         onChange={setModified}
+                        appViewMode={appViewMode}
                         placeholder="Paste modified text here…"
                     />
                 </div>
@@ -670,6 +679,7 @@ export default function DiffChecker() {
                                     scrollToPrevDiff={scrollToPrevDiff}
                                     diffIndices={diffIndices}
                                     syncScroll={syncScroll}
+                                    appViewMode={appViewMode}
                                 />
                             ) : (
                                 <UnifiedView
@@ -679,6 +689,7 @@ export default function DiffChecker() {
                                     scrollToNextDiff={scrollToNextDiff}
                                     scrollToPrevDiff={scrollToPrevDiff}
                                     diffIndices={diffIndices}
+                                    appViewMode={appViewMode}
                                 />
                             )}
                         </div>
@@ -750,6 +761,7 @@ const SideBySideView = memo(function SideBySideView({
     scrollToPrevDiff,
     diffIndices,
     syncScroll,
+    appViewMode,
 }: {
     diff: DiffLine[];
     containerRef: (el: HTMLDivElement | null) => void;
@@ -758,6 +770,7 @@ const SideBySideView = memo(function SideBySideView({
     scrollToPrevDiff: (index: number) => void;
     diffIndices: number[];
     syncScroll: boolean;
+    appViewMode: "normal" | "minified";
 }) {
     const leftScrollRef = useRef<HTMLDivElement>(null);
     const rightScrollRef = useRef<HTMLDivElement>(null);
@@ -792,7 +805,8 @@ const SideBySideView = memo(function SideBySideView({
         <div
             ref={containerRef}
             onScroll={onScroll}
-            className="max-h-[600px] overflow-y-auto border border-zinc-200 rounded-xl shadow-sm dark:border-zinc-700 bg-white dark:bg-zinc-900"
+            className="overflow-y-auto border border-zinc-200 rounded-xl shadow-sm dark:border-zinc-700 bg-white dark:bg-zinc-900"
+            style={{ maxHeight: appViewMode === "minified" ? "calc(100vh - 11rem)" : "600px" }}
         >
             <div className="grid grid-cols-2 min-w-[800px] divide-x divide-zinc-200 dark:divide-zinc-700">
                 {/* Left (original) */}
@@ -959,6 +973,7 @@ const UnifiedView = memo(function UnifiedView({
     scrollToNextDiff,
     scrollToPrevDiff,
     diffIndices,
+    appViewMode,
 }: {
     diff: DiffLine[];
     containerRef: (el: HTMLDivElement | null) => void;
@@ -966,12 +981,14 @@ const UnifiedView = memo(function UnifiedView({
     scrollToNextDiff: (index: number) => void;
     scrollToPrevDiff: (index: number) => void;
     diffIndices: number[];
+    appViewMode: "normal" | "minified";
 }) {
     return (
         <div
             ref={containerRef}
             onScroll={onScroll}
-            className="max-h-[600px] overflow-y-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700 bg-white dark:bg-zinc-900"
+            className="overflow-y-auto rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700 bg-white dark:bg-zinc-900"
+            style={{ maxHeight: appViewMode === "minified" ? "calc(100vh - 11rem)" : "600px" }}
         >
             <div className="min-w-[500px]">
                 {diff.map((d, i) => {

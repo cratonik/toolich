@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
@@ -347,6 +348,7 @@ ${PREVIEW_CSS_VARIABLES}
 const mermaidCache = new Map<string, string>();
 
 export default function MarkdownEditor() {
+    const { viewMode: tabViewMode } = useTabContext();
     const [content, setContent] = useSessionState("markdown-editor:content", DEFAULT_MARKDOWN);
     const [viewMode, setViewMode] = useSessionState<"split" | "editor" | "preview">("markdown-editor:viewmode", "split");
     const [syncScroll, setSyncScroll] = useSessionState("markdown-editor:syncscroll", true);
@@ -1186,7 +1188,8 @@ export default function MarkdownEditor() {
                     <div
                         ref={scrollContainerRef}
                         onScroll={handleEditorScroll}
-                        className="flex flex-1 min-h-[450px] max-h-[70vh] overflow-auto bg-white dark:bg-zinc-900 relative w-full"
+                        className="flex flex-1 overflow-auto bg-white dark:bg-zinc-900 relative w-full"
+                        style={{ minHeight: tabViewMode === "minified" ? "calc(100vh - 11rem)" : "450px", maxHeight: tabViewMode === "minified" ? "none" : "70vh" }}
                     >
                         {/* Line number gutter (only when Word Wrap is OFF) */}
                         {!wordWrap && (
@@ -1221,7 +1224,8 @@ export default function MarkdownEditor() {
                                     placeholder="Start writing markdown, or click a toolbar button to insert templates..."
                                     spellCheck={false}
                                     wrap={wordWrap ? "soft" : "off"}
-                                    className={`relative z-10 block w-full min-h-[450px] resize-none bg-transparent font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${
+                                    style={{ minHeight: tabViewMode === "minified" ? "calc(100vh - 11rem)" : "450px" }}
+                                    className={`relative z-10 block w-full resize-none bg-transparent font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${
                                         content
                                             ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                             : "text-zinc-900 dark:text-zinc-100"
@@ -1251,7 +1255,8 @@ export default function MarkdownEditor() {
                     <div
                         ref={previewContainerRef}
                         onScroll={handlePreviewScroll}
-                        className="flex-1 min-h-[450px] max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-zinc-900 relative"
+                        className="flex-1 overflow-y-auto p-6 bg-white dark:bg-zinc-900 relative"
+                        style={{ minHeight: tabViewMode === "minified" ? "calc(100vh - 11rem)" : "450px", maxHeight: tabViewMode === "minified" ? "none" : "70vh" }}
                     >
                         <div
                             id="markdown-preview-root"
