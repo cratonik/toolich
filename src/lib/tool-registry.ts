@@ -182,7 +182,7 @@ const TOOLS: ToolMeta[] = [
     {
         name: "Notebook",
         slug: "notebook",
-        description: "A structured, long-term personal knowledge base with Markdown support and persistent local storage.",
+        description: "A structured, long-term personal knowledge with persistent local storage.",
         category: "managers",
         keywords: [
             "notebook", "notes", "markdown", "knowledge base", "journal", "organizer", "persistent notes"

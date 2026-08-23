@@ -22,6 +22,7 @@ import {
     findDuplicates,
     type EnvEntry,
 } from "./env-parser";
+import { useTabContext } from "@/lib/tab-context";
 
 // ---------------------------------------------------------------------------
 // Sample content
@@ -87,6 +88,7 @@ function ExportDropdown({
 // ---------------------------------------------------------------------------
 
 export default function EnvEditor() {
+    const { viewMode: appViewMode } = useTabContext();
     const [raw, setRaw] = useSessionState("env-editor:raw", SAMPLE);
     const [view, setView] = useState<ViewMode>("raw");
     const [sorted, setSorted] = useState(false);
@@ -259,6 +261,7 @@ export default function EnvEditor() {
                         onChange={(e) => setRaw(e.target.value)}
                         placeholder="Paste your .env content here…"
                         rows={16}
+                        style={{ height: appViewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}
                         spellCheck={false}
                         className="w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-indigo-500"
                     />
@@ -267,7 +270,10 @@ export default function EnvEditor() {
 
             {/* ── Table view ── */}
             {view === "table" && (
-                <div className="overflow-hidden rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700">
+                <div 
+                    className="overflow-hidden rounded-xl border border-zinc-200 shadow-sm dark:border-zinc-700 flex flex-col"
+                    style={{ maxHeight: appViewMode === "minified" ? "calc(100vh - 11rem)" : "600px" }}
+                >
                     {/* Header */}
                     <div className="grid grid-cols-[1fr_1.5fr_auto] gap-px bg-zinc-100 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                         <span>Key</span>
@@ -276,7 +282,7 @@ export default function EnvEditor() {
                     </div>
 
                     {/* Rows */}
-                    <div className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-900/60">
+                    <div className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-900/60 overflow-y-auto flex-1">
                         {varEntries.length === 0 && (
                             <div className="px-4 py-8 text-center text-sm text-zinc-400 dark:text-zinc-500">
                                 No variables — paste content in Raw view or add below

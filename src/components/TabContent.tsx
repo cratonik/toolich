@@ -70,7 +70,7 @@ function ToolLoadingFallback() {
 }
 
 function TabPanel({ tab }: { tab: Tab }) {
-    const { tabs } = useTabContext();
+    const { tabs, viewMode } = useTabContext();
 
     useEffect(() => {
         const container = document.getElementById(`tab-scroll-${tab.id}`);
@@ -121,7 +121,7 @@ function TabPanel({ tab }: { tab: Tab }) {
             </div>
 
             {/* Educational Documentation Guide Section for AdSense and SEO */}
-            {guide && (
+            {guide && viewMode === "normal" && (
                 <article className="mt-16 pt-10 border-t border-zinc-200 dark:border-zinc-800 space-y-8 select-text">
                     <div className="space-y-6">
                         {/* Guide Header */}

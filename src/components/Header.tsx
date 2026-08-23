@@ -7,7 +7,8 @@ import { SearchTrigger, SearchModal } from "./SpotlightSearch";
 import { ThemeToggle } from "./ThemeToggle";
 import { GlobalTasksPopover } from "./GlobalTasksPopover";
 import { useTabContext } from "@/lib/tab-context";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Minimize, Maximize } from "lucide-react";
+import { TabBar } from "./TabBar";
 
 type HeaderProps = {
   githubUrl?: string;
@@ -16,13 +17,13 @@ type HeaderProps = {
 export default function Header({
   githubUrl = "https://github.com/cratonik/toolich",
 }: HeaderProps) {
-  const { isWide, goHome } = useTabContext();
+  const { isWide, goHome, viewMode, toggleViewMode } = useTabContext();
   const pathname = usePathname();
 
   return (
     <>
       <header className="fixed w-full top-0 z-50 border-b border-zinc-200/80 bg-white/80 backdrop-blur-sm dark:border-zinc-800/80 dark:bg-zinc-950/80">
-        <div className={`mx-auto flex h-14 ${isWide ? "max-w-[94%]" : "max-w-5xl"} items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
+        <div className={`mx-auto flex ${viewMode === "minified" ? "h-11" : "h-14"} ${isWide ? "max-w-[94%]" : "max-w-5xl"} items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
           <Link
             href="/"
             onClick={(e) => {
@@ -31,30 +32,42 @@ export default function Header({
                 goHome();
               }
             }}
-            className="flex items-center gap-2.5 text-zinc-900 no-underline transition-opacity hover:opacity-80 dark:text-zinc-50"
+            className={`flex items-center ${viewMode === "minified" ? "gap-1.5" : "gap-2.5"} text-zinc-900 no-underline transition-opacity hover:opacity-80 dark:text-zinc-50`}
             aria-label="Toolich – Home"
           >
-            <span className="relative flex h-8 w-8 shrink-0 text-zinc-900 dark:text-zinc-50">
+            <span className={`relative flex shrink-0 text-zinc-900 dark:text-zinc-50 ${viewMode === "minified" ? "h-6 w-6" : "h-8 w-8"}`}>
               <Image
                 src="/logo.svg"
                 alt=""
-                width={32}
-                height={32}
+                width={viewMode === "minified" ? 24 : 32}
+                height={viewMode === "minified" ? 24 : 32}
                 className="object-contain dark:invert"
                 priority
               />
             </span>
-            <span className="font-brand text-xl font-semibold tracking-tight">
+            <span className={`font-brand font-semibold tracking-tight ${viewMode === "minified" ? "text-lg hidden sm:inline" : "text-xl"}`}>
               Toolich
             </span>
           </Link>
 
+          {viewMode === "minified" && (
+            <>
+              <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800 mx-2 sm:mx-4 shrink-0" />
+              <div className="flex-1 overflow-x-auto px-2 flex items-center">
+                <TabBar inline />
+              </div>
+              <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-800 mx-2 sm:mx-4 shrink-0" />
+            </>
+          )}
+
           <div className="flex items-center gap-3">
             {/* Tasks Popover */}
-            <GlobalTasksPopover />
+            <div className="block">
+              <GlobalTasksPopover />
+            </div>
 
             {/* Privacy indicator */}
-            <div className="relative group flex items-center justify-center">
+            <div className={`relative group flex items-center justify-center ${viewMode === "minified" ? "hidden" : ""}`}>
               <div
                 className="flex h-8 w-8 cursor-help items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-emerald-600 shadow-sm transition-colors hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-emerald-400"
                 aria-label="Secure & Local processing indicator"
@@ -76,6 +89,21 @@ export default function Header({
 
             {/* Search trigger */}
             <SearchTrigger />
+
+            {/* View Mode toggle */}
+            <button
+              type="button"
+              onClick={toggleViewMode}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
+              aria-label={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
+              title={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
+            >
+              {viewMode === "normal" ? (
+                <Minimize className="h-4.5 w-4.5" />
+              ) : (
+                <Maximize className="h-4.5 w-4.5" />
+              )}
+            </button>
 
             {/* Theme toggle */}
             <ThemeToggle />

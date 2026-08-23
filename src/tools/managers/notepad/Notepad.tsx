@@ -4,9 +4,11 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Copy, Check, Trash2, Download, Search, Maximize2, Minimize2, Type, WrapText, AlignLeft, ArrowLeftRight, ListOrdered } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useTheme } from "@/lib/theme-context";
+import { useTabContext } from "@/lib/tab-context";
 
 export default function Notepad() {
     const { resolvedTheme } = useTheme();
+    const { viewMode } = useTabContext();
     
     // Basic state
     const [text, setText] = useSessionState("notepad:text", "");
@@ -348,10 +350,11 @@ export default function Notepad() {
 
             {/* Editor Area */}
             <div 
-                className={`relative group flex ${isFullscreen ? "flex-1 min-h-0" : "h-[500px]"} rounded-xl border transition-colors shadow-sm overflow-hidden
+                className={`relative group flex ${isFullscreen ? "flex-1 min-h-0" : ""} rounded-xl border transition-colors shadow-sm overflow-hidden
                     ${dragActive ? "border-indigo-500 bg-indigo-50/50 dark:border-indigo-400 dark:bg-indigo-500/10" : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900/60"}
                     focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:focus-within:border-indigo-500
                 `}
+                style={{ height: (!isFullscreen && viewMode === "minified") ? "calc(100vh - 11rem)" : (!isFullscreen ? "500px" : undefined) }}
                 onDragOver={(e) => {
                     e.preventDefault();
                     setDragActive(true);

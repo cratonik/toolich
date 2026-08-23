@@ -3,8 +3,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Copy, Check, Trash2, Upload, Undo2, ClipboardCopy, Columns, Rows, Type } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 
 export default function Base64Encoder() {
+    const { viewMode } = useTabContext();
     const [input, setInput] = useSessionState("base64-encode:input", "");
     const [output, setOutput] = useSessionState("base64-encode:output", "");
     const [autoCopy, setAutoCopy] = useSessionState("base64-encode:autocopy", false);
@@ -233,7 +235,7 @@ export default function Base64Encoder() {
                         value={input}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="Type or paste text here…"
-                        style={{ height: boxHeight }}
+                        style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : boxHeight }}
                         onMouseUp={(e) => setBoxHeight(e.currentTarget.getBoundingClientRect().height)}
                         className={`w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-zinc-900 shadow-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-indigo-500 dark:focus:ring-indigo-500/20 ${fontSize}`}
                     />
@@ -249,7 +251,7 @@ export default function Base64Encoder() {
                         value={output}
                         readOnly
                         placeholder="Encoded output appears here…"
-                        style={{ height: boxHeight }}
+                        style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : boxHeight }}
                         onMouseUp={(e) => setBoxHeight(e.currentTarget.getBoundingClientRect().height)}
                         className={`w-full resize-y rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-zinc-900 shadow-sm outline-none dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-100 dark:placeholder:text-zinc-500 ${fontSize}`}
                     />

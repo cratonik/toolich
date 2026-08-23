@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree, Type } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 
 type IndentSize = 2 | 4;
 
@@ -838,6 +839,7 @@ function JsonTree({
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function JsonFormatter() {
+    const { viewMode } = useTabContext();
     const [content, setContent] = useSessionState("json-formatter:content", "");
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
@@ -1260,7 +1262,7 @@ export default function JsonFormatter() {
                 </label>
 
                 {treeMode && parsedJson ? (
-                    <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90">
+                    <div className="relative min-h-[200px] max-h-[70vh] overflow-auto rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 shadow-sm transition-colors dark:border-zinc-700 dark:bg-zinc-900/90" style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined, maxHeight: viewMode === "minified" ? "none" : undefined }}>
                         <JsonTree
                             value={parsedJson}
                             expandTrigger={expandTrigger}
@@ -1280,6 +1282,7 @@ export default function JsonFormatter() {
                             {/* Single scroll container */}
                             <div
                                 ref={scrollContainerRef}
+                                style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined, maxHeight: viewMode === "minified" ? "none" : undefined }}
                                 className={`overflow-auto min-h-[300px] max-h-[70vh] rounded-b-xl ${error
                                     ? "bg-red-50/50 dark:bg-red-500/5"
                                     : "bg-white dark:bg-zinc-900"

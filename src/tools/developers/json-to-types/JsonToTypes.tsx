@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { Copy, Check, Trash2, Upload, Undo2, Download, Code } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 
 // ── Type Inference AST ───────────────────────────────────────────────────────
 
@@ -570,6 +571,7 @@ function generatePythonPydantic(
 type TargetLanguage = "typescript" | "python-pydantic" | "python-class";
 
 export default function JsonToTypes() {
+    const { viewMode } = useTabContext();
     const [input, setInput] = useSessionState("json-to-types:input", "");
     const [targetLang, setTargetLang] = useSessionState<TargetLanguage>("json-to-types:lang", "typescript");
     const [rootName, setRootName] = useSessionState("json-to-types:root", "RootObject");
@@ -808,6 +810,7 @@ export default function JsonToTypes() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Paste JSON object or array here..."
+                        style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}
                         className={`w-full min-h-[380px] flex-1 resize-y rounded-xl border p-4 font-mono text-sm shadow-sm outline-none transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 ${
                             error
                                 ? "border-red-300 bg-red-50/20 text-zinc-900 focus:border-red-400 focus:ring-2 focus:ring-red-500/20 dark:border-red-900/40 dark:bg-red-950/10 dark:text-zinc-100 dark:focus:border-red-900"
@@ -831,6 +834,7 @@ export default function JsonToTypes() {
                         value={generatedCode}
                         readOnly
                         placeholder="Generated declarations will appear here..."
+                        style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}
                         className="w-full min-h-[380px] flex-1 resize-y rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-sm text-zinc-800 shadow-sm outline-none dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-200"
                     />
                 </div>
