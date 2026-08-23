@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSessionState } from "@/lib/use-session-state";
-import { marked } from "marked";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
+import remarkGfm from "remark-gfm";
+import { visit } from "unist-util-visit";
 import { 
     Bold, Italic, Heading, Link, Image, Code, List, ListOrdered, CheckSquare, 
     FileText, Copy, Trash2, Eye, Edit3, Columns, ArrowDownToLine, Check, HelpCircle,
@@ -345,13 +350,14 @@ export default function MarkdownEditor() {
     const [content, setContent] = useSessionState("markdown-editor:content", DEFAULT_MARKDOWN);
     const [viewMode, setViewMode] = useSessionState<"split" | "editor" | "preview">("markdown-editor:viewmode", "split");
     const [syncScroll, setSyncScroll] = useSessionState("markdown-editor:syncscroll", true);
+    const [wordWrap, setWordWrap] = useSessionState("markdown-editor:wrap", true);
     const [copiedRaw, setCopiedRaw] = useState(false);
     const [copiedHtml, setCopiedHtml] = useState(false);
     const [mermaidInstance, setMermaidInstance] = useState<any>(null);
     const [themeTick, setThemeTick] = useState(0); // Forces mermaid redraw on theme toggle
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const highlightRef = useRef<HTMLPreElement>(null);
+    const highlightRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const previewContainerRef = useRef<HTMLDivElement>(null);
 
@@ -382,13 +388,12 @@ export default function MarkdownEditor() {
     useEffect(() => {
         if (!mermaidInstance) return;
         
-        const observer = new MutationObserver(() => {
+        let currentTheme = document.documentElement.classList.contains("dark");
+
+        const observer = new MutationObserver((mutations) => {
             const isDark = document.documentElement.classList.contains("dark");
-            mermaidInstance.initialize({
-                startOnLoad: false,
-                theme: isDark ? "dark" : "default",
-                suppressErrorAlerts: true,
-            } as any);
+            if (isDark === currentTheme) return;
+            currentTheme = isDark;
             
             // Clear cache on theme change to ensure new SVG styles are generated correctly
             mermaidCache.clear();
@@ -407,42 +412,41 @@ export default function MarkdownEditor() {
         return () => observer.disconnect();
     }, [mermaidInstance]);
 
-    // Setup custom Marked parser renderer for code blocks
-    const customRenderer = useMemo(() => {
-        return {
-            code(this: any, ...args: any[]) {
-                let text = "";
-                let lang = "";
-                if (typeof args[0] === "object" && args[0] !== null) {
-                    text = args[0].text || "";
-                    lang = args[0].lang || "";
-                } else {
-                    text = args[0] || "";
-                    lang = args[1] || "";
-                }
+    // Add mermaidTick to trigger React re-renders when mermaid Cache is updated
+    const [mermaidTick, setMermaidTick] = useState(0);
 
-                if (lang === "mermaid") {
-                    const encoded = encodeURIComponent(text);
-                    const cachedSvg = mermaidCache.get(encoded);
-                    if (cachedSvg) {
-                        return `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-processed="true">${cachedSvg}</div>`;
+    // Unified AST plugin for adding source line numbers and transforming code blocks
+    const remarkSourceLineAndMermaid = useCallback(() => {
+        return (tree: any) => {
+            visit(tree, (node: any) => {
+                if (node.position && node.position.start) {
+                    if (['heading', 'paragraph', 'list', 'listItem', 'table', 'blockquote', 'html', 'code'].includes(node.type)) {
+                        if (!node.data) node.data = {};
+                        if (!node.data.hProperties) node.data.hProperties = {};
+                        node.data.hProperties['data-line'] = node.position.start.line;
                     }
-                    return `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}"></div>`;
                 }
 
-                const escapedText = text
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
-                return `<pre class="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 my-4 overflow-x-auto"><code class="language-${lang}">${escapedText}</code></pre>`;
-            }
+                if (node.type === 'code' && node.lang === 'mermaid') {
+                    const encoded = encodeURIComponent(node.value || "");
+                    const cachedSvg = mermaidCache.get(encoded);
+                    node.type = 'html';
+                    if (cachedSvg) {
+                        node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-processed="true" data-line="${node.position?.start?.line || ''}">${cachedSvg}</div>`;
+                    } else {
+                        node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center items-center py-8 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-400 dark:text-zinc-500 animate-pulse font-mono" data-mermaid="${encoded}" data-line="${node.position?.start?.line || ''}">[ Rendering Graph... ]</div>`;
+                    }
+                } else if (node.type === 'code') {
+                    const escapedText = (node.value || "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;");
+                    node.type = 'html';
+                    node.value = `<pre class="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 my-4 overflow-x-auto" data-line="${node.position?.start?.line || ''}"><code class="language-${node.lang || ''}">${escapedText}</code></pre>`;
+                }
+            });
         };
     }, [themeTick]);
-
-    // Apply custom renderer configuration to marked
-    useEffect(() => {
-        marked.use({ renderer: customRenderer });
-    }, [customRenderer]);
 
     // Pre-process markdown to auto-split unclosed code blocks if user omitted the newline before closing fence
     const processedContent = useMemo(() => {
@@ -467,23 +471,35 @@ export default function MarkdownEditor() {
         return processedLines.join("\n");
     }, [content]);
 
-    // Compile Markdown to HTML
+    // Compile Markdown to HTML using unified AST
     const previewHtml = useMemo(() => {
         try {
-            const parsed = marked.parse(processedContent);
-            return typeof parsed === "string" ? parsed : "";
+            const processor = unified()
+                .use(remarkParse)
+                .use(remarkGfm)
+                .use(remarkSourceLineAndMermaid)
+                .use(remarkRehype, { allowDangerousHtml: true })
+                .use(rehypeStringify, { allowDangerousHtml: true });
+                
+            const file = processor.processSync(processedContent);
+            return String(file);
         } catch (err) {
-            console.error("Marked parse error", err);
-            return `<div class="text-red-500 font-semibold p-4">Error parsing markdown content.</div>`;
+            console.error("Markdown parsing error:", err);
+            return `<div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-lg">
+                <p class="font-bold">Error parsing markdown:</p>
+                <p class="font-mono text-sm mt-2 whitespace-pre-wrap">${String(err)}</p>
+            </div>`;
         }
-    }, [processedContent, customRenderer]);
+    }, [processedContent, remarkSourceLineAndMermaid, mermaidTick]);
 
     // Render Mermaid diagrams in HTML preview
     useEffect(() => {
+        console.log("[useEffect renderMermaid] Start! mermaidInstance =", !!mermaidInstance);
         if (!mermaidInstance) return;
 
         const renderMermaid = async () => {
             const blocks = document.querySelectorAll(".mermaid-block");
+            console.log("[renderMermaid] Called! Blocks found:", blocks.length);
             for (let i = 0; i < blocks.length; i++) {
                 const block = blocks[i] as HTMLElement;
                 const isProcessed = block.getAttribute("data-processed") === "true";
@@ -508,8 +524,8 @@ export default function MarkdownEditor() {
                     }
 
                     if (syntaxError) {
-                        // Display clean inline warning & fallback plain text editor content
-                        block.innerHTML = `
+                        // Cache the error HTML directly as the "svg" so remarkSourceLineAndMermaid injects it
+                        const errorHtml = `
                             <div class="my-2 border border-red-200 dark:border-red-950/40 rounded-lg overflow-hidden w-full text-left">
                                 <div class="bg-red-50 dark:bg-red-950/30 px-3 py-1.5 border-b border-red-200 dark:border-red-950/40 text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
                                     <span>⚠ Mermaid Graph Syntax Error</span>
@@ -518,29 +534,37 @@ export default function MarkdownEditor() {
                                 <div class="p-3 bg-white dark:bg-zinc-900 text-red-500 dark:text-red-400 text-[11px] font-mono whitespace-pre-wrap">${syntaxError.message || String(syntaxError)}</div>
                             </div>
                         `;
-                        block.setAttribute("data-processed", "true");
+                        mermaidCache.set(encoded, errorHtml);
+                        setMermaidTick(t => t + 1);
                         continue;
                     }
 
                     const { svg } = await mermaidInstance.render(id, cleanCode);
-                    block.innerHTML = svg;
-                    block.setAttribute("data-processed", "true");
                     mermaidCache.set(encoded, svg);
+                    setMermaidTick(t => t + 1);
                 } catch (err: any) {
                     console.error("Mermaid error:", err);
-                    block.innerHTML = `
+                    
+                    const errorHtml = `
                         <div class="p-4 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-200 dark:border-red-900 w-full text-left font-mono">
                             <div class="font-bold mb-1">⚠ Mermaid Rendering Error</div>
                             <div class="whitespace-pre-wrap">${err.message || String(err)}</div>
                         </div>
                     `;
-                    block.setAttribute("data-processed", "true");
+                    mermaidCache.set(encoded, errorHtml);
+                    setMermaidTick(t => t + 1);
                 }
             }
         };
 
-        const timer = setTimeout(renderMermaid, 50);
-        return () => clearTimeout(timer);
+        const timer = setTimeout(() => {
+            console.log("[useEffect renderMermaid] Timer fired!");
+            renderMermaid();
+        }, 50);
+        return () => {
+            console.log("[useEffect renderMermaid] Cleanup timer");
+            clearTimeout(timer);
+        };
     }, [previewHtml, mermaidInstance, themeTick]);
 
     const clearScrollLock = useCallback(() => {
@@ -550,44 +574,132 @@ export default function MarkdownEditor() {
         }, 150);
     }, []);
 
+    const editorScrollFrame = useRef<number | null>(null);
+    const previewScrollFrame = useRef<number | null>(null);
+
     // Synchronize scroll with the preview pane
     const handleEditorScroll = useCallback(() => {
         if (!syncScroll || viewMode !== "split") return;
         if (isScrollingRef.current === "preview") return;
 
         isScrollingRef.current = "editor";
-        if (scrollContainerRef.current && previewContainerRef.current) {
-            const editorEl = scrollContainerRef.current;
-            const previewEl = previewContainerRef.current;
-            
-            const editorScrollableHeight = editorEl.scrollHeight - editorEl.clientHeight;
-            if (editorScrollableHeight > 0) {
-                const percentage = editorEl.scrollTop / editorScrollableHeight;
-                const previewScrollableHeight = previewEl.scrollHeight - previewEl.clientHeight;
-                previewEl.scrollTop = percentage * previewScrollableHeight;
+        
+        if (editorScrollFrame.current) cancelAnimationFrame(editorScrollFrame.current);
+        
+        editorScrollFrame.current = requestAnimationFrame(() => {
+            if (scrollContainerRef.current && previewContainerRef.current) {
+                const editorEl = scrollContainerRef.current;
+                const previewEl = previewContainerRef.current;
+                
+                // 1. Calculate which logical line is currently at the top of the editor viewport
+                let currentLine = 1;
+                const scrollTop = editorEl.scrollTop;
+                const paddingTop = 16; 
+                
+                if (!wordWrap) {
+                    const lineHeight = 21.125;
+                    currentLine = Math.max(1, Math.floor((scrollTop - paddingTop) / lineHeight) + 1);
+                } else if (highlightRef.current) {
+                    const spans = highlightRef.current.querySelectorAll('span.absolute');
+                    for (let i = 0; i < spans.length; i++) {
+                        const span = spans[i] as HTMLElement;
+                        if (span.getBoundingClientRect().top - highlightRef.current.getBoundingClientRect().top >= scrollTop) {
+                            currentLine = i + 1;
+                            break;
+                        }
+                    }
+                }
+                
+                // 2. Find the corresponding element in the preview with data-line <= currentLine
+                const root = previewEl.firstElementChild;
+                const elements = root ? root.children : [];
+                let closestElement = null;
+                let maxLine = -1;
+                
+                for (let i = 0; i < elements.length; i++) {
+                    const el = elements[i];
+                    const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
+                    if (elLine > 0 && elLine <= currentLine && elLine > maxLine) {
+                        maxLine = elLine;
+                        closestElement = el;
+                    }
+                }
+                
+                if (closestElement) {
+                    const target = closestElement as HTMLElement;
+                    // Use getBoundingClientRect for bulletproof distance calculation (immune to offsetParent CSS quirks)
+                    const targetTop = target.getBoundingClientRect().top;
+                    const containerTop = previewEl.getBoundingClientRect().top;
+                    previewEl.scrollTop = previewEl.scrollTop + (targetTop - containerTop) - 24; // 24px padding margin
+                } else if (scrollTop === 0) {
+                    previewEl.scrollTop = 0;
+                } else if (scrollTop >= editorEl.scrollHeight - editorEl.clientHeight - 10) {
+                    previewEl.scrollTop = previewEl.scrollHeight;
+                }
             }
-        }
-        clearScrollLock();
-    }, [syncScroll, viewMode, clearScrollLock]);
+            clearScrollLock();
+        });
+    }, [syncScroll, viewMode, wordWrap, clearScrollLock]);
 
     const handlePreviewScroll = useCallback(() => {
         if (!syncScroll || viewMode !== "split") return;
         if (isScrollingRef.current === "editor") return;
 
         isScrollingRef.current = "preview";
-        if (scrollContainerRef.current && previewContainerRef.current) {
-            const editorEl = scrollContainerRef.current;
-            const previewEl = previewContainerRef.current;
+        
+        if (previewScrollFrame.current) cancelAnimationFrame(previewScrollFrame.current);
+        
+        previewScrollFrame.current = requestAnimationFrame(() => {
+            if (scrollContainerRef.current && previewContainerRef.current) {
+                const editorEl = scrollContainerRef.current;
+                const previewEl = previewContainerRef.current;
+                const scrollTop = previewEl.scrollTop;
+                
+                // 1. Find the preview element that is currently near the top of the viewport
+                const root = previewEl.firstElementChild;
+                const elements = root ? root.children : [];
+                let topElement = null;
+                let minDistance = Infinity;
+                
+                const containerRect = previewEl.getBoundingClientRect();
+                
+                for (let i = 0; i < elements.length; i++) {
+                    const el = elements[i] as HTMLElement;
+                    const elLine = parseInt(el.getAttribute('data-line') || "0", 10);
+                    if (elLine === 0) continue;
 
-            const previewScrollableHeight = previewEl.scrollHeight - previewEl.clientHeight;
-            if (previewScrollableHeight > 0) {
-                const percentage = previewEl.scrollTop / previewScrollableHeight;
-                const editorScrollableHeight = editorEl.scrollHeight - editorEl.clientHeight;
-                editorEl.scrollTop = percentage * editorScrollableHeight;
+                    const rect = el.getBoundingClientRect();
+                    const relativeTop = rect.top - containerRect.top;
+                    
+                    if (relativeTop > -100 && relativeTop < minDistance) {
+                        minDistance = relativeTop;
+                        topElement = el;
+                    }
+                }
+                
+                if (topElement) {
+                    const line = parseInt(topElement.getAttribute('data-line') || "1", 10);
+                    const paddingTop = 16;
+                    
+                    if (!wordWrap) {
+                        const lineHeight = 21.125;
+                        editorEl.scrollTop = Math.max(0, (line - 1) * lineHeight + paddingTop);
+                    } else if (highlightRef.current) {
+                        const spans = highlightRef.current.querySelectorAll('span.absolute');
+                        const span = spans[line - 1] as HTMLElement;
+                        if (span) {
+                            editorEl.scrollTop = Math.max(0, span.offsetTop - paddingTop);
+                        }
+                    }
+                } else if (scrollTop === 0) {
+                    editorEl.scrollTop = 0;
+                } else if (scrollTop >= previewEl.scrollHeight - previewEl.clientHeight - 10) {
+                    editorEl.scrollTop = editorEl.scrollHeight;
+                }
             }
-        }
-        clearScrollLock();
-    }, [syncScroll, viewMode, clearScrollLock]);
+            clearScrollLock();
+        });
+    }, [syncScroll, viewMode, wordWrap, clearScrollLock]);
 
     // Sync line count inside editor gutter
     const lineCount = useMemo(() => {
@@ -769,8 +881,15 @@ export default function MarkdownEditor() {
     const highlightedHtml = useMemo(() => {
         const highlighted = highlightMarkdown(content);
         // If content ends with a newline, append a space so the browser doesn't collapse the trailing blank line in <pre>
-        return content.endsWith("\n") ? highlighted + " " : highlighted;
-    }, [content]);
+        const html = content.endsWith("\n") ? highlighted + " " : highlighted;
+        
+        if (!wordWrap) return html;
+        
+        // Inject absolute line numbers into the syntax highlighting layer when word wrap is enabled
+        return html.split('\n').map((line, i) => {
+            return `<span class="absolute left-0 w-[3.5rem] pr-2 text-right text-zinc-400 dark:text-zinc-600 select-none">${i + 1}</span>${line}`;
+        }).join('\n');
+    }, [content, wordWrap]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -834,6 +953,19 @@ export default function MarkdownEditor() {
                             <span>Sync Scroll: {syncScroll ? "ON" : "OFF"}</span>
                         </button>
                     )}
+
+                    <button
+                        type="button"
+                        onClick={() => setWordWrap(!wordWrap)}
+                        className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all shadow-sm ${
+                            wordWrap
+                                ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900 dark:text-indigo-400"
+                                : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        }`}
+                        title="Toggle word wrap in editor"
+                    >
+                        <span>Wrap: {wordWrap ? "ON" : "OFF"}</span>
+                    </button>
                 </div>
 
                 {/* Right side: Global Actions (Copy, Export, Clear) */}
@@ -1054,25 +1186,27 @@ export default function MarkdownEditor() {
                     <div
                         ref={scrollContainerRef}
                         onScroll={handleEditorScroll}
-                        className="flex flex-1 min-h-[450px] max-h-[70vh] overflow-auto bg-white dark:bg-zinc-900"
+                        className="flex flex-1 min-h-[450px] max-h-[70vh] overflow-auto bg-white dark:bg-zinc-900 relative w-full"
                     >
-                        {/* Line number gutter */}
-                        <div
-                            className="shrink-0 self-start select-none border-r border-zinc-200 bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
-                            aria-hidden="true"
-                        >
-                            {Array.from({ length: lineCount }, (_, i) => (
-                                <div key={i}>{i + 1}</div>
-                            ))}
-                        </div>
+                        {/* Line number gutter (only when Word Wrap is OFF) */}
+                        {!wordWrap && (
+                            <div
+                                className="shrink-0 sticky left-0 z-20 self-start select-none border-r border-zinc-200 bg-zinc-50 py-4 pr-3 pl-3 text-right font-mono text-[13px] leading-relaxed text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-600"
+                                aria-hidden="true"
+                            >
+                                {Array.from({ length: lineCount }, (_, i) => (
+                                    <div key={i}>{i + 1}</div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Editor overlay container */}
-                        <div className="flex-1 self-start">
+                        <div className={`flex-1 self-start ${wordWrap ? "min-w-0 w-full" : "min-w-max"}`}>
                             <div className="grid [&>*]:col-start-1 [&>*]:row-start-1">
                                 {/* Highlight Layer (rendered behind transparent textarea) */}
-                                <pre
+                                <div
                                     ref={highlightRef}
-                                    className="pointer-events-none whitespace-pre p-4 font-mono text-[13px] leading-relaxed"
+                                    className={`pointer-events-none font-mono text-[13px] leading-relaxed ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"}`}
                                     aria-hidden="true"
                                     dangerouslySetInnerHTML={{
                                         __html: highlightedHtml || "&nbsp;",
@@ -1086,8 +1220,8 @@ export default function MarkdownEditor() {
                                     onChange={(e) => setContent(e.target.value)}
                                     placeholder="Start writing markdown, or click a toolbar button to insert templates..."
                                     spellCheck={false}
-                                    wrap="off"
-                                    className={`relative z-10 block w-full min-h-[450px] resize-none whitespace-pre bg-transparent p-4 font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${
+                                    wrap={wordWrap ? "soft" : "off"}
+                                    className={`relative z-10 block w-full min-h-[450px] resize-none bg-transparent font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${
                                         content
                                             ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
                                             : "text-zinc-900 dark:text-zinc-100"
@@ -1117,7 +1251,7 @@ export default function MarkdownEditor() {
                     <div
                         ref={previewContainerRef}
                         onScroll={handlePreviewScroll}
-                        className="flex-1 min-h-[450px] max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-zinc-900"
+                        className="flex-1 min-h-[450px] max-h-[70vh] overflow-y-auto p-6 bg-white dark:bg-zinc-900 relative"
                     >
                         <div
                             id="markdown-preview-root"
