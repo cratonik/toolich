@@ -388,13 +388,12 @@ export default function MarkdownEditor() {
     useEffect(() => {
         if (!mermaidInstance) return;
         
-        const observer = new MutationObserver(() => {
+        let currentTheme = document.documentElement.classList.contains("dark");
+
+        const observer = new MutationObserver((mutations) => {
             const isDark = document.documentElement.classList.contains("dark");
-            mermaidInstance.initialize({
-                startOnLoad: false,
-                theme: isDark ? "dark" : "default",
-                suppressErrorAlerts: true,
-            } as any);
+            if (isDark === currentTheme) return;
+            currentTheme = isDark;
             
             // Clear cache on theme change to ensure new SVG styles are generated correctly
             mermaidCache.clear();
@@ -435,7 +434,7 @@ export default function MarkdownEditor() {
                     if (cachedSvg) {
                         node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-processed="true" data-line="${node.position?.start?.line || ''}">${cachedSvg}</div>`;
                     } else {
-                        node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center py-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg" data-mermaid="${encoded}" data-line="${node.position?.start?.line || ''}"></div>`;
+                        node.value = `<div class="mermaid-block my-4 overflow-x-auto flex justify-center items-center py-8 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-400 dark:text-zinc-500 animate-pulse font-mono" data-mermaid="${encoded}" data-line="${node.position?.start?.line || ''}">[ Rendering Graph... ]</div>`;
                     }
                 } else if (node.type === 'code') {
                     const escapedText = (node.value || "")
