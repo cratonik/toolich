@@ -1049,12 +1049,17 @@ export default function MarkdownEditor() {
             </div>
 
             {/* Layout Wrapper */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div 
+                className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+                style={{ height: tabViewMode === "minified" ? "calc(100vh - 10rem)" : undefined }}
+            >
                 {/* Editor Container */}
                 <div
                     className={`flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden ${
                         viewMode === "preview" ? "hidden" : ""
-                    } ${viewMode === "editor" ? "lg:col-span-2" : ""}`}
+                    } ${viewMode === "editor" ? "lg:col-span-2" : ""} ${
+                        tabViewMode === "minified" ? "h-full" : ""
+                    }`}
                 >
                     {/* Formatting Toolbar */}
                     <div className="flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50/50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -1189,7 +1194,7 @@ export default function MarkdownEditor() {
                         ref={scrollContainerRef}
                         onScroll={handleEditorScroll}
                         className="flex flex-1 overflow-auto bg-white dark:bg-zinc-900 relative w-full"
-                        style={{ minHeight: tabViewMode === "minified" ? "calc(100vh - 11rem)" : "450px", maxHeight: tabViewMode === "minified" ? "none" : "70vh" }}
+                        style={tabViewMode === "minified" ? {} : { minHeight: "450px", maxHeight: "70vh" }}
                     >
                         {/* Line number gutter (only when Word Wrap is OFF) */}
                         {!wordWrap && (
@@ -1224,7 +1229,7 @@ export default function MarkdownEditor() {
                                     placeholder="Start writing markdown, or click a toolbar button to insert templates..."
                                     spellCheck={false}
                                     wrap={wordWrap ? "soft" : "off"}
-                                    style={{ minHeight: tabViewMode === "minified" ? "calc(100vh - 11rem)" : "450px" }}
+                                    style={{ minHeight: tabViewMode === "minified" ? "100%" : "450px" }}
                                     className={`relative z-10 block w-full resize-none bg-transparent font-mono text-[13px] leading-relaxed outline-none border-0 focus:ring-0 ${wordWrap ? "py-4 pr-4 pl-[4.5rem] whitespace-pre-wrap break-words" : "p-4 whitespace-pre"} ${
                                         content
                                             ? "text-transparent caret-zinc-800 dark:caret-zinc-200"
@@ -1240,7 +1245,9 @@ export default function MarkdownEditor() {
                 <div
                     className={`flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden ${
                         viewMode === "editor" ? "hidden" : ""
-                    } ${viewMode === "preview" ? "lg:col-span-2" : ""}`}
+                    } ${viewMode === "preview" ? "lg:col-span-2" : ""} ${
+                        tabViewMode === "minified" ? "h-full" : ""
+                    }`}
                 >
                     {/* Preview Header */}
                     <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50/50 px-4 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -1256,7 +1263,7 @@ export default function MarkdownEditor() {
                         ref={previewContainerRef}
                         onScroll={handlePreviewScroll}
                         className="flex-1 overflow-y-auto p-6 bg-white dark:bg-zinc-900 relative"
-                        style={{ minHeight: tabViewMode === "minified" ? "calc(100vh - 11rem)" : "450px", maxHeight: tabViewMode === "minified" ? "none" : "70vh" }}
+                        style={tabViewMode === "minified" ? {} : { minHeight: "450px", maxHeight: "70vh" }}
                     >
                         <div
                             id="markdown-preview-root"
