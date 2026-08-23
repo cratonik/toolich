@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Copy, Check, Trash2, Key, Clock, Calendar, Info, User, Shield, AlertTriangle, CheckCircle, ShieldAlert, Globe } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { useTabContext } from "@/lib/tab-context";
 
 // ── Web Crypto Helpers ───────────────────────────────────────────────────────
 
@@ -153,6 +154,7 @@ interface ParsedJwt {
 }
 
 export default function JwtDecoder() {
+    const { viewMode } = useTabContext();
     const [token, setToken] = useSessionState("jwt:token", "");
     const [secret, setSecret] = useState("");
     const [activeTab, setActiveTab] = useState<ActiveTab>("claims");
@@ -405,6 +407,7 @@ export default function JwtDecoder() {
                         placeholder="Paste your JWT encoded token here (header.payload.signature)..."
                         rows={22}
                         spellCheck={false}
+                        style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}
                         className={`w-full flex-1 resize-y rounded-xl border p-4 font-mono text-xs leading-relaxed shadow-sm outline-none transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-600 break-all ${
                             error
                                 ? "border-red-300 bg-red-50/20 text-zinc-900 focus:border-red-400 focus:ring-2 focus:ring-red-500/20 dark:border-red-900/40 dark:bg-red-950/10 dark:text-zinc-100 dark:focus:border-red-900"
@@ -592,7 +595,7 @@ export default function JwtDecoder() {
                                                 <Copy className="h-3.5 w-3.5" />
                                             )}
                                         </button>
-                                        <pre className="max-h-[480px] overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-relaxed text-zinc-800 dark:border-zinc-850 dark:bg-zinc-900/30 dark:text-zinc-300">
+                                        <pre className="overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-relaxed text-zinc-800 dark:border-zinc-850 dark:bg-zinc-900/30 dark:text-zinc-300" style={{ maxHeight: viewMode === "minified" ? "calc(100vh - 11rem)" : "480px", height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}>
                                             {JSON.stringify(parsed.payload, null, 2)}
                                         </pre>
                                     </div>
@@ -612,7 +615,7 @@ export default function JwtDecoder() {
                                                 <Copy className="h-3.5 w-3.5" />
                                             )}
                                         </button>
-                                        <pre className="max-h-[480px] overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-relaxed text-zinc-800 dark:border-zinc-850 dark:bg-zinc-900/30 dark:text-zinc-300">
+                                        <pre className="overflow-y-auto rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-relaxed text-zinc-800 dark:border-zinc-850 dark:bg-zinc-900/30 dark:text-zinc-300" style={{ maxHeight: viewMode === "minified" ? "calc(100vh - 11rem)" : "480px", height: viewMode === "minified" ? "calc(100vh - 11rem)" : undefined }}>
                                             {JSON.stringify(parsed.header, null, 2)}
                                         </pre>
                                     </div>

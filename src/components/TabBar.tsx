@@ -5,7 +5,7 @@ import { Home, X, Columns2 } from "lucide-react";
 import { useTabContext, getTabDisplayTitle } from "@/lib/tab-context";
 import { useToast } from "@/components/Toast";
 
-export function TabBar() {
+export function TabBar({ inline }: { inline?: boolean }) {
     const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs, isWide, openTab } = useTabContext();
     const { showToast } = useToast();
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -97,11 +97,28 @@ export function TabBar() {
         return () => window.removeEventListener("resize", check);
     }, []);
 
-    return (
-        <div className="sticky top-14 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-            <div className={`mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} px-4 sm:px-6 transition-all duration-300`}>
-                <div className="-mb-px flex items-center gap-0.5 overflow-x-auto scrollbar-none">
-                    {tabs.map((tab, index) => {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Enable horizontal scrolling with vertical mouse wheel
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        const handleWheel = (e: WheelEvent) => {
+            if (e.deltaY !== 0 && e.deltaX === 0) {
+                e.preventDefault();
+                el.scrollLeft += e.deltaY;
+            }
+        };
+        el.addEventListener("wheel", handleWheel, { passive: false });
+        return () => el.removeEventListener("wheel", handleWheel);
+    }, []);
+
+    const content = (
+        <div 
+            ref={scrollContainerRef}
+            className={`flex items-center gap-0.5 overflow-x-auto ${inline ? "pb-1.5 pt-0.5" : "-mb-px"}`}
+        >
+            {tabs.map((tab, index) => {
                         const isActive = tab.id === activeTabId;
                         const isHome = tab.id === "home";
                         const isSplit = tab.id === splitTabId;
@@ -142,7 +159,7 @@ export function TabBar() {
                                     setDragOverIndex(null);
                                     dragSourceIndex.current = null;
                                 }}
-                                className={`group relative flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${dragOverIndex === index
+                                className={`group relative flex shrink-0 items-center gap-2 border-b-2 ${inline ? "px-3 py-1.5" : "px-4 py-2.5"} text-xs font-medium transition-colors ${dragOverIndex === index
                                     ? "border-indigo-300 bg-indigo-50/50 dark:border-indigo-500/50 dark:bg-indigo-500/10"
                                     : isActive
                                         ? "border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400"
@@ -218,7 +235,17 @@ export function TabBar() {
                             </button>
                         );
                     })}
-                </div>
+        </div>
+    );
+
+    if (inline) {
+        return content;
+    }
+
+    return (
+        <div className="sticky top-14 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <div className={`mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} px-4 sm:px-6 transition-all duration-300`}>
+                {content}
             </div>
         </div>
     );

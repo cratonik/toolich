@@ -32,7 +32,7 @@ const CATEGORY_ICON_CLASSES: Record<string, string> = {
 
 export default function CategoryPanel({ category }: { category: string }) {
     const tools = category === "__all__" ? allTools : getToolsByCategory(category);
-    const { openInCurrentTab, goHome, activeTabId } = useTabContext();
+    const { openInCurrentTab, goHome, activeTabId, viewMode } = useTabContext();
     const Icon = CATEGORY_ICONS[category] ?? Code;
     const iconClass = CATEGORY_ICON_CLASSES[category] ?? "";
     const isInHomeTab = activeTabId === "home";

@@ -55,6 +55,8 @@ type TabContextType = {
     toggleFavorite: (slug: string) => void;
     isFavorite: (slug: string) => boolean;
     splitHighlightTrigger: number;
+    viewMode: "normal" | "minified";
+    toggleViewMode: () => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -219,6 +221,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const [splitRatio, setSplitRatio] = useState(0.5);
     const [splitHighlightTrigger, setSplitHighlightTrigger] = useState(0);
     const [isWide, setIsWide] = useState(false);
+    const [viewMode, setViewMode] = useState<"normal" | "minified">("normal");
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
     const activeTabIdRef = useRef(activeTabId);
@@ -657,12 +660,25 @@ export function TabProvider({ children }: { children: ReactNode }) {
         if (saved === "true") {
             setIsWide(true);
         }
+        
+        const savedViewMode = localStorage.getItem("toolich-view-mode");
+        if (savedViewMode === "minified" || savedViewMode === "normal") {
+            setViewMode(savedViewMode);
+        }
     }, []);
 
     const toggleWide = useCallback(() => {
         setIsWide((prev) => {
             const next = !prev;
             localStorage.setItem("toolich-wide", String(next));
+            return next;
+        });
+    }, []);
+
+    const toggleViewMode = useCallback(() => {
+        setViewMode((prev) => {
+            const next = prev === "normal" ? "minified" : "normal";
+            localStorage.setItem("toolich-view-mode", next);
             return next;
         });
     }, []);
@@ -691,6 +707,8 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 toggleFavorite,
                 isFavorite,
                 splitHighlightTrigger,
+                viewMode,
+                toggleViewMode,
             }}
         >
             {children}

@@ -5,6 +5,7 @@ import Editor from "@monaco-editor/react";
 import { Play, Square, Loader2, RotateCcw, Trash2, Code2, ChevronDown, WrapText } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useTheme } from "@/lib/theme-context";
+import { useTabContext } from "@/lib/tab-context";
 
 interface OutputMessage {
     type: "stdout" | "stderr" | "system" | "stdin" | "html";
@@ -287,8 +288,9 @@ if __name__ == "__main__":
 
 export default function PythonCompiler() {
     const { resolvedTheme } = useTheme();
+    const { viewMode } = useTabContext();
     const [code, setCode] = useSessionState("python-compiler:code", DEFAULT_CODE);
-    const [wordWrap, setWordWrap] = useSessionState("python-compiler:wrap", true);
+    const [isWrapped, setIsWrapped] = useSessionState("python-compiler:wrap", true);
     const [output, setOutput] = useState<OutputMessage[]>([
         { type: "system", text: "Python Environment Ready (Pyodide 0.25.1)" }
     ]);
@@ -419,7 +421,10 @@ export default function PythonCompiler() {
                 </div>
             </div>
 
-            <div className="flex flex-col h-[700px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden md:flex-row">
+            <div 
+                className="flex flex-col rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden md:flex-row"
+                style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : "700px" }}
+            >
                 {/* Editor Pane */}
             <div className="flex-1 flex flex-col border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 relative min-h-[300px] md:min-h-0 w-full md:w-1/2">
                 <div className="flex items-center justify-between h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
@@ -447,24 +452,24 @@ export default function PythonCompiler() {
                             </div>
                         </div>
                         <button
+                            onClick={() => setIsWrapped(!isWrapped)}
+                            className={`px-2.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                isWrapped
+                                    ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/10 dark:border-indigo-500/30 dark:text-indigo-400"
+                                    : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+                            }`}
+                            title={isWrapped ? "Disable Word Wrap" : "Enable Word Wrap"}
+                        >
+                            <WrapText className="h-3.5 w-3.5" />
+                            Wrap
+                        </button>
+                        <button
                             onClick={handleReset}
                             className="px-2.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
                             title="Reset Code & Terminal"
                         >
                             <RotateCcw className="h-3.5 w-3.5" />
                             Reset
-                        </button>
-                        <button
-                            onClick={() => setWordWrap(w => !w)}
-                            className={`px-2.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                                wordWrap 
-                                    ? "bg-zinc-100 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100" 
-                                    : "border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
-                            }`}
-                            title="Toggle Word Wrap"
-                        >
-                            <WrapText className="h-3.5 w-3.5" />
-                            Wrap
                         </button>
                         <button
                             onClick={handleClearEditor}
@@ -509,7 +514,7 @@ export default function PythonCompiler() {
                             scrollBeyondLastLine: false,
                             smoothScrolling: true,
                             cursorBlinking: "smooth",
-                            wordWrap: wordWrap ? "on" : "off",
+                            wordWrap: isWrapped ? "on" : "off",
                         }}
                         loading={
                             <div className="flex items-center justify-center h-full w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-400">

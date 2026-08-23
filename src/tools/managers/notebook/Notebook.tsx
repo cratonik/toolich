@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Plus, Trash2, Edit2, FileText, Search, Clock, Save, FileOutput, FileCode2, ListTodo, Star, Circle, CheckCircle2, Tag, ChevronDown, Bold, Italic, Strikethrough, Code, List, ListOrdered, Link2, Highlighter, TextQuote, SplitSquareHorizontal, Table2, ArrowLeftToLine, ArrowRightToLine, ArrowUpToLine, ArrowDownToLine, Delete, SquareCode, PanelTop, PanelLeft } from "lucide-react";
 import { useLocalStorage } from "@/lib/use-local-storage";
+import { useTabContext } from "@/lib/tab-context";
 
 // Tiptap imports
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
@@ -273,6 +274,7 @@ const MenuBar = ({ editor }: { editor: Editor | null }) => {
 };
 
 export default function Notebook() {
+    const { viewMode } = useTabContext();
     const [showBubbleHighlight, setShowBubbleHighlight] = useState(false);
     const [showTaskSidebar, setShowTaskSidebar] = useState(false);
     const [noteTaskContent, setNoteTaskContent] = useState("");
@@ -662,7 +664,10 @@ export default function Notebook() {
     };
 
     return (
-        <div className="flex h-[800px] max-h-[80vh] w-full rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
+        <div 
+            className="flex w-full rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden"
+            style={{ height: viewMode === "minified" ? "calc(100vh - 11rem)" : "800px", maxHeight: viewMode === "minified" ? "none" : "80vh" }}
+        >
             {/* Sidebar */}
             <div className="w-64 flex-shrink-0 border-r border-zinc-200 dark:border-zinc-800 flex flex-col bg-zinc-50/50 dark:bg-zinc-900/20">
                 <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex gap-2">

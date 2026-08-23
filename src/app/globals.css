@@ -56,8 +56,8 @@ body {
 
 /* WebKit browsers (Chrome, Edge, Safari) */
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
 
 *::-webkit-scrollbar-track {
@@ -75,6 +75,18 @@ body {
 
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Hide scrollbar completely but allow scrolling */
+.scrollbar-none {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* ── Toast animation ── */

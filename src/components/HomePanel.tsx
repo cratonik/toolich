@@ -88,7 +88,7 @@ const NEW_TOOL_SLUGS = ["markdown-editor","notepad", "notebook", "diff-checker",
 
 export default function HomePanel() {
     const [recentTools, setRecentTools] = useState<{ name: string; slug: string; category: string }[]>([]);
-    const { openTab, favorites } = useTabContext();
+    const { openTab, favorites, viewMode } = useTabContext();
 
     useEffect(() => {
         const tools = getRecentTools();
@@ -108,10 +108,12 @@ export default function HomePanel() {
                 <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
                     Simple tools for everyday developer tasks
                 </h1>
-                <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
-                    Fast, minimal, zero-config utilities built to help you ship code and
-                    run your day-to-day work with less friction.
-                </p>
+                {viewMode === "normal" && (
+                    <p className="max-w-2xl text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
+                        Fast, minimal, zero-config utilities built to help you ship code and
+                        run your day-to-day work with less friction.
+                    </p>
+                )}
             </section>
 
             {/* Favorite Tools */}
@@ -208,36 +210,38 @@ export default function HomePanel() {
             )}
 
             {/* SEO and AdSense Content Section */}
-            <section className="mt-16 border-t border-zinc-200 pt-12 pb-8 dark:border-zinc-800">
-                <div className="max-w-3xl space-y-8">
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-                            Why Use Toolich for Developer Utilities?
-                        </h2>
-                        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                            Toolich is a comprehensive suite of free, secure, and blazing-fast tools designed specifically for developers, DevOps engineers, and network administrators. Whether you need to encode sensitive payloads, generate secure passwords, or validate complex JSON schemas, Toolich provides a robust set of utilities that run directly in your browser. This client-side execution model ensures maximum performance and complete privacy.
-                        </p>
-                    </div>
+            {viewMode === "normal" && (
+                <section className="mt-16 border-t border-zinc-200 pt-12 pb-8 dark:border-zinc-800">
+                    <div className="max-w-3xl space-y-8">
+                        <div className="space-y-4">
+                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+                                Why Use Toolich for Developer Utilities?
+                            </h2>
+                            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                Toolich is a comprehensive suite of free, secure, and blazing-fast tools designed specifically for developers, DevOps engineers, and network administrators. Whether you need to encode sensitive payloads, generate secure passwords, or validate complex JSON schemas, Toolich provides a robust set of utilities that run directly in your browser. This client-side execution model ensures maximum performance and complete privacy.
+                            </p>
+                        </div>
 
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-                            Privacy and Security First
-                        </h3>
-                        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                            Unlike traditional online tools that transmit your data to remote servers for processing, Toolich is built on a "local-first" architecture. Your code snippets, environment variables, JWT tokens, and private keys never leave your machine. All formatting, decoding, and cryptographic hashing operations are performed securely inside your browser's sandboxed environment using optimized JavaScript and WebAssembly APIs.
-                        </p>
-                    </div>
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+                                Privacy and Security First
+                            </h3>
+                            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                Unlike traditional online tools that transmit your data to remote servers for processing, Toolich is built on a "local-first" architecture. Your code snippets, environment variables, JWT tokens, and private keys never leave your machine. All formatting, decoding, and cryptographic hashing operations are performed securely inside your browser's sandboxed environment using optimized JavaScript and WebAssembly APIs.
+                            </p>
+                        </div>
 
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
-                            Everything You Need in One Place
-                        </h3>
-                        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                            We've consolidated the most frequently used development tools into a single, cohesive interface. Forget bookmarking dozens of different ad-heavy sites with inconsistent interfaces. With Toolich, you can easily tab between a Markdown editor, a subnet calculator, and a cron expression parser—all within the same fast, distraction-free environment.
-                        </p>
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-50">
+                                Everything You Need in One Place
+                            </h3>
+                            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                                We've consolidated the most frequently used development tools into a single, cohesive interface. Forget bookmarking dozens of different ad-heavy sites with inconsistent interfaces. With Toolich, you can easily tab between a Markdown editor, a subnet calculator, and a cron expression parser—all within the same fast, distraction-free environment.
+                            </p>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
         </div>
     );
 }
