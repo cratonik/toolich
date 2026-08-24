@@ -21,6 +21,7 @@ import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
 import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
 import SslDecoder from "@/tools/security/ssl-decoder/SslDecoder";
+import HttpStatusCodes from "@/tools/networking/http-status-codes/HttpStatusCodes";
 
 /**
  * Registry of tool components.
@@ -45,6 +46,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "devops/regex-tester": RegexTester,
     "networking/subnet-calculator": SubnetCalculator,
     "networking/dns-lookup": DnsLookup,
+    "networking/http-status-codes": HttpStatusCodes,
     "managers/diff-checker": DiffChecker,
     "managers/notepad": Notepad,
     "managers/notebook": Notebook,
