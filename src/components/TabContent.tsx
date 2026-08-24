@@ -113,7 +113,7 @@ function TabPanel({ tab }: { tab: Tab }) {
                         description={meta.description}
                         category={meta.category}
                         slug={meta.slug}
-                        hideOpenAgain={meta.slug === "http-status-codes"}
+                        hideOpenAgain={meta.slug === "http-status-codes" || meta.slug === "ip-lookup"}
                     />
                 )}
                 <Suspense fallback={<ToolLoadingFallback />}>

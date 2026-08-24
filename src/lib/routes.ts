@@ -33,6 +33,7 @@ export const ROUTES = {
             subnetCalculator: "/tools/networking/subnet-calculator",
             dnsLookup: "/tools/networking/dns-lookup",
             httpStatusCodes: "/tools/networking/http-status-codes",
+            ipLookup: "/tools/networking/ip-lookup",
         },
         managers: {
             diffChecker: "/tools/managers/diff-checker",

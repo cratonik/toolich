@@ -22,6 +22,7 @@ import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
 import SslDecoder from "@/tools/security/ssl-decoder/SslDecoder";
 import HttpStatusCodes from "@/tools/networking/http-status-codes/HttpStatusCodes";
+import IpLookup from "@/tools/networking/ip-lookup/IpLookup";
 
 /**
  * Registry of tool components.
@@ -47,6 +48,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "networking/subnet-calculator": SubnetCalculator,
     "networking/dns-lookup": DnsLookup,
     "networking/http-status-codes": HttpStatusCodes,
+    "networking/ip-lookup": IpLookup,
     "managers/diff-checker": DiffChecker,
     "managers/notepad": Notepad,
     "managers/notebook": Notebook,
