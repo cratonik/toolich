@@ -625,5 +625,62 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
             }
         ],
         securityInfo: "Your Python code is executed inside a secure, sandboxed WebAssembly environment within your browser. Code is never uploaded to any remote server."
+    },
+    "http-status-codes": {
+        introduction: "HTTP Status Codes are standardized three-digit numbers sent by servers in response to a client's request. Understanding these codes is essential for debugging APIs, web applications, and network connectivity issues. The HTTP Status Code Reference tool provides a searchable, categorized database of all standard 1xx through 5xx status codes.",
+        features: [
+            "Complete dictionary of standard HTTP status codes (1xx, 2xx, 3xx, 4xx, 5xx).",
+            "Real-time search to instantly filter by code number or keyword description.",
+            "Quick-copy functionality to effortlessly copy status codes and their full descriptions to the clipboard.",
+            "Categorized filtering for Informational, Success, Redirection, Client Error, and Server Error codes."
+        ],
+        howToUse: [
+            "Type a status code number (e.g., '404') or a keyword (e.g., 'Not Found') into the search bar.",
+            "Browse the filtered list of status codes that match your query.",
+            "Click on the category buttons to filter status codes by their generic HTTP class.",
+            "Click the 'Copy' icon next to any status code to copy its details to your clipboard."
+        ],
+        faq: [
+            {
+                question: "What do the different 100-500 series codes mean?",
+                answer: "1xx codes are Informational. 2xx codes indicate Success. 3xx codes are for Redirection. 4xx codes represent Client Errors (e.g., bad request, unauthorized). 5xx codes represent Server Errors (e.g., internal server error, gateway timeout)."
+            },
+            {
+                question: "Are non-standard status codes included?",
+                answer: "This reference currently focuses on the official, standardized IANA HTTP status codes to ensure accuracy and relevance for standard web development."
+            }
+        ],
+        securityInfo: "This tool operates entirely locally as a reference guide. No queries or searches are sent to any external server."
+    },
+    "ip-lookup": {
+        introduction: "An IP (Internet Protocol) address uniquely identifies a device on the internet or a local network. The IP Address Lookup tool allows you to instantly determine the approximate geographic location, ISP (Internet Service Provider), and ASN (Autonomous System Number) associated with any public IPv4 or IPv6 address.",
+        features: [
+            "Automatically detects and displays details for your own public IP address upon opening.",
+            "Supports querying both IPv4 and modern IPv6 addresses.",
+            "Retrieves detailed network metadata including ISP organization, ASN, Country, Region, City, and Timezone.",
+            "Displays the IP's registered approximate location on an interactive, highly-responsive map.",
+            "One-click copy buttons for every data point."
+        ],
+        howToUse: [
+            "Open the tool to automatically view details and the map location of your current public IP address.",
+            "To look up a different IP, type an IPv4 or IPv6 address into the search bar and click 'Lookup'.",
+            "Click the 'Clear' button to reset the view back to your own public IP.",
+            "Click the 'Copy' icons next to any specific field (like ASN or Coordinates) to copy it to your clipboard."
+        ],
+        faq: [
+            {
+                question: "Why does the map show a different city than my actual location?",
+                answer: "IP geolocation databases map IP addresses to the physical locations where your ISP registers them, which is often a regional data center or routing hub, rather than your exact GPS location."
+            },
+            {
+                question: "Can I look up private or local IP addresses?",
+                answer: "No, private network IP addresses (like 192.168.x.x or 10.x.x.x) are strictly used within local networks and do not have public geographic or ASN data associated with them."
+            },
+            {
+                question: "Why do I have an IPv6 address instead of an IPv4 address?",
+                answer: "Due to the global exhaustion of IPv4 addresses, many ISPs (especially mobile carriers) natively assign the longer, newer IPv6 addresses to client devices."
+            }
+        ],
+        securityInfo: "Queries are sent directly to a public IP geolocation API via HTTPS. We do not store or track the IP addresses you search for."
     }
 };
