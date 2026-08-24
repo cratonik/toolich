@@ -627,6 +627,7 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
         securityInfo: "Your Python code is executed inside a secure, sandboxed WebAssembly environment within your browser. Code is never uploaded to any remote server."
     },
     "http-status-codes": {
+        title: "HTTP Status Codes Reference",
         introduction: "HTTP Status Codes are standardized three-digit numbers sent by servers in response to a client's request. Understanding these codes is essential for debugging APIs, web applications, and network connectivity issues. The HTTP Status Code Reference tool provides a searchable, categorized database of all standard 1xx through 5xx status codes.",
         features: [
             "Complete dictionary of standard HTTP status codes (1xx, 2xx, 3xx, 4xx, 5xx).",
@@ -653,6 +654,7 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
         securityInfo: "This tool operates entirely locally as a reference guide. No queries or searches are sent to any external server."
     },
     "ip-lookup": {
+        title: "IP Address Lookup",
         introduction: "An IP (Internet Protocol) address uniquely identifies a device on the internet or a local network. The IP Address Lookup tool allows you to instantly determine the approximate geographic location, ISP (Internet Service Provider), and ASN (Autonomous System Number) associated with any public IPv4 or IPv6 address.",
         features: [
             "Automatically detects and displays details for your own public IP address upon opening.",
