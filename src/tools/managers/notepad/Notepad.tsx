@@ -143,18 +143,33 @@ export default function Notepad() {
         if (!textareaRef.current || !findText) return;
         const textarea = textareaRef.current;
         const content = textarea.value;
-        const searchIndex = content.toLowerCase().indexOf(findText.toLowerCase(), textarea.selectionEnd);
         
-        if (searchIndex !== -1) {
-            textarea.focus();
-            textarea.setSelectionRange(searchIndex, searchIndex + findText.length);
-        } else {
+        let searchIndex = content.toLowerCase().indexOf(findText.toLowerCase(), textarea.selectionEnd);
+        
+        if (searchIndex === -1) {
             // Wrap around
-            const firstIndex = content.toLowerCase().indexOf(findText.toLowerCase());
-            if (firstIndex !== -1) {
-                textarea.focus();
-                textarea.setSelectionRange(firstIndex, firstIndex + findText.length);
+            searchIndex = content.toLowerCase().indexOf(findText.toLowerCase());
+        }
+
+        if (searchIndex !== -1) {
+            const start = searchIndex;
+            const end = searchIndex + findText.length;
+            
+            // Trick to scroll the found text into the middle of the viewport
+            const fullText = textarea.value;
+            let targetScrollTop = 0;
+            try {
+                textarea.value = fullText.substring(0, end);
+                targetScrollTop = textarea.scrollHeight - (textarea.clientHeight / 2);
+            } finally {
+                textarea.value = fullText;
             }
+            
+            textarea.scrollTop = Math.max(0, targetScrollTop);
+            textarea.setSelectionRange(start, end);
+            
+            // We must focus the textarea so the browser actually renders the selection highlight
+            textarea.focus();
         }
     };
 
@@ -330,7 +345,12 @@ export default function Notepad() {
                         placeholder="Find..." 
                         value={findText}
                         onChange={(e) => setFindText(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleFindNext(); }}
+                        onKeyDown={(e) => { 
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleFindNext();
+                            }
+                        }}
                         className="px-3 py-1.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 outline-none focus:border-indigo-400 dark:focus:border-indigo-500"
                     />
                     <input 
@@ -387,6 +407,16 @@ export default function Notepad() {
                     onScroll={(e) => {
                         if (gutterRef.current) {
                             gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (showSearch && e.key === 'Enter' && findText) {
+                            const textarea = e.currentTarget;
+                            const selectedText = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
+                            if (selectedText.toLowerCase() === findText.toLowerCase()) {
+                                e.preventDefault();
+                                handleFindNext();
+                            }
                         }
                     }}
                     wrap={wordWrap ? "soft" : "off"}
