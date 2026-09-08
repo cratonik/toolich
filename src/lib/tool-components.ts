@@ -10,6 +10,7 @@ import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
 import PasswordGenerator from "@/tools/security/password-generator/PasswordGenerator";
 import CronParser from "@/tools/devops/cron-parser/CronParser";
 import EnvEditor from "@/tools/devops/env-editor/EnvEditor";
+import YamlFormatter from "@/tools/devops/yaml-formatter/YamlFormatter";
 import RegexTester from "@/tools/devops/regex-tester/RegexTester";
 import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
 import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
@@ -44,6 +45,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "security/ssl-decoder": SslDecoder,
     "devops/cron-parser": CronParser,
     "devops/env-editor": EnvEditor,
+    "devops/yaml-formatter": YamlFormatter,
     "devops/regex-tester": RegexTester,
     "networking/subnet-calculator": SubnetCalculator,
     "networking/dns-lookup": DnsLookup,
