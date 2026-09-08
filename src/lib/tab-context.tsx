@@ -220,7 +220,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const [splitTabId, setSplitTabId] = useState<string | null>(null);
     const [splitRatio, setSplitRatio] = useState(0.5);
     const [splitHighlightTrigger, setSplitHighlightTrigger] = useState(0);
-    const [isWide, setIsWide] = useState(false);
+    const [isWide, setIsWide] = useState(true);
     const [viewMode, setViewMode] = useState<"normal" | "minified">("normal");
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
@@ -657,8 +657,8 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const saved = localStorage.getItem("toolich-wide");
-        if (saved === "true") {
-            setIsWide(true);
+        if (saved === "false") {
+            setIsWide(false);
         }
         
         const savedViewMode = localStorage.getItem("toolich-view-mode");
