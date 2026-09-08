@@ -18,6 +18,7 @@ import Notepad from "@/tools/managers/notepad/Notepad";
 import Notebook from "@/tools/managers/notebook/Notebook";
 import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
 import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
+import TimestampConverter from "@/tools/managers/timestamp-converter/TimestampConverter";
 import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
 import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
@@ -56,6 +57,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "managers/notebook": Notebook,
     "managers/markdown-editor": MarkdownEditor,
     "manager/markdown-editor": MarkdownEditor,
+    "managers/timestamp-converter": TimestampConverter,
 };
 
 /**

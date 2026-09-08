@@ -220,6 +220,16 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "Timestamp Converter",
+        slug: "timestamp-converter",
+        description: "Convert between Unix timestamps, ISO 8601, and human-readable date formats across timezones.",
+        category: "managers",
+        additionalCategories: ["developers", "devops"],
+        keywords: [
+            "timestamp", "converter", "date", "unix", "epoch", "time", "timezone", "iso 8601", "relative",
+        ],
+    },
+    {
         name: "JSON to Types",
         slug: "json-to-types",
         description: "Generate TypeScript interfaces and Python type declarations from JSON payloads.",
