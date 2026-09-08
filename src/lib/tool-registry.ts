@@ -70,6 +70,16 @@ const TOOLS: ToolMeta[] = [
         keywords: ["json", "format", "prettify", "minify", "validate", "beautify"],
     },
     {
+        name: "YAML Formatter",
+        slug: "yaml-formatter",
+        description: "Validate, format, and convert YAML to JSON with real-time error highlighting.",
+        category: "devops",
+        additionalCategories: ["developers"],
+        keywords: [
+            "yaml", "yml", "json", "format", "prettify", "minify", "validate", "convert",
+        ],
+    },
+    {
         name: "Python Compiler",
         slug: "python-compiler",
         description: "Write and execute Python 3 code entirely in your browser using Pyodide.",
