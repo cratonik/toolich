@@ -416,21 +416,18 @@ export default function Notepad() {
                                     textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 4;
                                 }
                             }, 0);
-                        }
-                    }}
-                    onScroll={(e) => {
-                        if (gutterRef.current) {
-                            gutterRef.current.scrollTop = e.currentTarget.scrollTop;
-                        }
-                    }}
-                    onKeyDown={(e) => {
-                        if (showSearch && e.key === 'Enter' && findText) {
+                        } else if (showSearch && e.key === 'Enter' && findText) {
                             const textarea = e.currentTarget;
                             const selectedText = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
                             if (selectedText.toLowerCase() === findText.toLowerCase()) {
                                 e.preventDefault();
                                 handleFindNext();
                             }
+                        }
+                    }}
+                    onScroll={(e) => {
+                        if (gutterRef.current) {
+                            gutterRef.current.scrollTop = e.currentTarget.scrollTop;
                         }
                     }}
                     wrap={wordWrap ? "soft" : "off"}
