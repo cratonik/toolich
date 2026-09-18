@@ -404,6 +404,20 @@ export default function Notepad() {
                     ref={textareaRef}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                            e.preventDefault();
+                            const start = e.currentTarget.selectionStart;
+                            const end = e.currentTarget.selectionEnd;
+                            const newText = text.substring(0, start) + "    " + text.substring(end);
+                            setText(newText);
+                            setTimeout(() => {
+                                if (textareaRef.current) {
+                                    textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 4;
+                                }
+                            }, 0);
+                        }
+                    }}
                     onScroll={(e) => {
                         if (gutterRef.current) {
                             gutterRef.current.scrollTop = e.currentTarget.scrollTop;
