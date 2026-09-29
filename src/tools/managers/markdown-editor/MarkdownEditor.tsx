@@ -12,7 +12,7 @@ import { visit } from "unist-util-visit";
 import { 
     Bold, Italic, Heading, Link, Image, Code, List, ListOrdered, CheckSquare, 
     FileText, Copy, Trash2, Eye, Edit3, Columns, ArrowDownToLine, Check, HelpCircle,
-    Printer
+    Printer, Upload
 } from "lucide-react";
 
 // Default markdown content showing off features
@@ -362,6 +362,7 @@ export default function MarkdownEditor() {
     const highlightRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const previewContainerRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const isScrollingRef = useRef<"editor" | "preview" | null>(null);
     const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -732,6 +733,32 @@ export default function MarkdownEditor() {
         });
     }, []);
 
+    // File Upload Handler
+    const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.md')) {
+            alert('Please upload a valid Markdown (.md) file.');
+            if (e.target) e.target.value = "";
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const fileContent = event.target?.result;
+            if (typeof fileContent === "string") {
+                setContent(fileContent);
+            }
+        };
+        reader.readAsText(file);
+        
+        // Reset the input value so the same file can be uploaded again if needed
+        if (e.target) {
+            e.target.value = "";
+        }
+    }, [setContent]);
+
     // Clipboard Copy Raw Markdown
     const handleCopyRaw = useCallback(() => {
         navigator.clipboard.writeText(content)
@@ -972,6 +999,23 @@ export default function MarkdownEditor() {
 
                 {/* Right side: Global Actions (Copy, Export, Clear) */}
                 <div className="flex items-center gap-2">
+                    <input
+                        type="file"
+                        accept=".md"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        title="Upload Markdown File"
+                    >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span className="hidden xl:inline">Upload</span>
+                    </button>
+
                     <button
                         type="button"
                         onClick={handleCopyRaw}
