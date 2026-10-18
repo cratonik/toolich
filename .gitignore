@@ -42,3 +42,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# launch campaign
+reels-launch-sequence.md
+
+# skills
+skills-lock.json
+
+# brag output
+brag-output*
