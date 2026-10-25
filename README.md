@@ -2,7 +2,7 @@
 
 A developer-focused toolkit built as a single-page app with a browser-tab UX. Tools are organized into categories (Developers, DevOps, Security, Networking, Managers) and accessible both inline via tabs and at standalone URLs.
 
-https://github.com/user-attachments/assets/f54da371-0981-44f8-8c52-1e0fb06cd27b
+https://github.com/user-attachments/assets/b899c487-9611-444b-bab8-826cac06383e
 
 **Stack:** Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · lucide-react
 
