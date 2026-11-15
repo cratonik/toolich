@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Copy, Check, Trash2, Upload, WrapText, Minimize2, Undo2, ClipboardCopy, ListTree, Type } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useTabContext } from "@/lib/tab-context";
+import { trackToolUsageEvent } from "@/lib/analytics";
 
 type IndentSize = 2 | 4;
 
@@ -962,6 +963,7 @@ export default function JsonFormatter() {
     };
 
     const handlePrettify = () => {
+        trackToolUsageEvent("json-formatter", "format");
         const result = prettify(content, indent);
         setContent(result);
     };
@@ -1000,6 +1002,7 @@ export default function JsonFormatter() {
 
     const handleMinify = () => {
         if (!content.trim()) return;
+        trackToolUsageEvent("json-formatter", "minify");
         const { parsed, normalized } = tryParseJson(content);
         if (parsed !== null) {
             setContent(normalized !== null ? minifyStructureOnly(content) : JSON.stringify(parsed));
@@ -1029,6 +1032,7 @@ export default function JsonFormatter() {
 
     const handleCopy = async () => {
         if (!content) return;
+        trackToolUsageEvent("json-formatter", "copy");
         await navigator.clipboard.writeText(content);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);

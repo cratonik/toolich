@@ -94,7 +94,7 @@ export default function Header({
             <button
               type="button"
               onClick={toggleViewMode}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
               aria-label={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
               title={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
             >

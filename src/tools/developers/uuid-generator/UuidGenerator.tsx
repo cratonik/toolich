@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Copy, Check, Trash2, RefreshCw, Layers } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { trackToolUsageEvent } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // UUID generation helpers
@@ -131,6 +132,7 @@ export default function UuidGenerator() {
         const num = Math.max(1, Math.min(500, count));
         for (let i = 0; i < num; i++) next.push(gen());
         setUuids(next);
+        trackToolUsageEvent("uuid-generator", "generate");
     }, [version, count]);
 
     // ------ formatting ------
@@ -144,12 +146,14 @@ export default function UuidGenerator() {
 
     // ------ clipboard ------
     const copyOne = async (idx: number) => {
+        trackToolUsageEvent("uuid-generator", "copy");
         await navigator.clipboard.writeText(format(uuids[idx]));
         setCopiedIdx(idx);
         setTimeout(() => setCopiedIdx(null), 1500);
     };
 
     const copyAll = async () => {
+        trackToolUsageEvent("uuid-generator", "copy");
         const text = uuids.map(format).join("\n");
         await navigator.clipboard.writeText(text);
         setCopiedAll(true);

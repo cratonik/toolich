@@ -5,6 +5,7 @@
 
 export const ROUTES = {
     home: "/",
+    allTools: "/tools",
     categories: {
         developers: "/tools/developers",
         devops: "/tools/devops",
@@ -44,6 +45,7 @@ export const ROUTES = {
 
 /** Build a category path */
 export function categoryPath(category: string): string {
+    if (category === "__all__") return "/tools";
     return `/tools/${category}`;
 }
 

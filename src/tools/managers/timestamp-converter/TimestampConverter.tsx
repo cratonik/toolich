@@ -5,6 +5,7 @@ import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 import { Copy, Check, Clock, Calendar, Globe, Trash2, CornerDownRight } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
+import { trackToolUsageEvent } from "@/lib/analytics";
 
 const TIMEZONES = [
     { label: "Local Time", value: "local" },
@@ -160,6 +161,7 @@ export default function TimestampConverter() {
 
     const handleCopy = async (text: string, id: string) => {
         try {
+            trackToolUsageEvent("timestamp-converter", "copy");
             await navigator.clipboard.writeText(text);
             setCopiedStates((prev) => ({ ...prev, [id]: true }));
             setTimeout(() => {
