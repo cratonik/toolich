@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import { StaticFloatingDock } from "@/components/StaticFloatingDock";
 
 export const metadata: Metadata = {
-  title: 'Blog | Toolich',
+  title: 'Blog',
   description: 'Read the latest tutorials, updates, and developer guides from Toolich.',
   openGraph: {
     title: 'Blog | Toolich',

@@ -12,6 +12,7 @@ import {
 import { getToolBySlug, getToolsByCategory } from "@/lib/tool-registry";
 import { toolPath, categoryPath, CATEGORY_LABELS } from "@/lib/routes";
 import { trackToolUsage } from "@/lib/recent-tools";
+import { trackToolUsageEvent } from "@/lib/analytics";
 import { usePathname } from "next/navigation";
 
 // ---------------------------------------------------------------------------
@@ -97,9 +98,28 @@ function parsePathname(pathname: string): { category: string; slug: string } | n
         return { category: segments[1], slug: segments[2] };
     }
     if (segments.length === 2 && segments[0] === "tools") {
+        if (segments[1] === "__all__") {
+            return { category: "__all__", slug: `__category__/__all__` };
+        }
         return { category: segments[1], slug: `__category__/${segments[1]}` };
     }
+    if (segments.length === 1 && segments[0] === "tools") {
+        return { category: "__all__", slug: `__category__/__all__` };
+    }
     return null;
+}
+
+/** Compute document title for a tab */
+function getPageTitleForTab(tab: Tab | undefined): string {
+    if (!tab) return "Toolich — Developer Tools & Utilities";
+    if (tab.toolSlug && !tab.toolSlug.startsWith("__category__/")) {
+        return `${tab.title} | Toolich`;
+    }
+    if (tab.category) {
+        const catLabel = tab.category === "__all__" ? "All Tools" : (CATEGORY_LABELS[tab.category] ?? tab.category);
+        return `${catLabel} | Toolich`;
+    }
+    return "Toolich — Developer Tools & Utilities";
 }
 
 // ---------------------------------------------------------------------------
@@ -291,20 +311,39 @@ export function TabProvider({ children }: { children: ReactNode }) {
         saveToSession(tabs, activeTabId, splitTabId, splitRatio);
     }, [tabs, activeTabId, splitTabId, splitRatio]);
 
-    // ── Sync URL when active tab changes ──
+    const isInitialMount = useRef(true);
+
+    // ── Sync URL and document title when active tab changes ──
     useEffect(() => {
-        if (skipPushRef.current) {
-            skipPushRef.current = false;
-            return;
-        }
         const path = window.location.pathname;
         if (isStaticPath(path)) return;
 
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (!activeTab) return;
         const targetPath = tabToPath(activeTab);
-        if (path !== targetPath) {
+        const pageTitle = getPageTitleForTab(activeTab);
+
+        if (typeof document !== "undefined") {
+            document.title = pageTitle;
+        }
+
+        const isPop = skipPushRef.current;
+        if (isPop) {
+            skipPushRef.current = false;
+        } else if (path !== targetPath) {
             window.history.pushState({ tabId: activeTabId }, "", targetPath);
+        }
+
+        if (!isInitialMount.current) {
+            if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+                (window as any).gtag("event", "page_view", {
+                    page_title: pageTitle,
+                    page_location: window.location.origin + targetPath,
+                    page_path: targetPath,
+                });
+            }
+        } else {
+            isInitialMount.current = false;
         }
     }, [activeTabId, tabs]);
 
@@ -424,6 +463,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 setTabs((prev) => [...prev, newTab]);
                 setActiveTabId(id);
                 trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
+                trackToolUsageEvent(tool.slug, "open");
                 return;
             }
 
@@ -434,6 +474,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
             if (existing) {
                 setActiveTabId(existing.id);
                 trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
+                trackToolUsageEvent(tool.slug, "open");
                 return;
             }
             return false;
@@ -461,6 +502,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 setTabs((prev) => [...prev, newTab]);
                 setActiveTabId(id);
                 trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
+                trackToolUsageEvent(tool.slug, "open");
                 return;
             }
 
@@ -477,6 +519,7 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 ),
             );
             trackToolUsage({ name: tool.name, slug: tool.slug, category: tool.category });
+            trackToolUsageEvent(tool.slug, "open");
         },
         [],
     );

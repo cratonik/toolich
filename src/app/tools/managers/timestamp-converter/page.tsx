@@ -5,7 +5,7 @@ import TimestampConverter from "@/tools/managers/timestamp-converter/TimestampCo
 const meta = getToolBySlug("managers", "timestamp-converter");
 
 export const metadata: Metadata = {
-    title: `${meta?.name} | Toolich`,
+    title: meta?.name ?? "Timestamp Converter",
     description: meta?.description,
     keywords: meta?.keywords,
 };

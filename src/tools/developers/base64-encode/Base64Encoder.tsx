@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Copy, Check, Trash2, Upload, Undo2, ClipboardCopy, Columns, Rows, Type } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useTabContext } from "@/lib/tab-context";
+import { trackToolUsageEvent } from "@/lib/analytics";
 
 export default function Base64Encoder() {
     const { viewMode } = useTabContext();
@@ -56,6 +57,7 @@ export default function Base64Encoder() {
             const bytes = new TextEncoder().encode(text);
             const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
             setOutput(btoa(binary));
+            trackToolUsageEvent("base64-encode", "encode");
         } catch {
             setOutput("⚠ Unable to encode input");
         }
@@ -107,6 +109,7 @@ export default function Base64Encoder() {
 
     const handleCopy = async () => {
         if (!output) return;
+        trackToolUsageEvent("base64-encode", "copy");
         await navigator.clipboard.writeText(output);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);

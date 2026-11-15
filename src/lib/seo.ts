@@ -17,7 +17,7 @@ export function constructMetadata({
     const fullUrl = `${siteUrl}${path}`;
 
     return {
-        title: `${title} | Toolich`,
+        title: title,
         description,
         keywords: [
             ...keywords,
