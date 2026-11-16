@@ -85,10 +85,6 @@ export async function POST(request: Request) {
         const queryToken = url.searchParams.get("token");
         const configuredToken = process.env.BROADCAST_TOKEN;
 
-        console.log("\n--- INCOMING POST TO /api/broadcast ---");
-        console.log("Configured Token:", configuredToken);
-        console.log("Query Token:", queryToken);
-
         // Security check
         if (!configuredToken || queryToken !== configuredToken) {
             console.warn("Unauthorized: Tokens do not match or BROADCAST_TOKEN is not configured!");

@@ -1,63 +1,41 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
-import Base64Encoder from "@/tools/developers/base64-encode/Base64Encoder";
-import Base64Decoder from "@/tools/developers/base64-decode/Base64Decoder";
-import JsonFormatter from "@/tools/developers/json-formatter/JsonFormatter";
-import UuidGenerator from "@/tools/developers/uuid-generator/UuidGenerator";
-import JsonToSchema from "@/tools/developers/json-to-schema/JsonToSchema";
-import HashGenerator from "@/tools/security/hash-generator/HashGenerator";
-import PasswordGenerator from "@/tools/security/password-generator/PasswordGenerator";
-import CronParser from "@/tools/devops/cron-parser/CronParser";
-import EnvEditor from "@/tools/devops/env-editor/EnvEditor";
-import YamlFormatter from "@/tools/devops/yaml-formatter/YamlFormatter";
-import RegexTester from "@/tools/devops/regex-tester/RegexTester";
-import SubnetCalculator from "@/tools/networking/subnet-calculator/SubnetCalculator";
-import DiffChecker from "@/tools/managers/diff-checker/DiffChecker";
-import Notepad from "@/tools/managers/notepad/Notepad";
-import Notebook from "@/tools/managers/notebook/Notebook";
-import DnsLookup from "@/tools/networking/dns-lookup/DnsLookup";
-import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
-import TimestampConverter from "@/tools/managers/timestamp-converter/TimestampConverter";
-import JsonToTypes from "@/tools/developers/json-to-types/JsonToTypes";
-import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
-import JwtDecoder from "@/tools/security/jwt-decoder/JwtDecoder";
-import SslDecoder from "@/tools/security/ssl-decoder/SslDecoder";
-import HttpStatusCodes from "@/tools/networking/http-status-codes/HttpStatusCodes";
-import IpLookup from "@/tools/networking/ip-lookup/IpLookup";
 
 /**
- * Registry of tool components.
+ * Registry of tool components loaded on-demand via next/dynamic.
  * Key: `<category>/<slug>` (e.g. "developers/base64-encode")
  *
- * When adding a new tool, add an entry here alongside the tool-registry metadata.
+ * Tools and their heavy dependencies (Monaco, TipTap, Mermaid, highlight.js, node-forge)
+ * are code-split into separate chunks and only downloaded when the user opens the tool.
  */
 const TOOL_COMPONENTS: Record<string, ComponentType> = {
-    "developers/base64-encode": Base64Encoder,
-    "developers/base64-decode": Base64Decoder,
-    "developers/json-formatter": JsonFormatter,
-    "developers/uuid-generator": UuidGenerator,
-    "developers/json-to-schema": JsonToSchema,
-    "developers/json-to-types": JsonToTypes,
-    "developers/python-compiler": PythonCompiler,
-    "security/hash-generator": HashGenerator,
-    "security/password-generator": PasswordGenerator,
-    "security/jwt-decoder": JwtDecoder,
-    "security/ssl-decoder": SslDecoder,
-    "devops/cron-parser": CronParser,
-    "devops/env-editor": EnvEditor,
-    "devops/yaml-formatter": YamlFormatter,
-    "devops/regex-tester": RegexTester,
-    "networking/subnet-calculator": SubnetCalculator,
-    "networking/dns-lookup": DnsLookup,
-    "networking/http-status-codes": HttpStatusCodes,
-    "networking/ip-lookup": IpLookup,
-    "managers/diff-checker": DiffChecker,
-    "managers/notepad": Notepad,
-    "managers/notebook": Notebook,
-    "managers/markdown-editor": MarkdownEditor,
-    "manager/markdown-editor": MarkdownEditor,
-    "managers/timestamp-converter": TimestampConverter,
+    "developers/base64-encode": dynamic(() => import("@/tools/developers/base64-encode/Base64Encoder"), { ssr: false }),
+    "developers/base64-decode": dynamic(() => import("@/tools/developers/base64-decode/Base64Decoder"), { ssr: false }),
+    "developers/json-formatter": dynamic(() => import("@/tools/developers/json-formatter/JsonFormatter"), { ssr: false }),
+    "developers/uuid-generator": dynamic(() => import("@/tools/developers/uuid-generator/UuidGenerator"), { ssr: false }),
+    "developers/json-to-schema": dynamic(() => import("@/tools/developers/json-to-schema/JsonToSchema"), { ssr: false }),
+    "developers/json-to-types": dynamic(() => import("@/tools/developers/json-to-types/JsonToTypes"), { ssr: false }),
+    "developers/python-compiler": dynamic(() => import("@/tools/developers/python-compiler/PythonCompiler"), { ssr: false }),
+    "security/hash-generator": dynamic(() => import("@/tools/security/hash-generator/HashGenerator"), { ssr: false }),
+    "security/password-generator": dynamic(() => import("@/tools/security/password-generator/PasswordGenerator"), { ssr: false }),
+    "security/jwt-decoder": dynamic(() => import("@/tools/security/jwt-decoder/JwtDecoder"), { ssr: false }),
+    "security/ssl-decoder": dynamic(() => import("@/tools/security/ssl-decoder/SslDecoder"), { ssr: false }),
+    "devops/cron-parser": dynamic(() => import("@/tools/devops/cron-parser/CronParser"), { ssr: false }),
+    "devops/env-editor": dynamic(() => import("@/tools/devops/env-editor/EnvEditor"), { ssr: false }),
+    "devops/yaml-formatter": dynamic(() => import("@/tools/devops/yaml-formatter/YamlFormatter"), { ssr: false }),
+    "devops/regex-tester": dynamic(() => import("@/tools/devops/regex-tester/RegexTester"), { ssr: false }),
+    "networking/subnet-calculator": dynamic(() => import("@/tools/networking/subnet-calculator/SubnetCalculator"), { ssr: false }),
+    "networking/dns-lookup": dynamic(() => import("@/tools/networking/dns-lookup/DnsLookup"), { ssr: false }),
+    "networking/http-status-codes": dynamic(() => import("@/tools/networking/http-status-codes/HttpStatusCodes"), { ssr: false }),
+    "networking/ip-lookup": dynamic(() => import("@/tools/networking/ip-lookup/IpLookup"), { ssr: false }),
+    "managers/diff-checker": dynamic(() => import("@/tools/managers/diff-checker/DiffChecker"), { ssr: false }),
+    "managers/notepad": dynamic(() => import("@/tools/managers/notepad/Notepad"), { ssr: false }),
+    "managers/notebook": dynamic(() => import("@/tools/managers/notebook/Notebook"), { ssr: false }),
+    "managers/markdown-editor": dynamic(() => import("@/tools/managers/markdown-editor/MarkdownEditor"), { ssr: false }),
+    "manager/markdown-editor": dynamic(() => import("@/tools/managers/markdown-editor/MarkdownEditor"), { ssr: false }),
+    "managers/timestamp-converter": dynamic(() => import("@/tools/managers/timestamp-converter/TimestampConverter"), { ssr: false }),
 };
 
 /**
