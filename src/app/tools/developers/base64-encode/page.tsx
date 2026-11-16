@@ -10,7 +10,7 @@ const meta = allTools.find((t) => t.slug === toolMeta.slug)!;
 export const metadata = constructMetadata({
     title: meta.name,
     description: meta.description,
-    path: meta.slug === "markdown-editor" && toolMeta.category === "manager" ? "/tools/managers/markdown-editor" : meta.path,
+    path: meta.path,
     keywords: meta.keywords,
 });
 

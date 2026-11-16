@@ -34,7 +34,6 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "managers/notepad": dynamic(() => import("@/tools/managers/notepad/Notepad"), { ssr: false }),
     "managers/notebook": dynamic(() => import("@/tools/managers/notebook/Notebook"), { ssr: false }),
     "managers/markdown-editor": dynamic(() => import("@/tools/managers/markdown-editor/MarkdownEditor"), { ssr: false }),
-    "manager/markdown-editor": dynamic(() => import("@/tools/managers/markdown-editor/MarkdownEditor"), { ssr: false }),
     "managers/timestamp-converter": dynamic(() => import("@/tools/managers/timestamp-converter/TimestampConverter"), { ssr: false }),
 };
 

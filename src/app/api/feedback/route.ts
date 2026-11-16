@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRedis } from "@/lib/redis";
+import { getClientIp } from "@/lib/client-ip";
 
 function escapeTelegramMarkdown(text: string): string {
     return text.replace(/([*_`\[])/g, "\\$1");
@@ -8,7 +9,7 @@ function escapeTelegramMarkdown(text: string): string {
 export async function POST(request: Request) {
     try {
         // Rate limiting check using client IP and Redis
-        const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "anonymous";
+        const ip = getClientIp(request);
         const rateLimitKey = `rate_limit:feedback:${ip}`;
         
         try {

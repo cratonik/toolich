@@ -109,6 +109,22 @@ function parsePathname(pathname: string): { category: string; slug: string } | n
     return null;
 }
 
+/**
+ * Tab contents for a URL path.
+ * Returns null for Home, undefined for an unknown tool, otherwise the tab fields.
+ */
+function tabFieldsForPath(pathname: string): Omit<Tab, "id"> | null | undefined {
+    const parsed = parsePathname(pathname);
+    if (!parsed) return null;
+    if (parsed.slug.startsWith("__category__/")) {
+        const categorySlug = parsed.slug.replace("__category__/", "");
+        const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
+        return { title, toolSlug: parsed.slug, category: categorySlug };
+    }
+    const meta = getToolBySlug(parsed.category, parsed.slug);
+    return meta ? { title: meta.name, toolSlug: meta.slug, category: meta.category } : undefined;
+}
+
 /** Compute document title for a tab */
 function getPageTitleForTab(tab: Tab | undefined): string {
     if (!tab) return "Toolich — Developer Tools & Utilities";
@@ -196,38 +212,13 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
     // ── Initialise state based on URL pathname (safe for SSR & initial client render) ──
     const initialParsed = parsePathname(pathname);
+    const initialFields = tabFieldsForPath(pathname);
     let initialTabs = [HOME_TAB];
     let initialActiveTabId = "home";
 
-    if (initialParsed) {
-        const isCategory = initialParsed.slug.startsWith("__category__/");
-        const categorySlug = isCategory ? initialParsed.slug.replace("__category__/", "") : initialParsed.category;
-
-        if (isCategory) {
-            const title = categorySlug === "__all__" ? "All Tools" : `${CATEGORY_LABELS[categorySlug] ?? categorySlug} Tools`;
-            const id = "tab-1";
-            const newTab: Tab = {
-                id,
-                title,
-                toolSlug: initialParsed.slug,
-                category: categorySlug,
-            };
-            initialTabs = [HOME_TAB, newTab];
-            initialActiveTabId = id;
-        } else {
-            const meta = getToolBySlug(initialParsed.category, initialParsed.slug);
-            if (meta) {
-                const id = "tab-1";
-                const newTab: Tab = {
-                    id,
-                    title: meta.name,
-                    toolSlug: meta.slug,
-                    category: meta.category,
-                };
-                initialTabs = [HOME_TAB, newTab];
-                initialActiveTabId = id;
-            }
-        }
+    if (initialFields) {
+        initialTabs = [HOME_TAB, { id: "tab-1", ...initialFields }];
+        initialActiveTabId = "tab-1";
     }
 
     const [tabs, setTabs] = useState<Tab[]>(initialTabs);
@@ -282,11 +273,50 @@ export function TabProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const saved = loadFromSession();
         if (saved && saved.tabs.length > 1) {
-            // Soft reload — restore all tabs
+            // Restore all tabs from this browser tab's session
             nextTabId = saved.nextId;
-            setTabs(saved.tabs);
-            setActiveTabId(saved.activeTabId);
-            if (saved.splitTabId) setSplitTabId(saved.splitTabId);
+            let restoredTabs = saved.tabs;
+            let restoredActiveId = saved.activeTabId;
+            let restoredSplitId = saved.splitTabId ?? null;
+
+            // The URL wins over the saved active tab. On a plain reload they already
+            // match; a mismatch means the user followed a link or typed a URL, so
+            // show what they asked for instead of whatever was open before.
+            const path = window.location.pathname;
+            const savedActive = restoredTabs.find((t) => t.id === restoredActiveId);
+            const target = tabFieldsForPath(path);
+            const urlMismatch = !savedActive || tabToPath(savedActive) !== path;
+
+            if (!isStaticPath(path) && urlMismatch && target !== undefined) {
+                restoredSplitId = null;
+                if (target === null) {
+                    // Home URL — reset the Home tab to its default view
+                    restoredTabs = restoredTabs.map((t) =>
+                        t.id === "home" ? { ...HOME_TAB } : t,
+                    );
+                    restoredActiveId = "home";
+                } else {
+                    const existing = restoredTabs.find((t) => t.id !== "home" && tabToPath(t) === path);
+                    if (existing) {
+                        restoredActiveId = existing.id;
+                    } else if (restoredTabs.length < MAX_TABS) {
+                        const id = `tab-${nextTabId++}`;
+                        restoredTabs = [...restoredTabs, { id, ...target }];
+                        restoredActiveId = id;
+                    } else {
+                        // Tab limit reached — reuse the last tab for the linked tool
+                        const reuseId = restoredTabs[restoredTabs.length - 1].id;
+                        restoredTabs = restoredTabs.map((t) =>
+                            t.id === reuseId ? { ...t, ...target } : t,
+                        );
+                        restoredActiveId = reuseId;
+                    }
+                }
+            }
+
+            setTabs(restoredTabs);
+            setActiveTabId(restoredActiveId);
+            if (restoredSplitId) setSplitTabId(restoredSplitId);
             if (saved.splitRatio) setSplitRatio(saved.splitRatio);
             return;
         }

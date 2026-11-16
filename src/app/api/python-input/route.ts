@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getRedis } from '@/lib/redis';
+import { getClientIp } from '@/lib/client-ip';
+
+// Each input() call is one GET + one POST, and the worker re-polls every 30s while
+// the user is typing, so limits must comfortably exceed a program's input rate.
+const GET_LIMIT_PER_MINUTE = 120;
+const POST_LIMIT_PER_MINUTE = 120;
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -12,18 +18,18 @@ export async function GET(request: Request) {
         return new NextResponse('Invalid or missing UUID id', { status: 400 });
     }
 
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "anonymous";
+    const ip = getClientIp(request);
     const rateLimitKey = `rate_limit:python_input_get:${ip}`;
 
     const redis = await getRedis();
 
-    // 2. Rate limit GETs per IP (Max 30 pending requests per minute per IP)
+    // 2. Rate limit GETs per IP
     try {
         const currentRequests = await redis.incr(rateLimitKey);
         if (currentRequests === 1) {
             await redis.expire(rateLimitKey, 60);
         }
-        if (currentRequests > 30) {
+        if (currentRequests > GET_LIMIT_PER_MINUTE) {
             return new NextResponse('Rate limit exceeded', { status: 429 });
         }
     } catch {
@@ -67,7 +73,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "anonymous";
+        const ip = getClientIp(request);
         const rateLimitKey = `rate_limit:python_input:${ip}`;
         
         const redis = await getRedis();
@@ -76,7 +82,7 @@ export async function POST(request: Request) {
             if (currentRequests === 1) {
                 await redis.expire(rateLimitKey, 60);
             }
-            if (currentRequests > 60) { // Max 60 inputs per minute per IP
+            if (currentRequests > POST_LIMIT_PER_MINUTE) {
                 return new NextResponse('Rate limit exceeded', { status: 429 });
             }
         } catch {
