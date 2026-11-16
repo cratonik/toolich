@@ -141,14 +141,9 @@ export function getTabDisplayTitle(tab: Tab, allTabs: Tab[]): string {
     return tab.title;
 }
 
-/** Get storage suffix for a tab */
-export function getTabStorageSuffix(tab: Tab, allTabs: Tab[]): string {
-    if (!tab.toolSlug) return "home";
-    const toolTabs = allTabs.filter((t) => t.toolSlug === tab.toolSlug);
-    const index = toolTabs.findIndex((t) => t.id === tab.id);
-    const occurrence = index !== -1 ? index + 1 : 1;
-    const cleanSlug = tab.toolSlug.replace(/[^a-zA-Z0-9-]/g, "-");
-    return `${cleanSlug}-${occurrence}`;
+/** Get storage suffix for a tab (keyed by immutable tab ID to prevent cross-tab state collisions) */
+export function getTabStorageSuffix(tab: Tab, allTabs?: Tab[]): string {
+    return tab.id;
 }
 
 export function useTabContext(): TabContextType {
@@ -583,12 +578,10 @@ export function TabProvider({ children }: { children: ReactNode }) {
 
             setTabs(next);
 
-            // Clean up session storage and local storage keys for this tab
+            // Clean up session storage and local storage keys for this specific tab ID
             if (tabToClose && tabToClose.toolSlug) {
                 try {
-                    const count = current.filter((t) => t.toolSlug === tabToClose.toolSlug).length;
-                    const cleanSlug = tabToClose.toolSlug.replace(/[^a-zA-Z0-9-]/g, "-");
-                    const suffix = `-${cleanSlug}-${count}`;
+                    const suffix = `-${id}`;
                     
                     // Session Storage
                     const sessionKeys: string[] = [];
