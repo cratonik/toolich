@@ -92,7 +92,6 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        console.log("Payload Body:", JSON.stringify(body, null, 2));
 
         // 1. Handle Slack Webhook challenge verification
         if (body.type === "url_verification") {
@@ -106,7 +105,7 @@ export async function POST(request: Request) {
         // 2. Handle Slack Event (message posted)
         const event = body.event;
         if (event && event.type === "message") {
-            console.log("Received a message event:", event);
+            console.log("Broadcast: received Slack message event");
 
             // Ignore messages sent by bots to prevent feedback loops
             if (event.bot_id) {
@@ -149,7 +148,7 @@ export async function POST(request: Request) {
 function forwardRequest(body: unknown) {
     const forwardUrl = process.env.FORWARD_BROADCAST_URL;
     if (forwardUrl) {
-        console.log("Forwarding broadcast event to:", forwardUrl);
+        console.log("Broadcast: forwarding event to preview environment");
         fetch(forwardUrl, {
             method: "POST",
             headers: {

@@ -377,13 +377,20 @@ export default function PythonCompiler() {
         setInputValue("");
 
         try {
-            await fetch("/api/python-input", {
+            const res = await fetch("/api/python-input", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id, text })
             });
+            if (!res.ok) {
+                const reason = res.status === 429
+                    ? "Too many inputs. Please wait a minute and try again."
+                    : `Server returned status ${res.status}`;
+                setOutput((prev) => [...prev, { type: "stderr", text: `\nInput not sent: ${reason}\n` }]);
+            }
         } catch (error) {
             console.error("Failed to send input", error);
+            setOutput((prev) => [...prev, { type: "stderr", text: "\nInput not sent: network error\n" }]);
         }
     };
 

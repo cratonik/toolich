@@ -9,6 +9,9 @@ declare let loadPyodide: any;
 let pyodide: any = null;
 let currentExecutionId: string | null = null;
 
+// Each input poll waits up to 30s server-side; 20 polls ≈ 10 minutes before giving up.
+const MAX_INPUT_WAIT_POLLS = 20;
+
 async function initPyodide() {
     pyodide = await loadPyodide({
         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/",
@@ -33,22 +36,35 @@ async function initPyodide() {
             self.postMessage({ type: "awaiting_input", id: currentExecutionId });
             
             // Make a SYNCHRONOUS network request to our API route. This halts the WebWorker!
-            // Node.js will hold this request open until the user types their answer.
-            const request = new XMLHttpRequest();
+            // The server holds each request open for up to 30s; on timeout (408) we simply
+            // ask again, so the user can take as long as they need (up to MAX_INPUT_WAIT_POLLS).
+            // Pressing Stop terminates the whole worker, which also ends this loop.
             const url = `${self.location.origin}/api/python-input?id=${currentExecutionId}`;
-            request.open("GET", url, false);
-            
-            try {
-                request.send(null);
+
+            for (let attempt = 0; attempt < MAX_INPUT_WAIT_POLLS; attempt++) {
+                const request = new XMLHttpRequest();
+                request.open("GET", url, false);
+                try {
+                    request.send(null);
+                } catch (e: any) {
+                    self.postMessage({ type: "stderr", text: `\nXHR Exception: ${e.message}\n` });
+                    throw new Error("Failed to read standard input.");
+                }
+
                 if (request.status === 200) {
                     return request.responseText + "\n";
-                } else {
-                    self.postMessage({ type: "stderr", text: `\nXHR Error: Server returned status ${request.status}\n` });
                 }
-            } catch (e: any) {
-                self.postMessage({ type: "stderr", text: `\nXHR Exception: ${e.message}\n` });
+                if (request.status === 408) {
+                    continue; // No input yet — keep waiting
+                }
+                const reason = request.status === 429
+                    ? "Too many input requests. Please wait a minute and run again."
+                    : `Server returned status ${request.status}`;
+                self.postMessage({ type: "stderr", text: `\nInput error: ${reason}\n` });
+                throw new Error("Failed to read standard input.");
             }
-            
+
+            self.postMessage({ type: "stderr", text: "\nInput error: timed out waiting for input.\n" });
             throw new Error("Failed to read standard input.");
         }
     });
