@@ -22,6 +22,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
     "security/password-generator": dynamic(() => import("@/tools/security/password-generator/PasswordGenerator"), { ssr: false }),
     "security/jwt-decoder": dynamic(() => import("@/tools/security/jwt-decoder/JwtDecoder"), { ssr: false }),
     "security/ssl-decoder": dynamic(() => import("@/tools/security/ssl-decoder/SslDecoder"), { ssr: false }),
+    "security/pii-redactor": dynamic(() => import("@/tools/security/pii-redactor/PiiRedactor"), { ssr: false }),
     "devops/cron-parser": dynamic(() => import("@/tools/devops/cron-parser/CronParser"), { ssr: false }),
     "devops/env-editor": dynamic(() => import("@/tools/devops/env-editor/EnvEditor"), { ssr: false }),
     "devops/yaml-formatter": dynamic(() => import("@/tools/devops/yaml-formatter/YamlFormatter"), { ssr: false }),

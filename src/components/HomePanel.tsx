@@ -43,7 +43,7 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     {
         title: "Security",
         description: "Encryption, password tools, JWT, and security checkers.",
-        tags: ["JWT", "Encrypt", "Password", "SSL"],
+        tags: ["JWT", "PII", "Password", "SSL"],
         icon: Shield,
         iconClassName:
             "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
@@ -84,7 +84,7 @@ const TOOL_CATEGORIES: ToolCategory[] = [
 ];
 
 // New tools (added within last 30 days — update this list as you ship tools)
-const NEW_TOOL_SLUGS = ["markdown-editor","notepad", "notebook", "diff-checker", "subnet-calculator", "json-formatter", "base64-encode", "base64-decode"];
+const NEW_TOOL_SLUGS = ["pii-redactor", "markdown-editor","notepad", "notebook", "diff-checker", "subnet-calculator", "json-formatter", "base64-encode", "base64-decode"];
 
 export default function HomePanel() {
     const [recentTools, setRecentTools] = useState<{ name: string; slug: string; category: string }[]>([]);
@@ -98,7 +98,10 @@ export default function HomePanel() {
         return () => clearTimeout(timer);
     }, []);
 
-    const newTools = allTools.filter((t) => NEW_TOOL_SLUGS.includes(t.slug));
+    // Keep NEW_TOOL_SLUGS order (newest first) rather than registry order.
+    const newTools = NEW_TOOL_SLUGS.map((slug) => allTools.find((t) => t.slug === slug)).filter(
+        (t): t is (typeof allTools)[number] => t !== undefined,
+    );
     const favoriteTools = allTools.filter((t) => favorites.includes(t.slug));
 
     return (

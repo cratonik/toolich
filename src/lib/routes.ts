@@ -24,6 +24,7 @@ export const ROUTES = {
         security: {
             hashGenerator: "/tools/security/hash-generator",
             passwordGenerator: "/tools/security/password-generator",
+            piiRedactor: "/tools/security/pii-redactor",
         },
         devops: {
             cronParser: "/tools/devops/cron-parser",

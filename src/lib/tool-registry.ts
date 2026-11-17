@@ -251,6 +251,18 @@ const TOOLS: ToolMeta[] = [
         ],
     },
     {
+        name: "PII Redactor",
+        slug: "pii-redactor",
+        description:
+            "Hide emails, phone numbers, card numbers, IPs, API keys and other sensitive data in logs or text before sharing — entirely in your browser.",
+        category: "security",
+        keywords: [
+            "pii", "redact", "redactor", "mask", "anonymize", "sanitize", "sensitive data",
+            "personal data", "gdpr", "data masking", "log scrubber", "secrets", "api key",
+            "email", "phone", "credit card",
+        ],
+    },
+    {
         name: "HTTP Status Codes",
         slug: "http-status-codes",
         description: "Searchable reference for all HTTP status codes with descriptions and examples.",
