@@ -4,7 +4,7 @@ import { CollectionStructuredData } from "@/components/StructuredData";
 
 export const metadata = constructMetadata({
     title: "DevOps Tools",
-    description: "Cron parser, environment variable editor, regex tester, and infrastructure configuration utilities.",
+    description: "YAML formatter and converter, cron parser, environment variable editor, and regex tester.",
     path: "/tools/devops",
     keywords: ["devops tools", "cron parser", "dotenv editor", "regex tester", "infrastructure helper"],
 });
@@ -15,7 +15,7 @@ export default function DevOpsPage() {
     return (
         <CollectionStructuredData
             name="DevOps Tools"
-            description="Cron parser, environment variable editor, regex tester, and infrastructure configuration utilities."
+            description="YAML formatter and converter, cron parser, environment variable editor, and regex tester."
             path="/tools/devops"
             tools={getToolsByCategory("devops")}
         />

@@ -4,7 +4,7 @@ import { CollectionStructuredData } from "@/components/StructuredData";
 
 export const metadata = constructMetadata({
     title: "Manager Tools",
-    description: "Markdown editor, side-by-side text diff checkers, and productivity tools for project managers and developers.",
+    description: "Markdown editor, text diff checker, notepad, notebook, and timestamp converter for managers and developers.",
     path: "/tools/managers",
     keywords: ["manager tools", "markdown editor", "diff checker", "productivity utilities"],
 });
@@ -15,7 +15,7 @@ export default function ManagersPage() {
     return (
         <CollectionStructuredData
             name="Manager Tools"
-            description="Markdown editor, side-by-side text diff checkers, and productivity tools for project managers and developers."
+            description="Markdown editor, text diff checker, notepad, notebook, and timestamp converter for managers and developers."
             path="/tools/managers"
             tools={getToolsByCategory("managers")}
         />

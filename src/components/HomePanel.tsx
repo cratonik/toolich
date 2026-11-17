@@ -32,8 +32,8 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     },
     {
         title: "DevOps",
-        description: "Docker, Kubernetes, CI/CD, and infrastructure helpers.",
-        tags: ["YAML", "Cron", "ENV", "Docker"],
+        description: "YAML, cron, environment files and regex helpers for infrastructure work.",
+        tags: ["YAML", "Cron", "ENV", "Regex"],
         icon: Server,
         iconClassName:
             "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
@@ -42,7 +42,7 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     },
     {
         title: "Security",
-        description: "Encryption, password tools, JWT, and security checkers.",
+        description: "Hashes, passwords, JWTs, SSL certificates and PII redaction.",
         tags: ["JWT", "PII", "Password", "SSL"],
         icon: Shield,
         iconClassName:
@@ -52,8 +52,8 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     },
     {
         title: "Networking",
-        description: "IP tools, DNS lookup, URL utilities, and network testing.",
-        tags: ["IP", "DNS", "URL", "Ping"],
+        description: "IP lookup, DNS records, subnets and HTTP status codes.",
+        tags: ["IP", "DNS", "Subnet", "HTTP"],
         icon: Network,
         iconClassName:
             "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
@@ -62,9 +62,8 @@ const TOOL_CATEGORIES: ToolCategory[] = [
     },
     {
         title: "Managers",
-        description:
-            "Sprint calculators, time zone helpers, and productivity tools.",
-        tags: ["Time Zone", "Sprint", "Date Calc", "Diff"],
+        description: "Notes, Markdown, text diffs and timestamp conversion.",
+        tags: ["Notes", "Markdown", "Diff", "Timestamp"],
         icon: BarChart3,
         iconClassName:
             "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",

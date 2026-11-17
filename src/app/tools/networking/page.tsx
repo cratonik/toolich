@@ -4,7 +4,7 @@ import { CollectionStructuredData } from "@/components/StructuredData";
 
 export const metadata = constructMetadata({
     title: "Networking Tools",
-    description: "IP subnet calculators, DNS lookup utilities, network analysis, and network testing helper tools.",
+    description: "IP address lookup, DNS record lookup, subnet calculator, and HTTP status code reference.",
     path: "/tools/networking",
     keywords: ["networking tools", "subnet calculator", "dns lookup", "ip tools", "network utility"],
 });
@@ -15,7 +15,7 @@ export default function NetworkingPage() {
     return (
         <CollectionStructuredData
             name="Networking Tools"
-            description="IP subnet calculators, DNS lookup utilities, network analysis, and network testing helper tools."
+            description="IP address lookup, DNS record lookup, subnet calculator, and HTTP status code reference."
             path="/tools/networking"
             tools={getToolsByCategory("networking")}
         />
