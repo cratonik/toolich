@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
     },
   ],
   headers: async () => [
+    // Mirrors of the site (toolich.vercel.app, toolich.netlify.app, preview
+    // deploys…) must not be indexed: they are full duplicates of toolich.com.
+    {
+      source: "/:path*",
+      // Matched on the Host header. Production sits behind Nginx Proxy Manager,
+      // which forwards the original Host (proxy_set_header Host $host). After
+      // deploying, `curl -sI https://toolich.com` must show no X-Robots-Tag.
+      missing: [{ type: "host", value: "(www\\.)?toolich\\.com" }],
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    },
     {
       source: "/sw.js",
       headers: [

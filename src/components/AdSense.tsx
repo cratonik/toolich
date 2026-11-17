@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { getToolBySlug } from "@/lib/tool-registry";
@@ -23,14 +23,23 @@ export function adsAllowed(pathname: string): boolean {
     return match !== null && getToolBySlug(match[1], match[2]) !== undefined;
 }
 
+/** Ads only on the real site, never on mirrors (vercel.app, netlify.app, previews, localhost). */
+const PRODUCTION_HOSTS = new Set(["toolich.com", "www.toolich.com"]);
+const noSubscribe = () => () => {};
+const isProductionHost = () => PRODUCTION_HOSTS.has(window.location.hostname);
+const serverSnapshot = () => false;
+
 export function AdSense() {
     const pathname = usePathname();
     // Decide once, from the URL this page was loaded with. The tab system can
     // change the address later (pushState); that must not switch ads on, e.g.
     // on a 404 page. Client-side navigation can't unload the script anyway.
     const [allowed] = useState(() => adsAllowed(pathname));
+    // The hostname is only known in the browser; false on the server, so the
+    // script is added right after hydration and only on toolich.com.
+    const onProductionHost = useSyncExternalStore(noSubscribe, isProductionHost, serverSnapshot);
 
-    if (!allowed) {
+    if (!allowed || !onProductionHost) {
         return null;
     }
 
