@@ -36,7 +36,7 @@ export default async function BlogsPage() {
   return (
     <>
       <div className="min-h-[calc(100vh-80px)] bg-zinc-50 dark:bg-zinc-950 pt-20 pb-12">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[94%] px-4 sm:px-6">
           <Link 
             href="/" 
             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 mb-8 transition-colors"
@@ -47,7 +47,7 @@ export default async function BlogsPage() {
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-8">
             Blog
           </h1>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {blogs.map((blog) => {
             const slug = blogSlug(blog.title);
             return (
@@ -69,7 +69,7 @@ export default async function BlogsPage() {
                     <span className="mx-2">•</span>
                     <span>{blog.author}</span>
                   </div>
-                  <h2 className="mb-3 text-lg font-semibold leading-snug text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                  <h2 className="mb-3 text-base font-semibold leading-snug text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                     {blog.title}
                   </h2>
                   <p className="line-clamp-3 text-sm text-zinc-600 dark:text-zinc-400">
