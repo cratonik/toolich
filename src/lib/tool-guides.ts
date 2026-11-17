@@ -684,5 +684,43 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
             }
         ],
         securityInfo: "Queries are sent directly to a public IP geolocation API via HTTPS. We do not store or track the IP addresses you search for."
+    },
+    "pii-redactor": {
+        title: "PII Redactor Guide",
+        introduction: "Personally identifiable information (PII) and secrets end up everywhere: application logs, support tickets, error reports and email threads. Before that text is shared with a vendor, posted in a chat channel or pasted into an AI assistant, it should be scrubbed. The PII Redactor finds emails, phone numbers, payment card numbers, IBANs, government IDs, IP and MAC addresses, API keys, tokens, passwords and private keys, and replaces them with placeholders, labels or masks — entirely inside your browser.",
+        features: [
+            "Detects 15 kinds of sensitive data, from emails and phone numbers to AWS, GitHub, Stripe and OpenAI keys, JWTs and private key blocks.",
+            "Checksum validation (Luhn for cards, mod-97 for IBANs, Verhoeff for Aadhaar) to avoid flagging random numbers.",
+            "Four redaction styles: numbered placeholders, type labels, partial masks and fixed blocks.",
+            "Numbered placeholders keep relationships intact: the same email always becomes the same [EMAIL_1].",
+            "Restore mode puts the original values back into a reply that uses the placeholders.",
+            "Custom terms for names, company or project names that no pattern could know about."
+        ],
+        howToUse: [
+            "Paste your text, drop a log file, or click 'Sample' to see it in action.",
+            "Choose a redaction style and untick any data types you want to keep.",
+            "Optionally add custom terms such as people's names or an internal project name.",
+            "Review the highlighted result, then copy or download the redacted text.",
+            "With placeholders, paste a reply that mentions them into 'Restore originals' to get the real values back."
+        ],
+        faq: [
+            {
+                question: "Is my text uploaded anywhere?",
+                answer: "No. Detection and redaction run as JavaScript in your browser tab. Nothing you paste is sent to a server, which is why it is safe to use with real production logs."
+            },
+            {
+                question: "Can I safely paste the redacted text into ChatGPT or another AI tool?",
+                answer: "That is exactly what it is designed for. Use numbered placeholders so the AI can still reason about which values are the same, then use Restore originals to map its answer back to the real values locally."
+            },
+            {
+                question: "Will it catch everything?",
+                answer: "It catches common formats reliably, but pattern-based detection can miss unusual formats or free-text details like a person's name. Add those as custom terms and always give the result a quick review before sharing."
+            },
+            {
+                question: "Why wasn't a number flagged as a card or phone number?",
+                answer: "Card numbers must pass the Luhn checksum and phone numbers must look like a real phone number, so timestamps, order IDs and dates are deliberately left alone."
+            }
+        ],
+        securityInfo: "All detection and redaction happen locally in your browser. Your text, the redacted output and the placeholder mapping are never sent to any server; they are kept only in this browser tab's session storage."
     }
 };
