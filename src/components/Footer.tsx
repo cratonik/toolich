@@ -1,18 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useTabContext } from "@/lib/tab-context";
 import { useBlogAvailable } from "@/lib/use-blog-available";
 
 export default function Footer() {
-    const { isWide } = useTabContext();
     const blogAvailable = useBlogAvailable();
 
     return (
         <footer className="w-full border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 transition-colors duration-300">
-            <div className={`mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 sm:px-6 sm:flex-row text-sm text-zinc-600 dark:text-zinc-400 ${
-                isWide ? "max-w-[94%]" : "max-w-5xl"
-            } transition-all duration-300`}>
+            <div className={`mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 sm:px-6 sm:flex-row text-sm text-zinc-600 dark:text-zinc-400 max-w-[94%] transition-all duration-300`}>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <span>
                         © {new Date().getFullYear()} Toolich by{" "}

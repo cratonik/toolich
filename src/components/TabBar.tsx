@@ -6,7 +6,7 @@ import { useTabContext, getTabDisplayTitle } from "@/lib/tab-context";
 import { useToast } from "@/components/Toast";
 
 export function TabBar({ inline }: { inline?: boolean }) {
-    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs, isWide, openTab } = useTabContext();
+    const { tabs, activeTabId, switchTab, closeTab, splitTab, unsplit, splitTabId, reorderTab, maxTabs, openTab } = useTabContext();
     const { showToast } = useToast();
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const dragSourceIndex = useRef<number | null>(null);
@@ -244,7 +244,7 @@ export function TabBar({ inline }: { inline?: boolean }) {
 
     return (
         <div className="sticky top-14 z-30 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-            <div className={`mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} px-4 sm:px-6 transition-all duration-300`}>
+            <div className={`mx-auto max-w-[94%] px-4 sm:px-6 transition-all duration-300`}>
                 {content}
             </div>
         </div>
