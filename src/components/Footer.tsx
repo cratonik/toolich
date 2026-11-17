@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useBlogAvailable } from "@/lib/use-blog-available";
 
+// Plain <a> (full page load) on purpose: these pages are ad-free, and the
+// AdSense script loaded on tool pages can't be unloaded by client navigation.
 export default function Footer() {
     const blogAvailable = useBlogAvailable();
 
@@ -24,37 +25,38 @@ export default function Footer() {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     {blogAvailable && (
-                        <Link
+                        // eslint-disable-next-line @next/next/no-html-link-for-pages -- full load keeps the ad script off the ad-free blog
+                        <a
                             href="/blogs"
                             className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                         >
                             Blog
-                        </Link>
+                        </a>
                     )}
-                    <Link
+                    <a
                         href="/about"
                         className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                     >
                         About
-                    </Link>
-                    <Link
+                    </a>
+                    <a
                         href="/contact"
                         className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                     >
                         Contact
-                    </Link>
-                    <Link
+                    </a>
+                    <a
                         href="/privacy"
                         className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                     >
                         Privacy
-                    </Link>
-                    <Link
+                    </a>
+                    <a
                         href="/terms"
                         className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                     >
                         Terms
-                    </Link>
+                    </a>
                     <a
                         href="https://github.com/cratonik/toolich"
                         target="_blank"
