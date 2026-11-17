@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { format, formatDistanceToNow, isValid, parseISO } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { Copy, Check, Clock, Calendar, Globe, Trash2, CornerDownRight } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { trackToolUsageEvent } from "@/lib/analytics";
@@ -21,6 +21,27 @@ const TIMEZONES = [
     { label: "Australia/Sydney (AEST/AEDT)", value: "Australia/Sydney" },
 ];
 
+const DATE_INPUT_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+
+/**
+ * Parse the date box as a wall-clock time in the selected timezone.
+ * `new Date(val)` alone would read it in the browser's local zone, so picking
+ * e.g. UTC while sitting in IST would produce a timestamp 5h30m off.
+ * Strings that carry their own zone (Z, +05:30, GMT…) are respected as-is.
+ */
+function parseDateInZone(val: string, tz: string, isLocal: boolean): Date | null {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    // Date-only ISO strings are parsed as UTC by the spec; treat them as midnight wall time instead.
+    const normalized = /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? `${trimmed}T00:00:00` : trimmed;
+    const native = new Date(normalized);
+    if (!isValid(native)) return null;
+    if (isLocal || /(Z|[+-]\d{2}:?\d{2}|\b(GMT|UTC)([+-]\d{1,4})?)$/i.test(normalized)) return native;
+    // fromZonedTime reads the Date's local wall-clock fields as a time in `tz`.
+    const zoned = fromZonedTime(native, tz);
+    return isValid(zoned) ? zoned : null;
+}
+
 export default function TimestampConverter() {
     const [localTz, setLocalTz] = useState("UTC");
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -32,6 +53,9 @@ export default function TimestampConverter() {
 
     const [parsedDate, setParsedDate] = useState<Date | null>(null);
     const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
+
+    const isLocalTz = timezone === "local";
+    const effectiveTz = isLocalTz ? localTz : timezone;
 
     // Init local timezone safely on client
     useEffect(() => {
@@ -81,16 +105,11 @@ export default function TimestampConverter() {
         if (d1) {
             setParsedDate(d1);
         } else if (dateInput) {
-            const d2 = new Date(dateInput); // Try native parsing
-            if (isValid(d2)) {
-                setParsedDate(d2);
-            } else {
-                setParsedDate(null);
-            }
+            setParsedDate(parseDateInZone(dateInput, effectiveTz, isLocalTz));
         } else {
             setParsedDate(null);
         }
-    }, [timestampInput, dateInput, unit]);
+    }, [timestampInput, dateInput, unit, effectiveTz, isLocalTz]);
 
 
     const handleTimestampChange = (val: string) => {
@@ -112,19 +131,18 @@ export default function TimestampConverter() {
         if (isValid(d)) {
             // format standard ISO for the input
             try {
-                const tzToUse = timezone === "local" ? localTz : timezone;
-                setDateInput(formatInTimeZone(d, tzToUse, "yyyy-MM-dd'T'HH:mm:ss"));
+                setDateInput(formatInTimeZone(d, effectiveTz, DATE_INPUT_FORMAT));
             } catch {
-                setDateInput(format(d, "yyyy-MM-dd'T'HH:mm:ss"));
+                setDateInput(format(d, DATE_INPUT_FORMAT));
             }
         }
     };
 
     const handleDateChange = (val: string) => {
         setDateInput(val);
-        const d = new Date(val);
-        if (isValid(d)) {
-            let ms = d.getTime();
+        const d = parseDateInZone(val, effectiveTz, isLocalTz);
+        if (d) {
+            const ms = d.getTime();
             if (unit === "s") {
                 setTimestampInput(Math.floor(ms / 1000).toString());
             } else if (unit === "auto") {
@@ -146,11 +164,22 @@ export default function TimestampConverter() {
             setTimestampInput(Math.floor(ms / 1000).toString());
         }
         // update date box as well
-        const tzToUse = timezone === "local" ? localTz : timezone;
         try {
-            setDateInput(formatInTimeZone(now, tzToUse, "yyyy-MM-dd'T'HH:mm:ss"));
+            setDateInput(formatInTimeZone(now, effectiveTz, DATE_INPUT_FORMAT));
         } catch {
-            setDateInput(format(now, "yyyy-MM-dd'T'HH:mm:ss"));
+            setDateInput(format(now, DATE_INPUT_FORMAT));
+        }
+    };
+
+    // Keep the same instant when switching timezone: re-render the date box in the new zone.
+    const handleTimezoneChange = (newTz: string) => {
+        setTimezone(newTz);
+        if (!parsedDate) return;
+        const tzToUse = newTz === "local" ? localTz : newTz;
+        try {
+            setDateInput(formatInTimeZone(parsedDate, tzToUse, DATE_INPUT_FORMAT));
+        } catch {
+            // leave the date box as-is
         }
     };
 
@@ -170,10 +199,8 @@ export default function TimestampConverter() {
         } catch (err) {}
     };
 
-    const effectiveTz = timezone === "local" ? localTz : timezone;
-
     // Output Formats Generation
-    let formattedOutputs = [
+    const formattedOutputs = [
         { id: "iso", label: "ISO 8601", value: "" },
         { id: "rfc", label: "RFC 2822", value: "" },
         { id: "relative", label: "Relative Time", value: "" },
@@ -247,7 +274,7 @@ export default function TimestampConverter() {
                                 />
                                 <select
                                     value={unit}
-                                    onChange={(e) => setUnit(e.target.value as any)}
+                                    onChange={(e) => setUnit(e.target.value as "s" | "ms" | "auto")}
                                     className="block rounded-r-lg border-l-0 border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 focus:border-indigo-500 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                                 >
                                     <option value="auto">Auto</option>
@@ -291,7 +318,7 @@ export default function TimestampConverter() {
                                 </div>
                                 <select
                                     value={timezone}
-                                    onChange={(e) => setTimezone(e.target.value)}
+                                    onChange={(e) => handleTimezoneChange(e.target.value)}
                                     className="block w-full rounded-lg border-zinc-200 bg-white py-2 pl-9 pr-10 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                                 >
                                     {TIMEZONES.map((tz) => (
