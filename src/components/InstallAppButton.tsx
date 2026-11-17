@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, AppWindow, Share, X } from "lucide-react";
+import { Download, ExternalLink, Share, X } from "lucide-react";
 import { usePwaInstall } from "@/lib/use-pwa-install";
 
 const BUTTON_CLASS =
@@ -30,7 +30,7 @@ export function InstallAppButton() {
     if (state === "open") {
         return (
             <button type="button" onClick={open} className={BUTTON_CLASS} title="Open in Toolich app" aria-label="Open in Toolich app">
-                <AppWindow className="h-[18px] w-[18px]" />
+                <ExternalLink className="h-[18px] w-[18px]" />
             </button>
         );
     }
