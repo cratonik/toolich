@@ -2,8 +2,20 @@ import { NextResponse } from "next/server";
 import { getRedis } from "@/lib/redis";
 import { getClientIp } from "@/lib/client-ip";
 
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_FIELD_LENGTH = 200;
+
 function escapeTelegramMarkdown(text: string): string {
     return text.replace(/([*_`\[])/g, "\\$1");
+}
+
+/**
+ * Slack treats <...> as control sequences (<!channel>, <!here>, <@U123>,
+ * <https://evil|Click here>). Escaping &, < and > makes user text inert.
+ * https://api.slack.com/reference/surfaces/formatting#escaping
+ */
+function escapeSlack(text: string): string {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 export async function POST(request: Request) {
@@ -31,12 +43,27 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { category, message, email, timestamp } = body;
 
-        if (!category || !message) {
+        if (typeof category !== "string" || typeof message !== "string" || !category.trim() || !message.trim()) {
             return NextResponse.json(
                 { error: "Category and message are required" },
                 { status: 400 }
             );
         }
+        if (email !== undefined && email !== null && typeof email !== "string") {
+            return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+        }
+        if (
+            message.length > MAX_MESSAGE_LENGTH ||
+            category.length > MAX_FIELD_LENGTH ||
+            (email && email.length > MAX_FIELD_LENGTH)
+        ) {
+            return NextResponse.json(
+                { error: `Message must be under ${MAX_MESSAGE_LENGTH} characters` },
+                { status: 400 }
+            );
+        }
+        const time = new Date(typeof timestamp === "number" ? timestamp : Date.now());
+        const timeStr = isNaN(time.getTime()) ? new Date().toLocaleString() : time.toLocaleString();
 
         const escapedCategory = escapeTelegramMarkdown(category);
         const escapedMessage = escapeTelegramMarkdown(message);
@@ -46,7 +73,13 @@ export async function POST(request: Request) {
             `*Category:* ${escapedCategory}\n` +
             `*Message:* ${escapedMessage}\n` +
             `*Email:* ${escapedEmail || "Not provided"}\n` +
-            `*Time:* ${new Date(timestamp || Date.now()).toLocaleString()}`;
+            `*Time:* ${timeStr}`;
+
+        const slackText = `*New Toolich Feedback Received* 🚀\n` +
+            `*Category:* ${escapeSlack(category)}\n` +
+            `*Message:* ${escapeSlack(message)}\n` +
+            `*Email:* ${escapeSlack(email || "") || "Not provided"}\n` +
+            `*Time:* ${timeStr}`;
 
         let sent = false;
 
@@ -79,7 +112,7 @@ export async function POST(request: Request) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        text: formattedText,
+                        text: slackText,
                     }),
                 });
                 if (res.ok) sent = true;

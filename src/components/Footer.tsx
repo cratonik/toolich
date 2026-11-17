@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useTabContext } from "@/lib/tab-context";
+import { useBlogAvailable } from "@/lib/use-blog-available";
 
 export default function Footer() {
     const { isWide } = useTabContext();
+    const blogAvailable = useBlogAvailable();
 
     return (
         <footer className="w-full border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 transition-colors duration-300">
@@ -25,12 +27,14 @@ export default function Footer() {
                     </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <Link
-                        href="/blogs"
-                        className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
-                    >
-                        Blog
-                    </Link>
+                    {blogAvailable && (
+                        <Link
+                            href="/blogs"
+                            className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
+                        >
+                            Blog
+                        </Link>
+                    )}
                     <Link
                         href="/about"
                         className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"

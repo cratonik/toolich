@@ -30,6 +30,30 @@ export type EnvEntry = {
  * - Inline comments after unquoted values (`KEY=val # note`)
  * - `export KEY=VALUE` prefix
  */
+/** Index of the closing quote, skipping backslash-escaped double quotes. */
+function findClosingQuote(str: string, quoteChar: string, from: number): number {
+    for (let i = from; i < str.length; i++) {
+        if (quoteChar === '"' && str[i] === "\\") {
+            i++; // skip the escaped character
+            continue;
+        }
+        if (str[i] === quoteChar) return i;
+    }
+    return -1;
+}
+
+/**
+ * Quote a value for `.env` output so it parses back to exactly the same string.
+ * Prefers single quotes (literal) when the value contains double quotes, e.g. JSON.
+ */
+function quoteEnvValue(value: string): string {
+    if (!/[\s#"']/.test(value)) return value;
+    const hasQuoteOrBackslash = value.includes('"') || value.includes("\\");
+    if (!hasQuoteOrBackslash) return `"${value}"`;
+    if (!value.includes("'")) return `'${value}'`;
+    return `"${value.replace(/"/g, '\\"')}"`;
+}
+
 export function parseEnv(raw: string): EnvEntry[] {
     const lines = raw.split(/\r?\n/);
     return lines.map((line) => {
@@ -71,13 +95,16 @@ export function parseEnv(raw: string): EnvEntry[] {
         const quoteChar = valPart.trimStart().charAt(0);
         if (quoteChar === '"' || quoteChar === "'") {
             const startIdx = valPart.indexOf(quoteChar);
-            const endIdx = valPart.indexOf(quoteChar, startIdx + 1);
+            const endIdx = findClosingQuote(valPart, quoteChar, startIdx + 1);
             if (endIdx !== -1) {
                 const afterQuote = valPart.slice(endIdx + 1).trim();
                 if (afterQuote.startsWith("#")) {
                     comment = afterQuote.slice(1).trim();
                 }
                 valPart = valPart.slice(startIdx + 1, endIdx);
+                // Inside double quotes, \" is an escaped quote (dotenv semantics).
+                // Single-quoted values are literal.
+                if (quoteChar === '"') valPart = valPart.replace(/\\"/g, '"');
             } else {
                 // Unterminated quote — take as-is
                 valPart = valPart.trimStart().slice(1);
@@ -106,8 +133,7 @@ export function serializeEnv(entries: EnvEntry[]): string {
         .map((e) => {
             if (e.isBlank) return "";
             if (e.isComment) return `# ${e.comment}`;
-            const needsQuote = /[\s#"']/.test(e.value);
-            const val = needsQuote ? `"${e.value}"` : e.value;
+            const val = quoteEnvValue(e.value);
             const inline = e.comment ? ` # ${e.comment}` : "";
             return `${e.key}=${val}${inline}`;
         })

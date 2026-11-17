@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
     Copy,
     Check,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { generateFromDescription, type GeneratedPattern } from "./regex-generator";
+import type { RegexJob, RegexResult } from "./regex.worker";
 
 // ---------------------------------------------------------------------------
 // Cheat-sheet data
@@ -83,6 +84,76 @@ const MATCH_COLORS = [
 ];
 
 // ---------------------------------------------------------------------------
+// Off-main-thread matching with a time limit
+// ---------------------------------------------------------------------------
+
+/** Kill matching that runs longer than this (catastrophic backtracking). */
+const MATCH_TIMEOUT_MS = 1500;
+/** Cap on rendered matches so a pattern like /(?:)/g on a big text can't freeze rendering. */
+const MATCH_LIMIT = 5000;
+
+type MatchRun = { key: string; matches: MatchInfo[]; truncated: boolean; error: string };
+
+function useRegexMatches(pattern: string, flags: string, text: string, enabled: boolean) {
+    const workerRef = useRef<Worker | null>(null);
+    const busyRef = useRef(false);
+    const jobIdRef = useRef(0);
+    const [run, setRun] = useState<MatchRun | null>(null);
+    const key = `${flags}\u0000${pattern}\u0000${text}`;
+
+    useEffect(() => {
+        if (!enabled) return;
+        const id = ++jobIdRef.current;
+
+        // A still-running job (possibly stuck backtracking) would block this one: replace the worker.
+        if (busyRef.current && workerRef.current) {
+            workerRef.current.terminate();
+            workerRef.current = null;
+        }
+        if (!workerRef.current) {
+            workerRef.current = new Worker(new URL("./regex.worker.ts", import.meta.url));
+        }
+        const worker = workerRef.current;
+        busyRef.current = true;
+
+        const timer = setTimeout(() => {
+            if (jobIdRef.current !== id) return;
+            worker.terminate();
+            if (workerRef.current === worker) workerRef.current = null;
+            busyRef.current = false;
+            setRun({
+                key,
+                matches: [],
+                truncated: false,
+                error: `Matching took longer than ${MATCH_TIMEOUT_MS / 1000}s and was stopped. The pattern likely causes catastrophic backtracking (e.g. nested quantifiers like (a+)+).`,
+            });
+        }, MATCH_TIMEOUT_MS);
+
+        worker.onmessage = (e: MessageEvent<RegexResult>) => {
+            if (e.data.id !== jobIdRef.current) return;
+            clearTimeout(timer);
+            busyRef.current = false;
+            if ("error" in e.data) {
+                setRun({ key, matches: [], truncated: false, error: e.data.error });
+            } else {
+                setRun({ key, matches: e.data.matches, truncated: e.data.truncated, error: "" });
+            }
+        };
+        worker.postMessage({ id, pattern, flags, text, limit: MATCH_LIMIT } satisfies RegexJob);
+
+        return () => clearTimeout(timer);
+    }, [enabled, key, pattern, flags, text]);
+
+    useEffect(() => () => workerRef.current?.terminate(), []);
+
+    // Ignore results that belong to an older input.
+    if (!enabled || !run || run.key !== key) {
+        return { matches: [] as MatchInfo[], truncated: false, error: "", pending: enabled };
+    }
+    return { matches: run.matches, truncated: run.truncated, error: run.error, pending: false };
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -147,34 +218,13 @@ export default function RegexTester() {
         }
     }, [pattern, flags]);
 
-    // ---- matching ----
-    const matches = useMemo<MatchInfo[]>(() => {
-        if (!regex || !testStr) return [];
-        const results: MatchInfo[] = [];
-        // Use matchAll for global, exec for non-global
-        if (flags.includes("g")) {
-            const iter = testStr.matchAll(new RegExp(pattern, flags));
-            for (const m of iter) {
-                results.push({
-                    fullMatch: m[0],
-                    index: m.index ?? 0,
-                    length: m[0].length,
-                    groups: m.slice(1).map((g) => g ?? ""),
-                });
-            }
-        } else {
-            const m = regex.exec(testStr);
-            if (m) {
-                results.push({
-                    fullMatch: m[0],
-                    index: m.index ?? 0,
-                    length: m[0].length,
-                    groups: m.slice(1).map((g) => g ?? ""),
-                });
-            }
-        }
-        return results;
-    }, [regex, testStr, pattern, flags]);
+    // ---- matching (in a worker, killed on timeout) ----
+    const {
+        matches,
+        truncated: matchesTruncated,
+        error: matchError,
+        pending: matchPending,
+    } = useRegexMatches(pattern, flags, testStr, !!regex && !!testStr);
 
     // ---- highlighted segments ----
     const segments = useMemo<HighlightSegment[]>(() => {
@@ -413,9 +463,9 @@ export default function RegexTester() {
                         </div>
 
                         {/* Regex error */}
-                        {regexError && (
+                        {(regexError || matchError) && (
                             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                                {regexError}
+                                {regexError || matchError}
                             </p>
                         )}
                     </div>
@@ -438,7 +488,7 @@ export default function RegexTester() {
                     </div>
 
                     {/* ── Highlighted output ── */}
-                    {testStr && pattern && !regexError && (
+                    {testStr && pattern && !regexError && !matchError && (
                         <div className="space-y-2">
                             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                                 Highlighted Matches
@@ -466,7 +516,7 @@ export default function RegexTester() {
                     {matches.length > 0 && (
                         <div className="space-y-2">
                             <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                                {matches.length} Match{matches.length !== 1 && "es"}
+                                {matchesTruncated ? `First ${matches.length} matches (more not shown)` : <>{matches.length} Match{matches.length !== 1 && "es"}</>}
                             </label>
                             <div className="space-y-1">
                                 {matches.map((m, i) => (
@@ -509,7 +559,7 @@ export default function RegexTester() {
                     )}
 
                     {/* ── No matches state ── */}
-                    {pattern && testStr && !regexError && matches.length === 0 && (
+                    {pattern && testStr && !regexError && !matchError && !matchPending && matches.length === 0 && (
                         <div className="rounded-xl border-2 border-dashed border-zinc-300 py-8 text-center text-sm text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
                             No matches found — try adjusting the pattern or flags
                         </div>

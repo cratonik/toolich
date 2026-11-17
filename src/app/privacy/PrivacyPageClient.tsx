@@ -77,6 +77,41 @@ export default function PrivacyPageClient() {
 
                     <section>
                         <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                            Google Analytics &amp; Google AdSense
+                        </h2>
+                        <div className="space-y-3">
+                            <p>
+                                We use <strong>Google Analytics</strong> to understand how visitors use
+                                Toolich (for example, which pages and tools are opened). Google Analytics
+                                uses cookies and collects usage data such as pages visited, approximate
+                                location, device and browser information. It does not receive the data
+                                you type into the tools.
+                            </p>
+                            <p>
+                                We use <strong>Google AdSense</strong> to show advertisements. Google and
+                                its partners use cookies to serve ads based on your prior visits to this
+                                and other websites. Google&apos;s use of advertising cookies enables it and
+                                its partners to serve ads to you based on your visits to Toolich and/or
+                                other sites on the Internet.
+                            </p>
+                            <p>
+                                You can opt out of personalised advertising in{" "}
+                                <PolicyLink href="https://myadcenter.google.com/">Google My Ad Center</PolicyLink>
+                                , and out of Google Analytics with the{" "}
+                                <PolicyLink href="https://tools.google.com/dlpage/gaoptout">Google Analytics opt-out browser add-on</PolicyLink>
+                                . For more information, see the{" "}
+                                <PolicyLink href="https://policies.google.com/privacy">Google Privacy Policy</PolicyLink>
+                                {" "}and{" "}
+                                <PolicyLink href="https://policies.google.com/technologies/partner-sites">
+                                    how Google uses information from sites that use its services
+                                </PolicyLink>
+                                .
+                            </p>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                             Contact
                         </h2>
                         <p>
@@ -98,5 +133,18 @@ export default function PrivacyPageClient() {
             <Footer />
             <StaticFloatingDock />
         </div>
+    );
+}
+
+function PolicyLink({ href, children }: { href: string; children: React.ReactNode }) {
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-600 underline hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+        >
+            {children}
+        </a>
     );
 }

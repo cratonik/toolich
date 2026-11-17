@@ -1,6 +1,59 @@
 "use server";
 
 import dns from "node:dns/promises";
+import { headers } from "next/headers";
+import { getRedis } from "@/lib/redis";
+import { getClientIpFromHeaders } from "@/lib/client-ip";
+
+const SUPPORTED_TYPES = new Set(["A", "AAAA", "MX", "TXT", "NS", "CNAME", "SOA"]);
+const LOOKUPS_PER_MINUTE = 30;
+
+// Names that only exist on private networks. Resolving them from the server would
+// reveal internal addresses (e.g. Docker service names like "redis").
+const PRIVATE_SUFFIXES = ["localhost", "local", "localdomain", "internal", "intranet", "lan", "home", "corp", "home.arpa", "arpa"];
+
+/**
+ * Normalise user input to a public hostname, or return null.
+ * Accepts pasted URLs ("https://example.com/path") and trailing dots.
+ * Requires at least two labels and an alphabetic TLD, which rules out IP
+ * literals and single-label internal names.
+ */
+function normalizeDomain(input: string): string | null {
+    let host = input.trim().toLowerCase();
+    if (host.includes("://")) {
+        try {
+            host = new URL(host).hostname;
+        } catch {
+            return null;
+        }
+    }
+    host = host.split("/")[0].replace(/\.$/, "");
+    if (!host || host.length > 253) return null;
+
+    const labels = host.split(".");
+    if (labels.length < 2) return null;
+    const labelOk = (l: string) => /^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?$/.test(l);
+    if (!labels.every(labelOk)) return null;
+    const tld = labels[labels.length - 1];
+    if (!/^([a-z]{2,63}|xn--[a-z0-9-]{1,59})$/.test(tld)) return null;
+    if (PRIVATE_SUFFIXES.some((s) => host === s || host.endsWith(`.${s}`))) return null;
+    return host;
+}
+
+/** Returns true when this client is over the limit. Fails open if Redis is down. */
+async function isRateLimited(): Promise<boolean> {
+    try {
+        const ip = getClientIpFromHeaders(await headers());
+        const redis = await getRedis();
+        const key = `rate_limit:dns:${ip}`;
+        const count = await redis.incr(key);
+        if (count === 1) await redis.expire(key, 60);
+        return count > LOOKUPS_PER_MINUTE;
+    } catch (err) {
+        console.error("DNS rate limit error:", err);
+        return false;
+    }
+}
 
 export type DnsRecord = {
     type: string;
@@ -18,10 +71,23 @@ export type DnsRecord = {
 };
 
 export async function queryDns(domain: string, type: string): Promise<{ records: DnsRecord[]; error?: string }> {
-    if (!domain) return { records: [] };
+    if (typeof domain !== "string" || typeof type !== "string" || !domain.trim()) return { records: [] };
+
+    const recordType = type.toUpperCase();
+    if (!SUPPORTED_TYPES.has(recordType)) {
+        return { records: [], error: `Unsupported record type: ${type}` };
+    }
+    const host = normalizeDomain(domain);
+    if (!host) {
+        return { records: [], error: "Enter a valid public domain name, e.g. example.com" };
+    }
+    if (await isRateLimited()) {
+        return { records: [], error: "Too many lookups. Please wait a minute and try again." };
+    }
+    domain = host;
 
     try {
-        switch (type.toUpperCase()) {
+        switch (recordType) {
             case "A": {
                 const aRecords = await dns.resolve4(domain, { ttl: true });
                 return { records: aRecords.map((r) => ({ type: "A", value: r.address, ttl: r.ttl })) };

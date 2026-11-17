@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { StaticFloatingDock } from "@/components/StaticFloatingDock";
+import { fetchBlogs, blogSlug } from "@/lib/blog-api";
 
 export const metadata: Metadata = {
   title: 'Blog',
@@ -21,9 +22,9 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogsPage() {
-  const res = await fetch('https://www.cratonik.com/api/blog', { next: { revalidate: 3600 } });
-  
-  if (!res.ok) {
+  const blogs = await fetchBlogs();
+
+  if (!blogs) {
     return (
       <div className="min-h-screen bg-zinc-50 pt-20 dark:bg-zinc-950">
         <div className="p-8 text-center text-zinc-500">Failed to load blogs.</div>
@@ -31,7 +32,6 @@ export default async function BlogsPage() {
     );
   }
   
-  const blogs = await res.json();
 
   return (
     <>
@@ -48,8 +48,8 @@ export default async function BlogsPage() {
             Blog
           </h1>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {blogs.map((blog: any) => {
-            const slug = encodeURIComponent(blog.title.replace(/\s+/g, '-').toLowerCase());
+          {blogs.map((blog) => {
+            const slug = blogSlug(blog.title);
             return (
               <Link 
                 key={blog.id} 
