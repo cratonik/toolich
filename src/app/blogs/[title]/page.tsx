@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { StaticFloatingDock } from "@/components/StaticFloatingDock";
-import { fetchBlogs, findBlogBySlug, blogSlug } from "@/lib/blog-api";
+import { fetchBlogs, findBlogBySlug, blogSlug, originalBlogUrl } from "@/lib/blog-api";
 import { allTools, getToolsByCategory } from "@/lib/tool-registry";
 import { findToolForBlog } from "@/lib/blog-tool-match";
 import { BlogSidebar, formatBlogDate, readingMinutes } from "@/components/blog/BlogSidebar";
@@ -25,9 +25,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   const imageUrl = `https://www.cratonik.com${blog.image}`;
   
-  return { 
-    title: blog.title, 
+  return {
+    title: blog.title,
     description: blog.para1,
+    // Same post is published on cratonik.com; point search engines at the original.
+    alternates: { canonical: originalBlogUrl(blog.title) },
     openGraph: {
       title: blog.title,
       description: blog.para1,
@@ -74,6 +76,7 @@ export default async function BlogDetail({ params }: Props) {
       }
     },
     "datePublished": blog.createdAt,
+    "mainEntityOfPage": originalBlogUrl(blog.title),
     "description": blog.para1,
   };
 
