@@ -2,7 +2,7 @@
  * Hash algorithm definitions and computation logic.
  *
  * Uses `hash-wasm` (WebAssembly) for most algorithms, with small custom
- * implementations for the rest (CRC16, NTLM, MD2, MD6, RIPEMD-128/256/320).
+ * implementations for the rest (CRC16, NTLM, MD2) and RIPEMD-128/256/320 in ./ripemd.
  */
 
 import {
@@ -19,6 +19,7 @@ import {
     adler32,
     whirlpool,
 } from "hash-wasm";
+import { ripemd128, ripemd256, ripemd320 } from "./ripemd";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,9 +43,6 @@ export const ALGORITHM_FAMILIES: AlgorithmFamily[] = [
             { id: "md2", label: "MD2" },
             { id: "md4", label: "MD4" },
             { id: "md5", label: "MD5" },
-            { id: "md6-128", label: "MD6-128" },
-            { id: "md6-256", label: "MD6-256" },
-            { id: "md6-512", label: "MD6-512" },
         ],
     },
     {
@@ -202,63 +200,6 @@ function computeMD2(input: string): string {
         .join("");
 }
 
-/**
- * MD6 — simplified implementation using iterated SHA-256.
- * MD6 was never standardized (only a SHA-3 submission), so we use
- * a practical approximation: truncated SHA-256 chain with MD6 label.
- *
- * This produces a deterministic, fixed-length hash but is NOT a true
- * MD6 implementation. It's provided for completeness.
- */
-async function computeMD6(input: string, bits: number): Promise<string> {
-    // Use SHA-256 as the compression function, prefix with "MD6-{bits}:"
-    const prefixed = `MD6-${bits}:${input}`;
-    const hash = await sha256(prefixed);
-    // Truncate to requested bit length
-    const hexLen = bits / 4;
-    return hash.slice(0, hexLen);
-}
-
-/**
- * RIPEMD-128 — simplified implementation.
- * Uses RIPEMD-160 truncated + XOR mixed with a constant to produce
- * a deterministic 128-bit output. Not a true RIPEMD-128 implementation.
- */
-async function computeRIPEMD128(input: string): Promise<string> {
-    const hash = await ripemd160(input);
-    // XOR first 32 and last 8 hex chars to produce 32 hex (128 bits)
-    const a = hash.slice(0, 32);
-    const b = hash.slice(32, 40).padEnd(32, "0");
-    let result = "";
-    for (let i = 0; i < 32; i++) {
-        result += (parseInt(a[i], 16) ^ parseInt(b[i], 16)).toString(16);
-    }
-    return result;
-}
-
-/**
- * RIPEMD-256 — uses double RIPEMD-160 with different prefixes.
- */
-async function computeRIPEMD256(input: string): Promise<string> {
-    const [h1, h2] = await Promise.all([
-        ripemd160(input),
-        ripemd160(`ripemd256:${input}`),
-    ]);
-    // Combine: first 32 hex chars from each = 64 hex = 256 bits
-    return h1.slice(0, 32) + h2.slice(0, 32);
-}
-
-/**
- * RIPEMD-320 — uses double RIPEMD-160.
- */
-async function computeRIPEMD320(input: string): Promise<string> {
-    const [h1, h2] = await Promise.all([
-        ripemd160(input),
-        ripemd160(`ripemd320:${input}`),
-    ]);
-    return h1 + h2;
-}
-
 // ---------------------------------------------------------------------------
 // Main compute function
 // ---------------------------------------------------------------------------
@@ -275,12 +216,6 @@ export async function computeHash(
             return md4(input);
         case "md5":
             return md5(input);
-        case "md6-128":
-            return computeMD6(input, 128);
-        case "md6-256":
-            return computeMD6(input, 256);
-        case "md6-512":
-            return computeMD6(input, 512);
 
         // --- SHA-1 ---
         case "sha1":
@@ -308,13 +243,13 @@ export async function computeHash(
 
         // --- RIPEMD ---
         case "ripemd128":
-            return computeRIPEMD128(input);
+            return ripemd128(new TextEncoder().encode(input));
         case "ripemd160":
             return ripemd160(input);
         case "ripemd256":
-            return computeRIPEMD256(input);
+            return ripemd256(new TextEncoder().encode(input));
         case "ripemd320":
-            return computeRIPEMD320(input);
+            return ripemd320(new TextEncoder().encode(input));
 
         // --- Other ---
         case "ntlm":

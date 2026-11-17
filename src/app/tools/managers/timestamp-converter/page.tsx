@@ -1,15 +1,18 @@
-import { Metadata } from "next";
+import { constructMetadata } from "@/lib/seo";
+import { ToolStructuredData } from "@/components/StructuredData";
 import { getToolBySlug } from "@/lib/tool-registry";
-import TimestampConverter from "@/tools/managers/timestamp-converter/TimestampConverter";
 
-const meta = getToolBySlug("managers", "timestamp-converter");
+const meta = getToolBySlug("managers", "timestamp-converter")!;
 
-export const metadata: Metadata = {
-    title: meta?.name ?? "Timestamp Converter",
-    description: meta?.description,
-    keywords: meta?.keywords,
-};
+export const metadata = constructMetadata({
+    title: meta.name,
+    description: meta.description,
+    path: meta.path,
+    keywords: meta.keywords,
+});
 
+// The tools layout renders the visible UI through the tab system, so this page
+// only contributes metadata and JSON-LD to the server-rendered HTML.
 export default function TimestampConverterPage() {
-    return <TimestampConverter />;
+    return <ToolStructuredData tool={meta} />;
 }

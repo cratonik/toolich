@@ -10,13 +10,14 @@ export default function ToolsLayout({
 }: {
     children: React.ReactNode;
 }) {
-    // Suppress the individual page content — the tab system handles rendering.
-    // The children (page.tsx files) still provide metadata for SEO.
-    void children;
+    // The tab system renders the visible UI. Pages under /tools render only
+    // JSON-LD <script> tags (no visible output), so they are passed through to
+    // land in the server HTML where crawlers can read them.
     const { viewMode } = useTabContext();
 
     return (
         <div className={`min-h-screen bg-zinc-50 ${viewMode === "minified" ? "pt-11" : "pt-14"} dark:bg-zinc-950 transition-all duration-300`}>
+            {children}
             {viewMode === "normal" && <TabBar />}
             <TabContent />
         </div>

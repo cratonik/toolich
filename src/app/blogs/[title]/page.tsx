@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { StaticFloatingDock } from "@/components/StaticFloatingDock";
+import { fetchBlogs, findBlogBySlug } from "@/lib/blog-api";
 
 type Props = {
   params: Promise<{ title: string }>;
@@ -13,15 +14,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { title } = await params;
   const titleSlug = title;
   
-  const res = await fetch('https://www.cratonik.com/api/blog');
-  if (!res.ok) return { title: 'Not Found' };
-  
-  const blogs = await res.json();
-  const blog = blogs.find((b: any) => 
-    encodeURIComponent(b.title.replace(/\s+/g, '-').toLowerCase()) === titleSlug || 
-    b.title.replace(/\s+/g, '-').toLowerCase() === decodeURIComponent(titleSlug)
-  );
-  
+  const blogs = await fetchBlogs();
+  if (!blogs) return { title: 'Blog' };
+
+  const blog = findBlogBySlug(blogs, titleSlug);
   if (!blog) return { title: 'Not Found' };
   
   const imageUrl = `https://www.cratonik.com${blog.image}`;
@@ -50,14 +46,10 @@ export default async function BlogDetail({ params }: Props) {
   const { title } = await params;
   const titleSlug = title;
   
-  const res = await fetch('https://www.cratonik.com/api/blog', { next: { revalidate: 3600 } });
-  if (!res.ok) return notFound();
-  
-  const blogs = await res.json();
-  const blog = blogs.find((b: any) => 
-    encodeURIComponent(b.title.replace(/\s+/g, '-').toLowerCase()) === titleSlug || 
-    b.title.replace(/\s+/g, '-').toLowerCase() === decodeURIComponent(titleSlug)
-  );
+  const blogs = await fetchBlogs();
+  if (!blogs) return notFound();
+
+  const blog = findBlogBySlug(blogs, titleSlug);
 
   if (!blog) return notFound();
 

@@ -407,6 +407,7 @@ export function FeedbackChatbot({ isOpen, setIsOpen, activeBroadcast, onSeeBroad
                     <div className="border-t border-zinc-200 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
                         <div className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white p-1 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/20 dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-indigo-500">
                             <textarea
+                                maxLength={1800}
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyDown={handleKeyDown}

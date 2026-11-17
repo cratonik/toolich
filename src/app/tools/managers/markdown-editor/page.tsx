@@ -1,11 +1,8 @@
-import { ToolPageHeader } from "@/components/ToolPageHeader";
-import MarkdownEditor from "@/tools/managers/markdown-editor/MarkdownEditor";
-import { toolMeta } from "@/tools/managers/markdown-editor";
 import { constructMetadata } from "@/lib/seo";
 import { ToolStructuredData } from "@/components/StructuredData";
-import { allTools } from "@/lib/tool-registry";
+import { getToolBySlug } from "@/lib/tool-registry";
 
-const meta = allTools.find((t) => t.slug === toolMeta.slug)!;
+const meta = getToolBySlug("managers", "markdown-editor")!;
 
 export const metadata = constructMetadata({
     title: meta.name,
@@ -14,17 +11,8 @@ export const metadata = constructMetadata({
     keywords: meta.keywords,
 });
 
+// The tools layout renders the visible UI through the tab system, so this page
+// only contributes metadata and JSON-LD to the server-rendered HTML.
 export default function MarkdownEditorPage() {
-    return (
-        <>
-            <ToolStructuredData tool={meta} />
-            <ToolPageHeader
-                toolName={meta.name}
-                description={meta.description}
-                category={meta.category}
-                slug={meta.slug}
-            />
-            <MarkdownEditor />
-        </>
-    );
+    return <ToolStructuredData tool={meta} />;
 }

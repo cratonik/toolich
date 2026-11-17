@@ -6,11 +6,16 @@
  * so they can be faked — we take the last entry instead of the first.
  */
 export function getClientIp(request: Request): string {
-    const forwarded = request.headers.get("x-forwarded-for");
+    return getClientIpFromHeaders(request.headers);
+}
+
+/** Same as getClientIp, for server actions (`await headers()` from next/headers). */
+export function getClientIpFromHeaders(headers: Headers): string {
+    const forwarded = headers.get("x-forwarded-for");
     if (forwarded) {
         const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
         const last = parts[parts.length - 1];
         if (last) return last;
     }
-    return request.headers.get("x-real-ip")?.trim() || "anonymous";
+    return headers.get("x-real-ip")?.trim() || "anonymous";
 }

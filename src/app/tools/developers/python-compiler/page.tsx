@@ -1,32 +1,18 @@
-import { getToolBySlug } from "@/lib/tool-registry";
-import { notFound } from "next/navigation";
-import { ToolPageHeader } from "@/components/ToolPageHeader";
-import PythonCompiler from "@/tools/developers/python-compiler/PythonCompiler";
 import { constructMetadata } from "@/lib/seo";
-import type { Metadata } from "next";
+import { ToolStructuredData } from "@/components/StructuredData";
+import { getToolBySlug } from "@/lib/tool-registry";
 
-const tool = getToolBySlug("developers", "python-compiler");
+const meta = getToolBySlug("developers", "python-compiler")!;
 
-export const metadata: Metadata = constructMetadata({
-    title: tool?.name || "Python Compiler",
-    description: tool?.description || "Write and execute Python 3 code entirely in your browser using Pyodide.",
-    path: tool?.path || "/tools/developers/python-compiler",
+export const metadata = constructMetadata({
+    title: meta.name,
+    description: meta.description,
+    path: meta.path,
+    keywords: meta.keywords,
 });
 
+// The tools layout renders the visible UI through the tab system, so this page
+// only contributes metadata and JSON-LD to the server-rendered HTML.
 export default function PythonCompilerPage() {
-    if (!tool) return notFound();
-
-    return (
-        <>
-            <ToolPageHeader 
-                toolName={tool.name}
-                description={tool.description}
-                category={tool.category}
-                slug={tool.slug}
-            />
-            <div className="mt-8">
-                <PythonCompiler />
-            </div>
-        </>
-    );
+    return <ToolStructuredData tool={meta} />;
 }

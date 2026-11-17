@@ -136,6 +136,7 @@ export default function ContactPageClient() {
                                         <input
                                             type="text"
                                             required
+                                            maxLength={100}
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             placeholder="Your Name"
@@ -150,6 +151,7 @@ export default function ContactPageClient() {
                                         <input
                                             type="email"
                                             required
+                                            maxLength={200}
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="you@example.com"
@@ -180,6 +182,7 @@ export default function ContactPageClient() {
                                     </label>
                                     <textarea
                                         required
+                                        maxLength={1800}
                                         rows={4}
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
