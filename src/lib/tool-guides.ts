@@ -722,5 +722,89 @@ export const TOOL_GUIDES: Record<string, ToolGuide> = {
             }
         ],
         securityInfo: "All detection and redaction happen locally in your browser. Your text, the redacted output and the placeholder mapping are never sent to any server; they are kept only in this browser tab's session storage."
+    },
+    "yaml-formatter": {
+        title: "YAML Formatter & Converter Guide",
+        introduction: "YAML is the configuration language behind Kubernetes manifests, Docker Compose files, GitHub Actions workflows, Ansible playbooks and most CI/CD pipelines. Its indentation-based syntax is easy to read but easy to break: a single misplaced space, a tab character or an unquoted colon can stop a deployment. The YAML Formatter parses your YAML (or JSON), reports the exact line of any syntax error, and re-emits it with consistent indentation. It also converts between YAML and JSON, so you can move a config between tools that expect different formats, or minify it into a single line for an environment variable or API payload.",
+        features: [
+            "Validates YAML and JSON as you type and shows the line number of the first syntax error.",
+            "Converts YAML to JSON and JSON to YAML in either direction.",
+            "Pretty-prints with 2- or 4-space indentation, or minifies to compact single-line output.",
+            "Opens .yaml, .yml, .json and .txt files by upload or drag and drop.",
+            "Side-by-side or stacked layout, adjustable text size, and optional auto-copy of the result.",
+            "Clear with one-step undo (Ctrl+Z), and your input is kept for the browser tab session."
+        ],
+        howToUse: [
+            "Paste YAML or JSON into the input box, or drop a file onto the upload area.",
+            "Choose the output format (YAML or JSON) and the style (Pretty or Minify).",
+            "For pretty output, pick 2 or 4 spaces of indentation to match your project's style.",
+            "If the input is invalid, read the error message and line number under the input, fix that line, and the output updates immediately.",
+            "Copy the result, or turn on Auto-copy to have every valid result copied to your clipboard automatically."
+        ],
+        faq: [
+            {
+                question: "Why does my YAML fail with an indentation error?",
+                answer: "YAML uses spaces, not tabs, to show nesting, and every item at the same level must start in the same column. Mixing tabs and spaces, or indenting a list item by one space too many, is the most common cause. Re-indenting the reported line and its siblings usually fixes it."
+            },
+            {
+                question: "Are comments preserved when I format?",
+                answer: "No. The formatter parses your document into data and writes it back out, and YAML comments are not part of the data. If you need to keep comments, use the formatter to find and fix errors, then apply the corrections to your original file."
+            },
+            {
+                question: "Will values like yes, no or on change to true and false?",
+                answer: "No. The parser follows YAML 1.2, where only true and false are booleans. Words such as yes, no, on and off stay strings, which avoids the well-known problem of a country code like NO turning into false in older YAML 1.1 parsers."
+            },
+            {
+                question: "Can I convert a Kubernetes manifest or Docker Compose file to JSON?",
+                answer: "Yes. Paste the file, choose JSON as the output format, and copy the result. Multi-document files separated by --- should be converted one document at a time."
+            },
+            {
+                question: "What does Minify do for YAML output?",
+                answer: "Minified output is written in compact single-line flow style, which is valid YAML and JSON. It is handy for embedding a config in an environment variable, a command-line argument or an API request body."
+            }
+        ],
+        securityInfo: "Parsing, validation and conversion run entirely in your browser using the open-source yaml library. Your configuration files, which often contain hostnames, credentials or internal service names, are never uploaded to a server."
+    },
+    "timestamp-converter": {
+        title: "Unix Timestamp Converter Guide",
+        introduction: "A Unix timestamp counts the seconds (or milliseconds) that have passed since 1 January 1970 at 00:00 UTC. Databases, log files, APIs and JWT tokens store time this way because it is compact and independent of time zones, but it is unreadable to people. The Timestamp Converter turns a timestamp into a readable date in any time zone and back again, so you can check when a log entry was written, when a token expires, or what value to put in a query. It shows the result as ISO 8601, RFC 2822, a relative time such as '3 hours ago' and a localized date, with a live clock for reference.",
+        features: [
+            "Converts Unix timestamps to dates and dates back to timestamps, in both directions.",
+            "Detects seconds or milliseconds automatically, or lets you force either unit.",
+            "Interprets and displays times in your local zone, UTC or major zones such as New York, London, Kolkata, Tokyo and Sydney, including daylight saving time.",
+            "Outputs ISO 8601, RFC 2822, relative time and a localized date and time, each with one-click copy.",
+            "A live clock and a Now button that fills in the current timestamp.",
+            "Accepts date strings with their own offset, such as 2026-01-01T09:00:00+05:30 or a trailing Z, and respects that offset."
+        ],
+        howToUse: [
+            "Paste a Unix timestamp, such as 1767225600, into the timestamp box; the unit is detected automatically.",
+            "Or type a date and time, such as 2026-01-01T00:00:00, into the date box.",
+            "Choose the time zone the date should be read and displayed in; switching zones keeps the same moment in time.",
+            "Read the converted values in the outputs panel and use the copy button next to any of them.",
+            "Click Now to start from the current time, or Clear to reset both inputs."
+        ],
+        faq: [
+            {
+                question: "How do I tell seconds from milliseconds?",
+                answer: "Current timestamps in seconds have 10 digits (for example 1767225600), while milliseconds have 13 (1767225600000). Auto mode treats values below 10,000,000,000 as seconds, which covers every date up to the year 2286. JavaScript and Java usually use milliseconds; Unix tools, Python and most databases use seconds."
+            },
+            {
+                question: "Why is my converted date off by a few hours?",
+                answer: "The timestamp itself has no time zone; only the displayed date does. If the result looks shifted, check the selected time zone. A date typed without an offset is read in the selected zone, so 09:00 with Asia/Kolkata selected is a different moment from 09:00 in UTC."
+            },
+            {
+                question: "What is the difference between ISO 8601 and RFC 2822?",
+                answer: "ISO 8601 (2026-01-01T09:00:00+05:30) sorts correctly as text and is the standard for APIs and JSON. RFC 2822 (Thu, 01 Jan 2026 09:00:00 +0530) is the format used in email headers and some HTTP headers."
+            },
+            {
+                question: "What is the year 2038 problem?",
+                answer: "Systems that store seconds in a signed 32-bit integer overflow on 19 January 2038 at 03:14:07 UTC. Modern 64-bit systems and JavaScript are not affected, but it matters for older embedded devices, legacy databases and file formats."
+            },
+            {
+                question: "How do I read the exp value in a JWT?",
+                answer: "JWT exp, iat and nbf claims are Unix timestamps in seconds. Paste the number here to see the exact expiry date and how long ago or how soon it is."
+            }
+        ],
+        securityInfo: "All conversions run locally in your browser with the date-fns and date-fns-tz libraries. The timestamps and dates you enter are not sent to any server."
     }
 };
