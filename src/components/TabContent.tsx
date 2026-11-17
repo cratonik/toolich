@@ -10,6 +10,7 @@ import CategoryPanel from "@/components/CategoryPanel";
 import { SplitDivider } from "@/components/SplitDivider";
 import { X, Columns2, Keyboard, Bot, Megaphone } from "lucide-react";
 import { InstallAppButton } from "@/components/InstallAppButton";
+import { Tooltip } from "@/components/Tooltip";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import Footer from "@/components/Footer";
@@ -351,21 +352,23 @@ export function TabContent() {
             {/* Unified Floating Action Dock */}
             <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 p-0 md:p-1.5 rounded-full md:border md:border-zinc-200 md:bg-white/90 md:shadow-[0_8px_30px_rgb(0,0,0,0.06)] md:backdrop-blur-md md:dark:border-zinc-800 md:dark:bg-zinc-950/90 transition-all duration-300">
                 {/* Keyboard Shortcuts Trigger */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setIsOpenShortcuts((prev) => !prev);
-                        setIsOpenChatbot(false);
-                    }}
-                    className={`hidden md:flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95 ${
-                        isOpenShortcuts
-                            ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
-                            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
-                    }`}
-                    title="Keyboard Shortcuts"
-                >
-                    <Keyboard className="h-[18px] w-[18px]" />
-                </button>
+                <Tooltip label="Keyboard shortcuts" className="hidden md:inline-flex" disabled={isOpenShortcuts}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsOpenShortcuts((prev) => !prev);
+                            setIsOpenChatbot(false);
+                        }}
+                        className={`hidden md:flex h-8 w-8 items-center justify-center rounded-full transition-all hover:scale-105 active:scale-95 ${
+                            isOpenShortcuts
+                                ? "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
+                                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200"
+                        }`}
+                        aria-label="Keyboard shortcuts"
+                    >
+                        <Keyboard className="h-[18px] w-[18px]" />
+                    </button>
+                </Tooltip>
 
                 {/* Install / open the Toolich app (PWA) */}
                 <InstallAppButton />
@@ -374,44 +377,46 @@ export function TabContent() {
                 <span className="hidden md:block h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
 
                 {/* Feedback Chatbot Trigger */}
-                <button
-                    type="button"
-                    onClick={() => {
-                        setIsOpenChatbot((prev) => {
-                            const next = !prev;
-                            if (next && activeBroadcast) {
-                                localStorage.setItem(`seen-broadcast-${activeBroadcast.timestamp}`, "true");
-                                setHasNewBroadcast(false);
-                            }
-                            return next;
-                        });
-                        setIsOpenShortcuts(false);
-                    }}
-                    className={`relative flex h-9 w-9 items-center justify-center rounded-full text-white transition-all duration-300 hover:scale-110 active:scale-95 border-0 ${
-                        isOpenChatbot
-                            ? "bg-zinc-800 dark:bg-zinc-700 shadow-md"
-                            : hasNewBroadcast
-                                ? "bg-gradient-to-r from-rose-500 to-indigo-600 shadow-[0_0_15px_rgba(244,63,94,0.65)] ring-4 ring-rose-400/40 animate-pulse"
-                                : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 shadow-[0_3px_12px_rgba(99,102,241,0.3)]"
-                    }`}
-                    title={isOpenChatbot ? "Close Assistant" : "Open Assistant & Feedback"}
-                >
-                    {isOpenChatbot ? (
-                        <X className="h-4 w-4" />
-                    ) : (
-                        <>
-                            <Bot className="h-[18px] w-[18px]" />
-                            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                                    hasNewBroadcast ? "bg-rose-400" : "bg-emerald-400"
-                                }`}></span>
-                                <span className={`relative inline-flex rounded-full h-3 w-3 border-2 border-white dark:border-zinc-950 ${
-                                    hasNewBroadcast ? "bg-rose-500" : "bg-emerald-500"
-                                }`}></span>
-                            </span>
-                        </>
-                    )}
-                </button>
+                <Tooltip label={isOpenChatbot ? "Close assistant" : "Assistant & feedback"} align="end">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsOpenChatbot((prev) => {
+                                const next = !prev;
+                                if (next && activeBroadcast) {
+                                    localStorage.setItem(`seen-broadcast-${activeBroadcast.timestamp}`, "true");
+                                    setHasNewBroadcast(false);
+                                }
+                                return next;
+                            });
+                            setIsOpenShortcuts(false);
+                        }}
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-full text-white transition-all duration-300 hover:scale-110 active:scale-95 border-0 ${
+                            isOpenChatbot
+                                ? "bg-zinc-800 dark:bg-zinc-700 shadow-md"
+                                : hasNewBroadcast
+                                    ? "bg-gradient-to-r from-rose-500 to-indigo-600 shadow-[0_0_15px_rgba(244,63,94,0.65)] ring-4 ring-rose-400/40 animate-pulse"
+                                    : "bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 shadow-[0_3px_12px_rgba(99,102,241,0.3)]"
+                        }`}
+                        aria-label={isOpenChatbot ? "Close assistant" : "Assistant & feedback"}
+                    >
+                        {isOpenChatbot ? (
+                            <X className="h-4 w-4" />
+                        ) : (
+                            <>
+                                <Bot className="h-[18px] w-[18px]" />
+                                <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                                        hasNewBroadcast ? "bg-rose-400" : "bg-emerald-400"
+                                    }`}></span>
+                                    <span className={`relative inline-flex rounded-full h-3 w-3 border-2 border-white dark:border-zinc-950 ${
+                                        hasNewBroadcast ? "bg-rose-500" : "bg-emerald-500"
+                                    }`}></span>
+                                </span>
+                            </>
+                        )}
+                    </button>
+                </Tooltip>
             </div>
 
             {/* Controlled Panels */}

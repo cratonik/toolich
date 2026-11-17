@@ -8,6 +8,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { GlobalTasksPopover } from "./GlobalTasksPopover";
 import { useTabContext } from "@/lib/tab-context";
 import { ShieldCheck, Minimize, Maximize } from "lucide-react";
+import { Tooltip } from "@/components/Tooltip";
 import { TabBar } from "./TabBar";
 
 type HeaderProps = {
@@ -91,19 +92,20 @@ export default function Header({
             <SearchTrigger />
 
             {/* View Mode toggle */}
-            <button
-              type="button"
-              onClick={toggleViewMode}
-              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
-              aria-label={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
-              title={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
-            >
-              {viewMode === "normal" ? (
-                <Minimize className="h-4.5 w-4.5" />
-              ) : (
-                <Maximize className="h-4.5 w-4.5" />
-              )}
-            </button>
+            <Tooltip label={viewMode === "normal" ? "Minified view" : "Normal view"} side="bottom" className="hidden md:inline-flex">
+              <button
+                type="button"
+                onClick={toggleViewMode}
+                className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
+                aria-label={viewMode === "normal" ? "Switch to minified view" : "Switch to normal view"}
+              >
+                {viewMode === "normal" ? (
+                  <Minimize className="h-4.5 w-4.5" />
+                ) : (
+                  <Maximize className="h-4.5 w-4.5" />
+                )}
+              </button>
+            </Tooltip>
 
             {/* Theme toggle */}
             <ThemeToggle />

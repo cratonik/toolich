@@ -5,6 +5,7 @@ import { ListTodo, CheckCircle2, Circle, Plus, ArrowRight } from "lucide-react";
 import { useLocalStorage } from "@/lib/use-local-storage";
 import Link from "next/link";
 import { useTabContext } from "@/lib/tab-context";
+import { Tooltip } from "@/components/Tooltip";
 
 export interface NotebookTask {
     id: string;
@@ -60,25 +61,27 @@ export function GlobalTasksPopover() {
 
     return (
         <div className="relative" ref={popoverRef}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="relative flex items-center justify-center w-8 h-8 rounded-lg text-zinc-500 hover:text-indigo-600 hover:bg-zinc-100 transition-all dark:text-zinc-400 dark:hover:text-indigo-400 dark:hover:bg-zinc-800 group shadow-sm hover:shadow"
-                aria-label="Important Tasks"
-            >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                    {/* Bottom Rectangle - Rose */}
-                    <rect x="3" y="11" width="12" height="9" rx="2" fill="#f43f5e" className="transition-transform duration-300 origin-bottom-left group-hover:-rotate-[15deg] group-hover:-translate-x-1" />
-                    {/* Middle Rectangle - Amber */}
-                    <rect x="6" y="7.5" width="12" height="9" rx="2" fill="#f59e0b" className="transition-transform duration-300 origin-center group-hover:scale-[1.15]" />
-                    {/* Top Rectangle - Indigo */}
-                    <rect x="9" y="4" width="12" height="9" rx="2" fill="#6366f1" className="transition-transform duration-300 origin-top-right group-hover:rotate-[15deg] group-hover:translate-x-1" />
-                </svg>
-                {importantTasks.length > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-zinc-950 animate-in zoom-in">
-                        {importantTasks.length}
-                    </span>
-                )}
-            </button>
+            <Tooltip label="Important tasks" side="bottom" disabled={isOpen}>
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="relative flex items-center justify-center w-8 h-8 rounded-lg text-zinc-500 hover:text-indigo-600 hover:bg-zinc-100 transition-all dark:text-zinc-400 dark:hover:text-indigo-400 dark:hover:bg-zinc-800 group shadow-sm hover:shadow"
+                    aria-label="Important Tasks"
+                >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
+                        {/* Bottom Rectangle - Rose */}
+                        <rect x="3" y="11" width="12" height="9" rx="2" fill="#f43f5e" className="transition-transform duration-300 origin-bottom-left group-hover:-rotate-[15deg] group-hover:-translate-x-1" />
+                        {/* Middle Rectangle - Amber */}
+                        <rect x="6" y="7.5" width="12" height="9" rx="2" fill="#f59e0b" className="transition-transform duration-300 origin-center group-hover:scale-[1.15]" />
+                        {/* Top Rectangle - Indigo */}
+                        <rect x="9" y="4" width="12" height="9" rx="2" fill="#6366f1" className="transition-transform duration-300 origin-top-right group-hover:rotate-[15deg] group-hover:translate-x-1" />
+                    </svg>
+                    {importantTasks.length > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-indigo-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-zinc-950 animate-in zoom-in">
+                            {importantTasks.length}
+                        </span>
+                    )}
+                </button>
+            </Tooltip>
 
             {isOpen && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden z-[100] flex flex-col max-h-[85vh]">

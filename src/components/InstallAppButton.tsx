@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, Share, X } from "lucide-react";
 import { usePwaInstall } from "@/lib/use-pwa-install";
+import { Tooltip } from "@/components/Tooltip";
 
 const BUTTON_CLASS =
     "flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95";
@@ -29,33 +30,38 @@ export function InstallAppButton() {
 
     if (state === "open") {
         return (
-            <button type="button" onClick={open} className={BUTTON_CLASS} title="Open in Toolich app" aria-label="Open in Toolich app">
-                <ExternalLink className="h-[18px] w-[18px]" />
-            </button>
+            <Tooltip label="Open in Toolich app">
+                <button type="button" onClick={open} className={BUTTON_CLASS} aria-label="Open in Toolich app">
+                    <ExternalLink className="h-[18px] w-[18px]" />
+                </button>
+            </Tooltip>
         );
     }
 
     if (state === "install") {
         return (
-            <button type="button" onClick={install} className={BUTTON_CLASS} title="Install Toolich app" aria-label="Install Toolich app">
-                <Download className="h-[18px] w-[18px]" />
-            </button>
+            <Tooltip label="Install Toolich app">
+                <button type="button" onClick={install} className={BUTTON_CLASS} aria-label="Install Toolich app">
+                    <Download className="h-[18px] w-[18px]" />
+                </button>
+            </Tooltip>
         );
     }
 
     // Safari: no programmatic install, so explain the manual steps.
     return (
         <div ref={wrapperRef} className="relative flex">
-            <button
-                type="button"
-                onClick={() => setShowHelp((v) => !v)}
-                className={BUTTON_CLASS}
-                title="Install Toolich app"
-                aria-label="Install Toolich app"
-                aria-expanded={showHelp}
-            >
-                <Download className="h-[18px] w-[18px]" />
-            </button>
+            <Tooltip label="Install Toolich app" disabled={showHelp}>
+                <button
+                    type="button"
+                    onClick={() => setShowHelp((v) => !v)}
+                    className={BUTTON_CLASS}
+                    aria-label="Install Toolich app"
+                    aria-expanded={showHelp}
+                >
+                    <Download className="h-[18px] w-[18px]" />
+                </button>
+            </Tooltip>
             {showHelp && (
                 <div
                     role="dialog"
