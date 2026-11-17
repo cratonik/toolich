@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Copy, Check, Trash2, Download, Search, Maximize2, Minimize2, Type, WrapText, AlignLeft, ArrowLeftRight, ListOrdered } from "lucide-react";
+import { Copy, Check, Trash2, Download, Search, Maximize2, Minimize2, Type, WrapText, AlignLeft, ListOrdered } from "lucide-react";
 import { useSessionState } from "@/lib/use-session-state";
 import { useTheme } from "@/lib/theme-context";
 import { useTabContext } from "@/lib/tab-context";
@@ -22,7 +22,6 @@ export default function Notepad() {
     
     // UI state
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isWide, setIsWide] = useSessionState<boolean>("notepad:wide", false);
     const [dragActive, setDragActive] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     
@@ -83,7 +82,7 @@ export default function Notepad() {
         observer.observe(ta);
         
         return () => observer.disconnect();
-    }, [text, fontSize, fontFamily, wordWrap, isWide, isFullscreen, updateLineCount]);
+    }, [text, fontSize, fontFamily, wordWrap, isFullscreen, updateLineCount]);
 
     // Actions
     const handleCopy = async () => {
@@ -323,17 +322,6 @@ export default function Notepad() {
                         {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                         {isFullscreen ? "Exit" : "Focus"}
                     </button>
-                    {isFullscreen && (
-                        <button
-                            type="button"
-                            onClick={() => setIsWide(!isWide)}
-                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                            title="Toggle Width"
-                        >
-                            <ArrowLeftRight className="h-3.5 w-3.5" />
-                            {isWide ? "Narrow" : "Wide"}
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -464,7 +452,7 @@ export default function Notepad() {
     if (isFullscreen) {
         return (
             <div className="fixed inset-0 z-[100] bg-zinc-50 dark:bg-zinc-950 p-4 md:p-8 flex flex-col h-screen overflow-hidden">
-                <div className={`mx-auto flex-1 min-h-0 flex flex-col w-full transition-all duration-300 ${isWide ? "max-w-none" : "max-w-5xl"}`}>
+                <div className="mx-auto flex-1 min-h-0 flex flex-col w-full">
                     {content}
                 </div>
             </div>
