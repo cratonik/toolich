@@ -84,8 +84,47 @@ function tabToPath(tab: Tab): string {
     return toolPath(tab.category, tab.toolSlug);
 }
 
+/** Paths rendered by the tab system: Home and everything under /tools. */
+function isTabPath(path: string): boolean {
+    return path === "/" || path === "/tools" || path.startsWith("/tools/");
+}
+
+/**
+ * Pages outside the tab system (about, blogs, privacy, 404, offline…). The tab
+ * state must never rewrite their URL, and tab actions there do a full navigation.
+ */
 function isStaticPath(path: string): boolean {
-    return path === "/terms" || path === "/privacy" || path === "/about" || path === "/contact";
+    return !isTabPath(path);
+}
+
+/**
+ * Make the tabs show `path` (when it is a tab URL that differs from the active tab).
+ * Reuses a tab already showing that path, else opens a new one, else (tab limit
+ * reached) reuses the last tab. Returns null when nothing needs to change.
+ */
+function tabsForUrl(
+    path: string,
+    tabs: Tab[],
+    activeId: string,
+): { tabs: Tab[]; activeId: string } | null {
+    if (isStaticPath(path)) return null;
+    const active = tabs.find((t) => t.id === activeId);
+    if (active && tabToPath(active) === path) return null;
+    const target = tabFieldsForPath(path);
+    if (target === undefined) return null; // unknown tool
+
+    if (target === null) {
+        // Home URL — reset the Home tab to its default view
+        return { tabs: tabs.map((t) => (t.id === "home" ? { ...HOME_TAB } : t)), activeId: "home" };
+    }
+    const existing = tabs.find((t) => t.id !== "home" && tabToPath(t) === path);
+    if (existing) return { tabs, activeId: existing.id };
+    if (tabs.length < MAX_TABS) {
+        const id = `tab-${nextTabId++}`;
+        return { tabs: [...tabs, { id, ...target }], activeId: id };
+    }
+    const reuseId = tabs[tabs.length - 1].id;
+    return { tabs: tabs.map((t) => (t.id === reuseId ? { ...t, ...target } : t)), activeId: reuseId };
 }
 
 /** Parse the current pathname into { category, slug } or null for home */
@@ -279,36 +318,11 @@ export function TabProvider({ children }: { children: ReactNode }) {
             // The URL wins over the saved active tab. On a plain reload they already
             // match; a mismatch means the user followed a link or typed a URL, so
             // show what they asked for instead of whatever was open before.
-            const path = window.location.pathname;
-            const savedActive = restoredTabs.find((t) => t.id === restoredActiveId);
-            const target = tabFieldsForPath(path);
-            const urlMismatch = !savedActive || tabToPath(savedActive) !== path;
-
-            if (!isStaticPath(path) && urlMismatch && target !== undefined) {
+            const fromUrl = tabsForUrl(window.location.pathname, restoredTabs, restoredActiveId);
+            if (fromUrl) {
+                restoredTabs = fromUrl.tabs;
+                restoredActiveId = fromUrl.activeId;
                 restoredSplitId = null;
-                if (target === null) {
-                    // Home URL — reset the Home tab to its default view
-                    restoredTabs = restoredTabs.map((t) =>
-                        t.id === "home" ? { ...HOME_TAB } : t,
-                    );
-                    restoredActiveId = "home";
-                } else {
-                    const existing = restoredTabs.find((t) => t.id !== "home" && tabToPath(t) === path);
-                    if (existing) {
-                        restoredActiveId = existing.id;
-                    } else if (restoredTabs.length < MAX_TABS) {
-                        const id = `tab-${nextTabId++}`;
-                        restoredTabs = [...restoredTabs, { id, ...target }];
-                        restoredActiveId = id;
-                    } else {
-                        // Tab limit reached — reuse the last tab for the linked tool
-                        const reuseId = restoredTabs[restoredTabs.length - 1].id;
-                        restoredTabs = restoredTabs.map((t) =>
-                            t.id === reuseId ? { ...t, ...target } : t,
-                        );
-                        restoredActiveId = reuseId;
-                    }
-                }
             }
 
             setTabs(restoredTabs);
@@ -327,6 +341,22 @@ export function TabProvider({ children }: { children: ReactNode }) {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // ── Follow in-app navigation (next/link, router.push) to tab URLs ──
+    // The provider lives in the root layout and stays mounted across pages, so a
+    // <Link href="/tools/..."> from a blog post changes the URL without remounting.
+    // Our own history.pushState also lands here, but then the URL already matches
+    // the active tab and nothing changes.
+    const lastPathnameRef = useRef(pathname);
+    useEffect(() => {
+        if (lastPathnameRef.current === pathname) return;
+        lastPathnameRef.current = pathname;
+        const next = tabsForUrl(pathname, tabsRef.current, activeTabIdRef.current);
+        if (!next) return;
+        setSplitTabId(null);
+        setTabs(next.tabs);
+        setActiveTabId(next.activeId);
+    }, [pathname]);
 
     // ── Persist tabs to sessionStorage on every change ──
     useEffect(() => {
@@ -349,10 +379,12 @@ export function TabProvider({ children }: { children: ReactNode }) {
             document.title = pageTitle;
         }
 
-        const isPop = skipPushRef.current;
-        if (isPop) {
-            skipPushRef.current = false;
-        } else if (path !== targetPath) {
+        // After back/forward or an in-app link the URL already matches the tab, so
+        // comparing paths is enough. (A "skip next push" flag used to live here, but
+        // it stuck whenever back/forward landed on the already-active tab, and the
+        // next tab switch then left the address bar on the old URL.)
+        skipPushRef.current = false;
+        if (path !== targetPath) {
             window.history.pushState({ tabId: activeTabId }, "", targetPath);
         }
 
