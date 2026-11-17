@@ -4,7 +4,7 @@ import { CollectionStructuredData } from "@/components/StructuredData";
 
 export const metadata = constructMetadata({
     title: "Security Tools",
-    description: "Cryptographic hash generators, secure password generators, and client-side encryption utility tools.",
+    description: "Cryptographic hash generators, secure password generators, JWT and SSL certificate decoders, and a PII redactor.",
     path: "/tools/security",
     keywords: ["security tools", "hash generator", "password generator", "encryption", "cryptography"],
 });
@@ -15,7 +15,7 @@ export default function SecurityPage() {
     return (
         <CollectionStructuredData
             name="Security Tools"
-            description="Cryptographic hash generators, secure password generators, and client-side encryption utility tools."
+            description="Cryptographic hash generators, secure password generators, JWT and SSL certificate decoders, and a PII redactor."
             path="/tools/security"
             tools={getToolsByCategory("security")}
         />
