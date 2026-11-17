@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 import { allTools } from "@/lib/tool-registry";
-import { fetchBlogs, blogSlug } from "@/lib/blog-api";
+import { fetchBlogs } from "@/lib/blog-api";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = "https://toolich.com";
@@ -68,15 +68,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.9,
         });
 
-        // Add individual blogs
-        for (const blog of blogs) {
-            blogPages.push({
-                url: `${baseUrl}/blogs/${blogSlug(blog.title)}`,
-                lastModified: new Date(blog.createdAt),
-                changeFrequency: "monthly" as const,
-                priority: 0.8,
-            });
-        }
+        // Individual posts are not listed: they are copies of the cratonik.com
+        // originals and declare those as canonical, so listing them here would
+        // send Google conflicting signals.
     }
 
     return [...staticPages, ...categoryPages, ...toolPages, ...blogPages];

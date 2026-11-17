@@ -212,6 +212,19 @@ export function TabContent() {
     const [playedSoundTimestamp, setPlayedSoundTimestamp] = useState<number | null>(null);
     const [isHighlighting, setIsHighlighting] = useState(false);
 
+    // Tabs are mounted the first time they are shown and then kept alive (hidden)
+    // so switching back keeps their state. Never-opened tabs are not rendered at
+    // all: otherwise the server HTML of every tool page would also contain the
+    // whole Home panel hidden with display:none (hidden duplicate text to Google).
+    const [openedTabIds, setOpenedTabIds] = useState<Set<string>>(
+        () => new Set([activeTabId, ...(splitTabId ? [splitTabId] : [])]),
+    );
+    const shownNow = [activeTabId, ...(splitTabId ? [splitTabId] : [])];
+    if (shownNow.some((id) => !openedTabIds.has(id))) {
+        // Adjusting state during render (React-supported) avoids an extra effect pass.
+        setOpenedTabIds((prev) => new Set([...prev, ...shownNow]));
+    }
+
     // Listen to custom event to open assistant programmatically
     useEffect(() => {
         const handleOpen = () => setIsOpenChatbot(true);
@@ -459,6 +472,7 @@ export function TabContent() {
                     const isActive = tab.id === activeTabId;
                     const isSplitTab = isSplit && tab.id === splitTabId;
                     const isVisible = isActive || isSplitTab;
+                    if (!isVisible && !openedTabIds.has(tab.id)) return null;
 
                     // Determine width, padding, and order dynamically
                     let widthStyle = "0px";

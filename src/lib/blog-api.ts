@@ -32,6 +32,15 @@ export async function fetchBlogs(): Promise<BlogPost[] | null> {
     }
 }
 
+/**
+ * The original post on cratonik.com. Toolich shows the same posts, so its copies
+ * declare this as their canonical URL (matching cratonik.com's own canonical,
+ * which uses the bare domain) to avoid duplicate content across the two sites.
+ */
+export function originalBlogUrl(title: string): string {
+    return `https://cratonik.com/blog/${encodeURIComponent(title)}`;
+}
+
 /** URL slug used for /blogs/<slug> (must stay in sync with existing links). */
 export function blogSlug(title: string): string {
     return encodeURIComponent(title.replace(/\s+/g, "-").toLowerCase());

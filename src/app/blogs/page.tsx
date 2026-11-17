@@ -7,6 +7,7 @@ import { fetchBlogs, blogSlug } from "@/lib/blog-api";
 
 export const metadata: Metadata = {
   title: 'Blog',
+  alternates: { canonical: '/blogs' },
   description: 'Read the latest tutorials, updates, and developer guides from Toolich.',
   openGraph: {
     title: 'Blog | Toolich',

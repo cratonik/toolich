@@ -94,7 +94,8 @@ function isTabPath(path: string): boolean {
  * state must never rewrite their URL, and tab actions there do a full navigation.
  */
 function isStaticPath(path: string): boolean {
-    return !isTabPath(path);
+    // An unknown /tools/... URL renders the 404 page, which the tab state must not rewrite.
+    return !isTabPath(path) || tabFieldsForPath(path) === undefined;
 }
 
 /**
