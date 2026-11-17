@@ -36,8 +36,6 @@ type TabContextType = {
     splitTabId: string | null;
     splitRatio: number;
     maxTabs: number;
-    isWide: boolean;
-    toggleWide: () => void;
     openTab: (tool: { name: string; slug: string; category: string }) => void;
     openInCurrentTab: (tool: {
         name: string;
@@ -226,7 +224,6 @@ export function TabProvider({ children }: { children: ReactNode }) {
     const [splitTabId, setSplitTabId] = useState<string | null>(null);
     const [splitRatio, setSplitRatio] = useState(0.5);
     const [splitHighlightTrigger, setSplitHighlightTrigger] = useState(0);
-    const [isWide, setIsWide] = useState(true);
     const [viewMode, setViewMode] = useState<"normal" | "minified">("normal");
     const tabsRef = useRef(tabs);
     tabsRef.current = tabs;
@@ -722,23 +719,13 @@ export function TabProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        const saved = localStorage.getItem("toolich-wide");
-        if (saved === "false") {
-            setIsWide(false);
-        }
-        
+        // Width is always wide now; drop the old standard/wide preference.
+        localStorage.removeItem("toolich-wide");
+
         const savedViewMode = localStorage.getItem("toolich-view-mode");
         if (savedViewMode === "minified" || savedViewMode === "normal") {
             setViewMode(savedViewMode);
         }
-    }, []);
-
-    const toggleWide = useCallback(() => {
-        setIsWide((prev) => {
-            const next = !prev;
-            localStorage.setItem("toolich-wide", String(next));
-            return next;
-        });
     }, []);
 
     const toggleViewMode = useCallback(() => {
@@ -757,8 +744,6 @@ export function TabProvider({ children }: { children: ReactNode }) {
                 splitTabId,
                 splitRatio,
                 maxTabs: MAX_TABS,
-                isWide,
-                toggleWide,
                 openTab,
                 openInCurrentTab,
                 openCategoryInCurrentTab,

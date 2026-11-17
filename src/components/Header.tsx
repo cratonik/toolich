@@ -17,13 +17,13 @@ type HeaderProps = {
 export default function Header({
   githubUrl = "https://github.com/cratonik/toolich",
 }: HeaderProps) {
-  const { isWide, goHome, viewMode, toggleViewMode } = useTabContext();
+  const { goHome, viewMode, toggleViewMode } = useTabContext();
   const pathname = usePathname();
 
   return (
     <>
       <header className="fixed w-full top-0 z-50 border-b border-zinc-200/80 bg-white/80 backdrop-blur-sm dark:border-zinc-800/80 dark:bg-zinc-950/80">
-        <div className={`mx-auto flex ${viewMode === "minified" ? "h-11" : "h-14"} ${isWide ? "max-w-[94%]" : "max-w-5xl"} items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
+        <div className={`mx-auto flex ${viewMode === "minified" ? "h-11" : "h-14"} max-w-[94%] items-center justify-between px-4 sm:px-6 transition-all duration-300`}>
           <Link
             href="/"
             onClick={(e) => {

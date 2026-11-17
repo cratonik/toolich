@@ -10,6 +10,7 @@ import Script from "next/script";
 import { HomeStructuredData } from "@/components/StructuredData";
 import { AdSense } from "@/components/AdSense";
 import ContextMenu from "@/components/ContextMenu";
+import { PwaLaunchHandler } from "@/components/PwaLaunchHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -140,6 +141,7 @@ export default function RootLayout({
             <SearchProvider>
               <ToastProvider>
                 <ContextMenu />
+                <PwaLaunchHandler />
                 <Header />
                 {children}
               </ToastProvider>

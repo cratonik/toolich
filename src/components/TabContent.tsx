@@ -8,7 +8,8 @@ import { ToolPageHeader } from "@/components/ToolPageHeader";
 import HomePanel from "@/components/HomePanel";
 import CategoryPanel from "@/components/CategoryPanel";
 import { SplitDivider } from "@/components/SplitDivider";
-import { X, Columns2, Maximize2, Minimize2, Keyboard, Bot, Megaphone } from "lucide-react";
+import { X, Columns2, Keyboard, Bot, Megaphone } from "lucide-react";
+import { InstallAppButton } from "@/components/InstallAppButton";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import Footer from "@/components/Footer";
@@ -201,7 +202,7 @@ function TabPanel({ tab }: { tab: Tab }) {
 }
 
 export function TabContent() {
-    const { tabs, activeTabId, splitTabId, splitRatio, splitTab, unsplit, setSplitRatio, isWide, toggleWide, splitHighlightTrigger } = useTabContext();
+    const { tabs, activeTabId, splitTabId, splitRatio, splitTab, unsplit, setSplitRatio, splitHighlightTrigger } = useTabContext();
     const [dropTarget, setDropTarget] = useState(false);
     const [isOpenShortcuts, setIsOpenShortcuts] = useState(false);
     const [isOpenChatbot, setIsOpenChatbot] = useState(false);
@@ -366,15 +367,8 @@ export function TabContent() {
                     <Keyboard className="h-[18px] w-[18px]" />
                 </button>
 
-                {/* Wide View Toggle Trigger */}
-                <button
-                    type="button"
-                    onClick={toggleWide}
-                    className="hidden md:flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
-                    title={isWide ? "Switch to standard width" : "Switch to wide width"}
-                >
-                    {isWide ? <Minimize2 className="h-[18px] w-[18px]" /> : <Maximize2 className="h-[18px] w-[18px]" />}
-                </button>
+                {/* Install / open the Toolich app (PWA) */}
+                <InstallAppButton />
 
                 {/* Subtle vertical divider */}
                 <span className="hidden md:block h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
@@ -525,7 +519,7 @@ export function TabContent() {
 
                             {/* Tab Panel Content */}
                             <div className={`flex-1 px-4 pt-6 pb-10 sm:px-6 ${!isSplit ? "lg:px-8" : ""}`}>
-                                <div className={!isSplit ? `mx-auto ${isWide ? "max-w-[94%]" : "max-w-5xl"} transition-all duration-300` : "mx-auto max-w-none"}>
+                                <div className={!isSplit ? `mx-auto max-w-[94%] transition-all duration-300` : "mx-auto max-w-none"}>
                                     <TabIdContext.Provider value={getTabStorageSuffix(tab, tabs)}>
                                         <TabPanel tab={tab} />
                                     </TabIdContext.Provider>

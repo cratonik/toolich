@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bot, Keyboard, Maximize2, Minimize2, X, Megaphone } from "lucide-react";
-import { useTabContext } from "@/lib/tab-context";
+import { Bot, Keyboard, X, Megaphone } from "lucide-react";
+import { InstallAppButton } from "@/components/InstallAppButton";
 import { renderSlackText } from "@/lib/slack-format";
 import { ShortcutHelp } from "@/components/ShortcutHelp";
 import { FeedbackChatbot } from "@/components/FeedbackChatbot";
@@ -52,7 +52,6 @@ function playNotificationSound() {
 }
 
 export function StaticFloatingDock() {
-    const { isWide, toggleWide } = useTabContext();
     const [isOpenShortcuts, setIsOpenShortcuts] = useState(false);
     const [isOpenChatbot, setIsOpenChatbot] = useState(false);
     const [activeBroadcast, setActiveBroadcast] = useState<{ text: string; timestamp: number } | null>(null);
@@ -144,15 +143,8 @@ export function StaticFloatingDock() {
                     <Keyboard className="h-[18px] w-[18px]" />
                 </button>
 
-                {/* Wide View Toggle Trigger */}
-                <button
-                    type="button"
-                    onClick={toggleWide}
-                    className="hidden md:flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-200 transition-all hover:scale-105 active:scale-95"
-                    title={isWide ? "Switch to standard width" : "Switch to wide width"}
-                >
-                    {isWide ? <Minimize2 className="h-[18px] w-[18px]" /> : <Maximize2 className="h-[18px] w-[18px]" />}
-                </button>
+                {/* Install / open the Toolich app (PWA) */}
+                <InstallAppButton />
 
                 {/* Subtle vertical divider */}
                 <span className="hidden md:block h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
